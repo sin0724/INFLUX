@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/middleware';
+import { withAuth, requireAdmin } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
+import { logAdminActivity, AdminActions } from '@/lib/admin-logs';
 
 // PATCH: Update user (admin only)
 async function updateUser(
@@ -70,6 +71,30 @@ async function updateUser(
       );
     }
 
+    // 활동 로그 기록
+    const targetType = data.role === 'admin' ? 'admin' : data.role === 'client' ? 'client' : 'user';
+    let logAction = AdminActions.UPDATE_USER;
+    
+    if (isActive === false) {
+      logAction = AdminActions.BLOCK_USER;
+    } else if (isActive === true && updateData.hasOwnProperty('isActive')) {
+      logAction = AdminActions.ACTIVATE_USER;
+    }
+    
+    await logAdminActivity(
+      user.id,
+      user.username,
+      logAction,
+      targetType,
+      userId,
+      {
+        updatedFields: Object.keys(updateData),
+        previousStatus: data.isActive,
+        ...updateData,
+      },
+      req
+    );
+
     return NextResponse.json({ user: data });
   } catch (error) {
     console.error('Update user error:', error);
@@ -86,7 +111,7 @@ async function deleteUser(
   user: any,
   userId: string
 ) {
-  if (user.role !== 'admin') {
+  if (!requireAdmin(user)) {
     return NextResponse.json(
       { error: '권한이 없습니다.' },
       { status: 403 }
@@ -94,6 +119,13 @@ async function deleteUser(
   }
 
   try {
+    // 삭제 전 사용자 정보 가져오기 (로그용)
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role, username')
+      .eq('id', userId)
+      .single();
+
     const { error } = await supabase
       .from('users')
       .delete()
@@ -103,6 +135,25 @@ async function deleteUser(
       return NextResponse.json(
         { error: '사용자 삭제에 실패했습니다.' },
         { status: 500 }
+      );
+    }
+
+    // 활동 로그 기록
+    if (userData) {
+      const targetType = userData.role === 'admin' ? 'admin' : userData.role === 'client' ? 'client' : 'user';
+      const logAction = userData.role === 'admin' ? AdminActions.DELETE_ADMIN : AdminActions.DELETE_USER;
+      
+      await logAdminActivity(
+        user.id,
+        user.username,
+        logAction,
+        targetType,
+        userId,
+        {
+          deletedUsername: userData.username,
+          deletedRole: userData.role,
+        },
+        req
       );
     }
 
@@ -121,7 +172,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return withAuth((r, u) => updateUser(r, u, id), ['admin'])(req);
+  return withAuth((r, u) => updateUser(r, u, id), ['superadmin', 'admin'])(req);
 }
 
 export async function DELETE(
@@ -129,6 +180,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return withAuth((r, u) => deleteUser(r, u, id), ['admin'])(req);
+  return withAuth((r, u) => deleteUser(r, u, id), ['superadmin', 'admin'])(req);
 }
 

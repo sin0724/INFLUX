@@ -135,6 +135,53 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
               전체 작업 요청 리스트 및 상태 관리
             </div>
           </button>
+
+          {/* 최고관리자 전용 메뉴 */}
+          {user.role === 'superadmin' && (
+            <>
+              <button
+                onClick={() => router.push('/admin/admins')}
+                className="bg-white border border-purple-200 rounded-lg p-6 text-left hover:border-purple-300 hover:bg-purple-50 transition"
+              >
+                <div className="font-medium text-gray-900 text-lg mb-2">
+                  관리자 관리
+                  <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">
+                    최고관리자
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600">
+                  하위 관리자 계정 생성 및 관리
+                </div>
+              </button>
+
+              <button
+                onClick={() => router.push('/admin/logs')}
+                className="bg-white border border-gray-200 rounded-lg p-6 text-left hover:border-primary-300 hover:bg-primary-50 transition"
+              >
+                <div className="font-medium text-gray-900 text-lg mb-2">
+                  활동 로그
+                </div>
+                <div className="text-sm text-gray-600">
+                  관리자 활동 로그 조회
+                </div>
+              </button>
+            </>
+          )}
+
+          {/* 일반 관리자용 활동 로그 */}
+          {user.role === 'admin' && (
+            <button
+              onClick={() => router.push('/admin/logs')}
+              className="bg-white border border-gray-200 rounded-lg p-6 text-left hover:border-primary-300 hover:bg-primary-50 transition"
+            >
+              <div className="font-medium text-gray-900 text-lg mb-2">
+                내 활동 로그
+              </div>
+              <div className="text-sm text-gray-600">
+                내 활동 내역 조회
+              </div>
+            </button>
+          )}
         </div>
       </div>
     </div>

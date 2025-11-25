@@ -1,21 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/middleware';
+import { withAuth, requireAdmin } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
 import { hashPassword } from '@/lib/auth';
+import { logAdminActivity, AdminActions } from '@/lib/admin-logs';
 
-// GET: Get all users (admin only)
+// GET: Get all users (admin/superadmin only)
 async function getUsers(req: NextRequest, user: any) {
-  if (user.role !== 'admin') {
+  if (!requireAdmin(user)) {
     return NextResponse.json(
       { error: '권한이 없습니다.' },
       { status: 403 }
     );
   }
 
-  const { data, error } = await supabase
+  // superadmin은 모든 사용자 조회, admin은 client와 admin만 조회
+  let query = supabase
     .from('users')
     .select('id, username, companyName, role, totalQuota, remainingQuota, quota, contractStartDate, contractEndDate, isActive, createdAt')
     .order('createdAt', { ascending: false });
+
+  if (user.role !== 'superadmin') {
+    // 일반 admin은 superadmin 제외
+    query = query.neq('role', 'superadmin');
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json(
@@ -27,9 +36,11 @@ async function getUsers(req: NextRequest, user: any) {
   return NextResponse.json({ users: data });
 }
 
-// POST: Create new user (admin only)
+// POST: Create new user
+// superadmin: admin, client 생성 가능
+// admin: client만 생성 가능
 async function createUser(req: NextRequest, user: any) {
-  if (user.role !== 'admin') {
+  if (!requireAdmin(user)) {
     return NextResponse.json(
       { error: '권한이 없습니다.' },
       { status: 403 }
@@ -43,6 +54,22 @@ async function createUser(req: NextRequest, user: any) {
       return NextResponse.json(
         { error: '필수 필드가 누락되었습니다.' },
         { status: 400 }
+      );
+    }
+
+    // 권한 체크: superadmin은 admin/client 생성 가능, admin은 client만 생성 가능
+    if (user.role === 'admin' && role !== 'client') {
+      return NextResponse.json(
+        { error: '일반 관리자는 광고주 계정만 생성할 수 있습니다.' },
+        { status: 403 }
+      );
+    }
+
+    // superadmin 계정 생성 방지
+    if (role === 'superadmin' && user.role !== 'superadmin') {
+      return NextResponse.json(
+        { error: '최고관리자 계정은 생성할 수 없습니다.' },
+        { status: 403 }
       );
     }
 
@@ -115,6 +142,25 @@ async function createUser(req: NextRequest, user: any) {
     // Remove password from response
     const { password: _, ...userData } = data;
 
+    // 활동 로그 기록
+    const logAction = role === 'admin' ? AdminActions.CREATE_ADMIN : AdminActions.CREATE_USER;
+    const targetType = role === 'admin' ? 'admin' : role === 'client' ? 'client' : 'user';
+    
+    await logAdminActivity(
+      user.id,
+      user.username,
+      logAction,
+      targetType,
+      data.id,
+      {
+        createdUsername: username,
+        createdRole: role,
+        quota: role === 'client' ? quota : undefined,
+        companyName: companyName || undefined,
+      },
+      req
+    );
+
     return NextResponse.json({ user: userData }, { status: 201 });
   } catch (error: any) {
     console.error('Create user error:', error);
@@ -125,6 +171,6 @@ async function createUser(req: NextRequest, user: any) {
   }
 }
 
-export const GET = withAuth(getUsers, ['admin']);
-export const POST = withAuth(createUser, ['admin']);
+export const GET = withAuth(getUsers, ['superadmin', 'admin']);
+export const POST = withAuth(createUser, ['superadmin', 'admin']);
 

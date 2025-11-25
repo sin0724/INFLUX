@@ -1,0 +1,45 @@
+# Railway 환경 변수 복사용
+
+# 1번째 변수
+변수명(VARIABLE_NAME):
+NEXT_PUBLIC_SUPABASE_URL
+
+값(VALUE):
+https://qpspzclporwtewabcwct.supabase.co
+
+---
+
+# 2번째 변수
+변수명(VARIABLE_NAME):
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+값(VALUE):
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwc3B6Y2xwb3J3dGV3YWJjd2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwNDI1NjUsImV4cCI6MjA3OTYxODU2NX0.HvqYPwC8mMPaoasPu4JQJiO85PuizKmmjN3V_qaVQdU
+
+---
+
+# 3번째 변수
+변수명(VARIABLE_NAME):
+SUPABASE_SERVICE_ROLE_KEY
+
+값(VALUE):
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwc3B6Y2xwb3J3dGV3YWJjd2N0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDA0MjU2NSwiZXhwIjoyMDc5NjE4NTY1fQ.FQTKgn0kgmYJTU9sIkKP0SNe9IEEYvVc1zHAC8XdIQY
+
+---
+
+# 4번째 변수
+변수명(VARIABLE_NAME):
+JWT_SECRET
+
+값(VALUE):
+C8/KgeAZcMuzxcUaavxWedrCAjKNOlOYuGlLl5mwyNA=
+
+---
+
+# 5번째 변수
+변수명(VARIABLE_NAME):
+NODE_ENV
+
+값(VALUE):
+production
+
