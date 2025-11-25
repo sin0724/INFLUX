@@ -11,6 +11,7 @@ interface Order {
   caption: string | null;
   imageUrls: string[];
   status: 'pending' | 'working' | 'done';
+  completedLink?: string | null;
   createdAt: string;
 }
 
@@ -100,8 +101,26 @@ export default function ClientOrdersList() {
                           : 'bg-green-100 text-green-700'
                       }`}
                     >
-                      {STATUS_NAMES[order.status]}
+                      {(order.taskType === 'follower' || order.taskType === 'like')
+                        ? (order.status === 'pending' ? '대기중' : '신청완료')
+                        : STATUS_NAMES[order.status]}
                     </div>
+                    {order.status === 'done' && order.completedLink && (
+                      <div className="mt-2">
+                        <a
+                          href={order.completedLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="truncate max-w-xs">완료 링크 보기</span>
+                          <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {order.caption && (
@@ -188,6 +207,24 @@ export default function ClientOrdersList() {
                       {STATUS_NAMES[selectedOrder.status]}
                     </div>
                   </div>
+                  
+                  {/* 완료된 링크 표시 */}
+                  {selectedOrder.status === 'done' && selectedOrder.completedLink && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">완료 링크</div>
+                      <a
+                        href={selectedOrder.completedLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                      >
+                        <span className="truncate max-w-md">{selectedOrder.completedLink}</span>
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  )}
                   {selectedOrder.caption && (
                     <div>
                       <div className="text-sm text-gray-600 mb-2">작업 정보</div>

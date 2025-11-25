@@ -136,6 +136,18 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             </div>
           </button>
 
+          <button
+            onClick={() => router.push('/admin/completed-links')}
+            className="bg-white border border-gray-200 rounded-lg p-6 text-left hover:border-primary-300 hover:bg-primary-50 transition"
+          >
+            <div className="font-medium text-gray-900 text-lg mb-2">
+              완료된 링크 모아보기
+            </div>
+            <div className="text-sm text-gray-600">
+              광고주별 완료된 작업 링크 확인
+            </div>
+          </button>
+
           {/* 최고관리자 전용 메뉴 */}
           {user.role === 'superadmin' && (
             <>

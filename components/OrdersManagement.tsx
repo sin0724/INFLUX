@@ -12,6 +12,7 @@ interface Order {
   caption: string | null;
   imageUrls: string[];
   status: 'pending' | 'working' | 'done';
+  completedLink?: string | null;
   createdAt: string;
   client: {
     id: string;
@@ -33,6 +34,12 @@ const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
   working: '진행중',
   done: '완료',
+};
+
+// 인스타 좋아요/팔로워용 상태 이름
+const SIMPLE_STATUS_NAMES: Record<string, string> = {
+  pending: '대기중',
+  done: '신청완료',
 };
 
 export default function OrdersManagement() {
@@ -57,6 +64,10 @@ export default function OrdersManagement() {
   });
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
+  
+  // 완료 링크 입력 모달 상태
+  const [completingOrder, setCompletingOrder] = useState<Order | null>(null);
+  const [completedLink, setCompletedLink] = useState('');
 
   useEffect(() => {
     fetchClients();
@@ -99,13 +110,30 @@ export default function OrdersManagement() {
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
+    const order = orders.find(o => o.id === orderId);
+    
+    // 인기게시물/맘카페를 완료로 변경할 때는 링크 입력 모달 표시
+    if (newStatus === 'done' && order && (order.taskType === 'hotpost' || order.taskType === 'momcafe')) {
+      setCompletingOrder(order);
+      setCompletedLink(order.completedLink || '');
+      return;
+    }
+    
+    // 그 외의 경우는 바로 상태 변경
+    await updateOrderStatus(orderId, newStatus, null);
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null) => {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ 
+          status: newStatus,
+          completedLink: link 
+        }),
       });
 
       if (response.ok) {
@@ -114,11 +142,24 @@ export default function OrdersManagement() {
           const data = await response.json();
           setSelectedOrder(data.order);
         }
+        setCompletingOrder(null);
+        setCompletedLink('');
       }
     } catch (error) {
       console.error('Failed to update order status:', error);
       alert('상태 변경에 실패했습니다.');
     }
+  };
+
+  const handleCompleteWithLink = () => {
+    if (!completingOrder) return;
+    
+    if (!completedLink.trim()) {
+      alert('완료 링크를 입력해주세요.');
+      return;
+    }
+    
+    updateOrderStatus(completingOrder.id, 'done', completedLink.trim());
   };
 
   const handleEditOrder = (order: Order) => {
@@ -399,7 +440,9 @@ export default function OrdersManagement() {
                             : 'bg-green-100 text-green-700'
                         }`}
                       >
-                        {STATUS_NAMES[order.status]}
+                        {(order.taskType === 'follower' || order.taskType === 'like')
+                          ? SIMPLE_STATUS_NAMES[order.status] || STATUS_NAMES[order.status]
+                          : STATUS_NAMES[order.status]}
                       </span>
                       <span className="text-sm text-gray-600">
                         {order.client?.username || '알 수 없음'}
@@ -432,9 +475,19 @@ export default function OrdersManagement() {
                       onClick={(e) => e.stopPropagation()}
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      <option value="pending">대기중</option>
-                      <option value="working">진행중</option>
-                      <option value="done">완료</option>
+                      {/* 인스타 좋아요/팔로워는 대기중/신청완료만 */}
+                      {(order.taskType === 'follower' || order.taskType === 'like') ? (
+                        <>
+                          <option value="pending">대기중</option>
+                          <option value="done">신청완료</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="pending">대기중</option>
+                          <option value="working">진행중</option>
+                          <option value="done">완료</option>
+                        </>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -516,9 +569,19 @@ export default function OrdersManagement() {
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      <option value="pending">대기중</option>
-                      <option value="working">진행중</option>
-                      <option value="done">완료</option>
+                      {/* 인스타 좋아요/팔로워는 대기중/신청완료만 */}
+                      {(selectedOrder.taskType === 'follower' || selectedOrder.taskType === 'like') ? (
+                        <>
+                          <option value="pending">대기중</option>
+                          <option value="done">신청완료</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="pending">대기중</option>
+                          <option value="working">진행중</option>
+                          <option value="done">완료</option>
+                        </>
+                      )}
                     </select>
                   </div>
                   <div className="flex gap-2 pt-4 border-t border-gray-200">
@@ -592,6 +655,82 @@ export default function OrdersManagement() {
                         </div>
                       </div>
                     )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Complete Link Modal */}
+        {completingOrder && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setCompletingOrder(null);
+              setCompletedLink('');
+            }}
+          >
+            <div
+              className="bg-white rounded-lg max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    완료 링크 입력
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setCompletingOrder(null);
+                      setCompletedLink('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2">작업 종류</div>
+                    <div className="font-medium text-gray-900">
+                      {TASK_TYPE_NAMES[completingOrder.taskType] || completingOrder.taskType}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      완료 링크 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={completedLink}
+                      onChange={(e) => setCompletedLink(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      완료된 작업의 링크를 입력해주세요.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setCompletingOrder(null);
+                        setCompletedLink('');
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleCompleteWithLink}
+                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                    >
+                      완료 처리
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
