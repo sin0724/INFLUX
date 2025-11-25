@@ -3,13 +3,13 @@ import { withAuth, requireAdmin } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
 import { logAdminActivity, AdminActions } from '@/lib/admin-logs';
 
-// PATCH: Update user (admin only)
+// PATCH: Update user (admin/superadmin only)
 async function updateUser(
   req: NextRequest,
   user: any,
   userId: string
 ) {
-  if (user.role !== 'admin') {
+  if (!requireAdmin(user)) {
     return NextResponse.json(
       { error: '권한이 없습니다.' },
       { status: 403 }
@@ -73,7 +73,7 @@ async function updateUser(
 
     // 활동 로그 기록
     const targetType = data.role === 'admin' ? 'admin' : data.role === 'client' ? 'client' : 'user';
-    let logAction = AdminActions.UPDATE_USER;
+    let logAction: string = AdminActions.UPDATE_USER;
     
     if (isActive === false) {
       logAction = AdminActions.BLOCK_USER;
