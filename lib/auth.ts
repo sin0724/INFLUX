@@ -16,7 +16,7 @@ export interface User {
   id: string;
   username: string;
   companyName?: string;
-  role: 'admin' | 'client';
+  role: 'superadmin' | 'admin' | 'client';
   totalQuota?: number;
   remainingQuota?: number;
   quota?: Quota;
