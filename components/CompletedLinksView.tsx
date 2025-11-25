@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { formatDateTime } from '@/lib/utils';
 
 interface Order {
@@ -30,6 +30,7 @@ export default function CompletedLinksView() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [clients, setClients] = useState<any[]>([]);
 
   useEffect(() => {
@@ -75,18 +76,51 @@ export default function CompletedLinksView() {
     }
   };
 
-  // 광고주별로 그룹화
-  const groupedByClient = orders.reduce((acc, order) => {
-    const clientId = order.client.id;
-    if (!acc[clientId]) {
-      acc[clientId] = {
-        client: order.client,
-        orders: [],
-      };
+  // 검색어로 필터링
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return orders;
     }
-    acc[clientId].orders.push(order);
-    return acc;
-  }, {} as Record<string, { client: Order['client']; orders: Order[] }>);
+
+    const query = searchQuery.toLowerCase().trim();
+    return orders.filter((order) => {
+      // 광고주 이름 검색
+      const clientName = order.client.username?.toLowerCase() || '';
+      const companyName = order.client.companyName?.toLowerCase() || '';
+      
+      // 작업 종류 검색
+      const taskTypeName = TASK_TYPE_NAMES[order.taskType]?.toLowerCase() || '';
+      
+      // 링크 URL 검색
+      const link = order.completedLink?.toLowerCase() || '';
+      
+      // 작업 정보 검색
+      const caption = order.caption?.toLowerCase() || '';
+      
+      return (
+        clientName.includes(query) ||
+        companyName.includes(query) ||
+        taskTypeName.includes(query) ||
+        link.includes(query) ||
+        caption.includes(query)
+      );
+    });
+  }, [orders, searchQuery]);
+
+  // 광고주별로 그룹화
+  const groupedByClient = useMemo(() => {
+    return filteredOrders.reduce((acc, order) => {
+      const clientId = order.client.id;
+      if (!acc[clientId]) {
+        acc[clientId] = {
+          client: order.client,
+          orders: [],
+        };
+      }
+      acc[clientId].orders.push(order);
+      return acc;
+    }, {} as Record<string, { client: Order['client']; orders: Order[] }>);
+  }, [filteredOrders]);
 
   const groupedOrders = Object.values(groupedByClient);
 
@@ -96,31 +130,64 @@ export default function CompletedLinksView() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">완료된 링크 모아보기</h1>
           
-          {/* 광고주 필터 */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              광고주 필터
-            </label>
-            <select
-              value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-            >
-              <option value="">전체 광고주</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.username} {client.companyName && `(${client.companyName})`}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* 검색 필드 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                검색
+              </label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="광고주명, 회사명, 작업종류, 링크 등으로 검색..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+            
+            {/* 광고주 필터 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                광고주 필터
+              </label>
+              <select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="">전체 광고주</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.username} {client.companyName && `(${client.companyName})`}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+          
+          {/* 검색 결과 개수 표시 */}
+          {searchQuery && (
+            <div className="text-sm text-gray-600 mb-4">
+              검색 결과: {filteredOrders.length}개
+            </div>
+          )}
         </div>
 
         {loading ? (
           <div className="text-center py-12 text-gray-600">로딩 중...</div>
         ) : groupedOrders.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-gray-600">완료된 링크가 없습니다.</div>
+            <div className="text-gray-600">
+              {searchQuery ? '검색 결과가 없습니다.' : '완료된 링크가 없습니다.'}
+            </div>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="mt-4 text-primary-600 hover:text-primary-700 text-sm"
+              >
+                검색어 지우기
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
