@@ -1,11 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -40,25 +37,20 @@ export default function LoginPage() {
           const now = new Date();
           if (endDate < now || data.user.isActive === false) {
             setError('계약이 만료되었거나 계정이 차단되었습니다. 관리자에게 문의해주세요.');
+            setLoading(false);
             return;
           }
         }
       }
 
-      // Set cookie on client side (for immediate access)
-      Cookies.set('auth-token', data.token || '', {
-        expires: 7,
-        path: '/',
-      });
-
-      // Redirect based on role
-      if (data.user.role === 'admin' || data.user.role === 'superadmin') {
-        router.push('/admin');
-      } else {
-        router.push('/client');
-      }
-
-      router.refresh();
+      // 서버에서 httpOnly 쿠키가 설정되었으므로 클라이언트 쿠키 설정 불필요
+      // 모바일 환경에서 쿠키가 제대로 설정되도록 전체 페이지 리로드 사용
+      const redirectPath = data.user.role === 'admin' || data.user.role === 'superadmin' 
+        ? '/admin' 
+        : '/client';
+      
+      // 모바일에서 쿠키가 확실히 적용되도록 window.location 사용
+      window.location.href = redirectPath;
     } catch (err) {
       setError('로그인 중 오류가 발생했습니다.');
       setLoading(false);
