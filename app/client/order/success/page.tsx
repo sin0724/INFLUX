@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
@@ -13,6 +13,8 @@ export default function OrderSuccessPage() {
   useEffect(() => {
     if (orderId) {
       fetchOrder();
+    } else {
+      setLoading(false);
     }
   }, [orderId]);
 
@@ -119,6 +121,18 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">로딩 중...</div>
+      </div>
+    }>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }
 
