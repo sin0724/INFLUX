@@ -581,7 +581,7 @@ export default function ClientsManagement() {
                                   {daysLeft > 0 ? `${daysLeft}일 남음` : '만료 임박'}
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                  {new Date(client.contractEndDate).toLocaleDateString('ko-KR')}
+                                  {endDate.toLocaleDateString('ko-KR')}
                                 </div>
                               </div>
                             );
