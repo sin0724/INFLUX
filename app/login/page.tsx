@@ -52,7 +52,7 @@ export default function LoginPage() {
       });
 
       // Redirect based on role
-      if (data.user.role === 'admin') {
+      if (data.user.role === 'admin' || data.user.role === 'superadmin') {
         router.push('/admin');
       } else {
         router.push('/client');
