@@ -437,7 +437,13 @@ export default function ClientsManagement() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setFormData({ username: '', password: '', planType: '1' });
+                    setFormData({ 
+                      username: '', 
+                      password: '', 
+                      companyName: '',
+                      planType: '1',
+                      contractStartDate: new Date().toISOString().split('T')[0]
+                    });
                     setFormError('');
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
