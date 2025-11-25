@@ -38,7 +38,7 @@ const TASK_TYPES = [
     description: '최소 10개부터 작업 가능'
   },
   { id: 'hotpost', name: '인스타그램 인기게시물', requiresImage: true },
-  { id: 'momcafe', name: '맘카페', requiresImage: true },
+  { id: 'momcafe', name: '맘카페', requiresImage: false },
   { id: 'powerblog', name: '파워블로그', requiresImage: false, disabled: true },
   { id: 'clip', name: '클립', requiresImage: false, disabled: true },
 ];
@@ -173,8 +173,9 @@ export default function OrderForm({ user }: OrderFormProps) {
       }
     }
 
-    if (requiresImage && images.length === 0) {
-      setError('이미지를 업로드해주세요.');
+    // hotpost만 이미지 필수 (momcafe는 선택)
+    if (taskType === 'hotpost' && images.length === 0) {
+      setError('1:1 비율의 사진 1장을 업로드해주세요.');
       return;
     }
 
@@ -543,8 +544,8 @@ export default function OrderForm({ user }: OrderFormProps) {
             </div>
           )}
 
-          {/* Image Upload */}
-          {requiresImage && (
+          {/* Image Upload - hotpost는 필수, momcafe는 선택 */}
+          {(taskType === 'hotpost' || taskType === 'momcafe') && (
             <ImageUpload 
               images={images} 
               onImagesChange={setImages}
