@@ -1,0 +1,1073 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { formatDate } from '@/lib/utils';
+
+interface Client {
+  id: string;
+  username: string;
+  companyName?: string;
+  totalQuota: number;
+  remainingQuota: number;
+  quota?: any;
+  contractStartDate?: string;
+  contractEndDate?: string;
+  isActive?: boolean;
+  createdAt: string;
+}
+
+export default function ClientsManagement() {
+  const router = useRouter();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [extendingClient, setExtendingClient] = useState<Client | null>(null);
+  const [renewingClient, setRenewingClient] = useState<Client | null>(null);
+  const [extendDate, setExtendDate] = useState('');
+  const [renewPlanType, setRenewPlanType] = useState('1');
+
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    companyName: '',
+    planType: '1', // '1', '3', '6' 개월
+    contractStartDate: new Date().toISOString().split('T')[0], // 오늘 날짜
+  });
+  
+  // 수정 모달 상태
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editForm, setEditForm] = useState({
+    username: '',
+    companyName: '',
+    quota: {
+      follower: { total: 0, remaining: 0 },
+      like: { total: 0, remaining: 0 },
+      hotpost: { total: 0, remaining: 0 },
+      momcafe: { total: 0, remaining: 0 },
+    },
+  });
+
+  // 플랜별 quota 설정
+  const getQuotaByPlan = (planType: string) => {
+    switch (planType) {
+      case '1':
+        // 1개월: 인기게시물 3개, 맘카페 3개 (팔로워/좋아요 없음)
+        return {
+          follower: { total: 0, remaining: 0 },
+          like: { total: 0, remaining: 0 },
+          hotpost: { total: 3, remaining: 3 },
+          momcafe: { total: 3, remaining: 3 },
+        };
+      case '3':
+        // 3개월: 인기게시물 3개, 맘카페 3개, 팔로워 1000개, 좋아요 1000개
+        return {
+          follower: { total: 1000, remaining: 1000 },
+          like: { total: 1000, remaining: 1000 },
+          hotpost: { total: 3, remaining: 3 },
+          momcafe: { total: 3, remaining: 3 },
+        };
+      case '6':
+        // 6개월: 인기게시물 6개, 맘카페 6개, 팔로워 2500개, 좋아요 2500개
+        return {
+          follower: { total: 2500, remaining: 2500 },
+          like: { total: 2500, remaining: 2500 },
+          hotpost: { total: 6, remaining: 6 },
+          momcafe: { total: 6, remaining: 6 },
+        };
+      default:
+        return {
+          follower: { total: 0, remaining: 0 },
+          like: { total: 0, remaining: 0 },
+          hotpost: { total: 0, remaining: 0 },
+          momcafe: { total: 0, remaining: 0 },
+        };
+    }
+  };
+
+  // 계약 종료일 계산
+  const getContractEndDate = (startDate: string, planType: string): string => {
+    const start = new Date(startDate);
+    const months = parseInt(planType);
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + months);
+    return end.toISOString().split('T')[0];
+  };
+  const [formError, setFormError] = useState('');
+  const [formLoading, setFormLoading] = useState(false);
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const data = await response.json();
+        const clientList = data.users.filter((u: any) => u.role === 'client');
+        setClients(clientList);
+      }
+    } catch (error) {
+      console.error('Failed to fetch clients:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    setFormLoading(true);
+
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          companyName: formData.companyName,
+          role: 'client',
+          quota: getQuotaByPlan(formData.planType),
+          contractStartDate: formData.contractStartDate,
+          contractEndDate: getContractEndDate(formData.contractStartDate, formData.planType),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Create user error:', data);
+        setFormError(data.error || '광고주 생성에 실패했습니다.');
+        setFormLoading(false);
+        return;
+      }
+
+      // Reset form and refresh list
+      setFormData({ 
+        username: '', 
+        password: '',
+        companyName: '',
+        planType: '1',
+        contractStartDate: new Date().toISOString().split('T')[0],
+      });
+      setShowCreateForm(false);
+      fetchClients();
+    } catch (error: any) {
+      console.error('Create user error:', error);
+      setFormError(`광고주 생성 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const filteredClients = clients.filter((client) =>
+    client.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleToggleActive = async (client: Client) => {
+    if (!confirm(`${client.username} 계정을 ${client.isActive !== false ? '차단' : '활성화'}하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${client.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isActive: client.isActive === false ? true : false,
+        }),
+      });
+
+      if (response.ok) {
+        fetchClients();
+      } else {
+        alert('상태 변경에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to toggle active:', error);
+      alert('상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 계약 연장 (날짜 직접 선택, quota 유지)
+  const handleExtendContract = async () => {
+    if (!extendingClient || !extendDate) {
+      alert('날짜를 선택해주세요.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${extendingClient.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contractEndDate: extendDate,
+          isActive: true, // 연장 시 활성화
+        }),
+      });
+
+      if (response.ok) {
+        fetchClients();
+        setExtendingClient(null);
+        setExtendDate('');
+        alert('계약이 연장되었습니다.');
+      } else {
+        const data = await response.json();
+        alert(data.error || '계약 연장에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to extend contract:', error);
+      alert('계약 연장 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 재계약 (1,3,6개월 선택, quota 추가)
+  const handleRenewContract = async () => {
+    if (!renewingClient) {
+      return;
+    }
+
+    const newQuota = getQuotaByPlan(renewPlanType);
+    
+    // 기존 quota와 합산
+    const currentQuota = renewingClient.quota || {};
+    const mergedQuota = {
+      follower: {
+        total: (currentQuota.follower?.total || 0) + (newQuota.follower?.total || 0),
+        remaining: (currentQuota.follower?.remaining || 0) + (newQuota.follower?.remaining || 0),
+      },
+      like: {
+        total: (currentQuota.like?.total || 0) + (newQuota.like?.total || 0),
+        remaining: (currentQuota.like?.remaining || 0) + (newQuota.like?.remaining || 0),
+      },
+      hotpost: {
+        total: (currentQuota.hotpost?.total || 0) + (newQuota.hotpost?.total || 0),
+        remaining: (currentQuota.hotpost?.remaining || 0) + (newQuota.hotpost?.remaining || 0),
+      },
+      momcafe: {
+        total: (currentQuota.momcafe?.total || 0) + (newQuota.momcafe?.total || 0),
+        remaining: (currentQuota.momcafe?.remaining || 0) + (newQuota.momcafe?.remaining || 0),
+      },
+    };
+
+    // 계약 시작일 = 오늘, 종료일 계산
+    const startDate = new Date().toISOString().split('T')[0];
+    const endDate = getContractEndDate(startDate, renewPlanType);
+
+    try {
+      const response = await fetch(`/api/users/${renewingClient.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contractStartDate: startDate,
+          contractEndDate: endDate,
+          quota: mergedQuota,
+          isActive: true,
+        }),
+      });
+
+      if (response.ok) {
+        fetchClients();
+        setRenewingClient(null);
+        setRenewPlanType('1');
+        alert('재계약이 완료되었습니다.');
+      } else {
+        const data = await response.json();
+        alert(data.error || '재계약에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to renew contract:', error);
+      alert('재계약 중 오류가 발생했습니다.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-600 hover:text-gray-900 mb-4"
+          >
+            ← 뒤로가기
+          </button>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900">광고주 관리</h1>
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition"
+            >
+              + 광고주 추가
+            </button>
+          </div>
+        </div>
+
+        {/* Create Form */}
+        {showCreateForm && (
+          <div className="bg-white rounded-lg p-6 mb-6 border border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              새 광고주 추가
+            </h2>
+            <form onSubmit={handleCreateClient} className="space-y-4">
+              {formError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {formError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    아이디
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    상호명 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.companyName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, companyName: e.target.value })
+                    }
+                    required
+                    placeholder="예: 인플루언서컴퍼니"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    비밀번호
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    계약 시작일
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.contractStartDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, contractStartDate: e.target.value })
+                    }
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    이용 기간
+                  </label>
+                  <select
+                    value={formData.planType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, planType: e.target.value })
+                    }
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="1">1개월 (인기게시물 3개, 맘카페 3개)</option>
+                    <option value="3">3개월 (인기게시물 3개, 맘카페 3개, 팔로워 1000개, 좋아요 1000개)</option>
+                    <option value="6">6개월 (인기게시물 6개, 맘카페 6개, 팔로워 2500개, 좋아요 2500개)</option>
+                  </select>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
+                    <div className="font-medium mb-1">포함된 작업:</div>
+                    {formData.planType === '1' && (
+                      <ul className="list-disc list-inside text-gray-600 space-y-1">
+                        <li>인기게시물: 3개</li>
+                        <li>맘카페: 3개</li>
+                        <li className="text-gray-400">인스타 팔로워/좋아요: 이용 불가</li>
+                      </ul>
+                    )}
+                    {formData.planType === '3' && (
+                      <ul className="list-disc list-inside text-gray-600 space-y-1">
+                        <li>인기게시물: 3개</li>
+                        <li>맘카페: 3개</li>
+                        <li>인스타 팔로워: 1000개</li>
+                        <li>인스타 좋아요: 1000개</li>
+                      </ul>
+                    )}
+                    {formData.planType === '6' && (
+                      <ul className="list-disc list-inside text-gray-600 space-y-1">
+                        <li>인기게시물: 6개</li>
+                        <li>맘카페: 6개</li>
+                        <li>인스타 팔로워: 2500개</li>
+                        <li>인스타 좋아요: 2500개</li>
+                      </ul>
+                    )}
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <div className="text-xs text-gray-500">
+                        계약 종료일: {getContractEndDate(formData.contractStartDate, formData.planType)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setFormData({ username: '', password: '', planType: '1' });
+                    setFormError('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50"
+                >
+                  {formLoading ? '생성 중...' : '생성'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Search */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="광고주 검색..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+          />
+        </div>
+
+        {/* Clients List */}
+        {loading ? (
+          <div className="text-center py-12 text-gray-600">로딩 중...</div>
+        ) : filteredClients.length === 0 ? (
+          <div className="text-center py-12 text-gray-600">
+            {searchTerm ? '검색 결과가 없습니다.' : '등록된 광고주가 없습니다.'}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      아이디
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      상호명
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      작업별 남은 개수
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      총 작업 갯수
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      계약 상태
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      생성일
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      관리
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredClients.map((client) => (
+                    <tr key={client.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {client.username}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {client.companyName || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {client.quota ? (
+                          <div className="space-y-1">
+                            <div className="text-xs">
+                              <span className="text-blue-600">인기게시물:</span>{' '}
+                              <span className="font-medium">{client.quota.hotpost?.remaining || 0}개</span>
+                            </div>
+                            <div className="text-xs">
+                              <span className="text-purple-600">맘카페:</span>{' '}
+                              <span className="font-medium">{client.quota.momcafe?.remaining || 0}개</span>
+                            </div>
+                            <div className="text-xs">
+                              <span className="text-green-600">팔로워:</span>{' '}
+                              <span className="font-medium">{client.quota.follower?.remaining || 0}개</span>
+                            </div>
+                            <div className="text-xs">
+                              <span className="text-orange-600">좋아요:</span>{' '}
+                              <span className="font-medium">{client.quota.like?.remaining || 0}개</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">
+                            {client.remainingQuota || 0}건
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {client.totalQuota || 0}건
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {(() => {
+                          const now = new Date();
+                          const endDate = client.contractEndDate 
+                            ? new Date(client.contractEndDate) 
+                            : null;
+                          const isExpired = endDate && endDate < now;
+                          const isActive = client.isActive !== false && !isExpired;
+                          
+                          if (isExpired) {
+                            return (
+                              <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                만료됨
+                              </span>
+                            );
+                          }
+                          if (!client.isActive) {
+                            return (
+                              <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                차단됨
+                              </span>
+                            );
+                          }
+                          if (endDate) {
+                            const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                            return (
+                              <div>
+                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                  활성
+                                </span>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {daysLeft > 0 ? `${daysLeft}일 남음` : '만료 임박'}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(client.contractEndDate).toLocaleDateString('ko-KR')}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return <span className="text-gray-500 text-xs">-</span>;
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(client.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex flex-wrap gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingClient(client);
+                              setEditForm({
+                                username: client.username,
+                                companyName: client.companyName || '',
+                                quota: client.quota || {
+                                  follower: { total: 0, remaining: 0 },
+                                  like: { total: 0, remaining: 0 },
+                                  hotpost: { total: 0, remaining: 0 },
+                                  momcafe: { total: 0, remaining: 0 },
+                                },
+                              });
+                            }}
+                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50 bg-green-50"
+                          >
+                            수정
+                          </button>
+                          <button
+                            onClick={() => handleToggleActive(client)}
+                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+                          >
+                            {client.isActive !== false ? '차단' : '활성화'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setExtendingClient(client);
+                              setExtendDate(client.contractEndDate || '');
+                            }}
+                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+                          >
+                            연장
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRenewingClient(client);
+                              setRenewPlanType('1');
+                            }}
+                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50 bg-blue-50"
+                          >
+                            재계약
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 연장 모달 */}
+        {extendingClient && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setExtendingClient(null);
+              setExtendDate('');
+            }}
+          >
+            <div
+              className="bg-white rounded-lg max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                계약 연장
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    광고주
+                  </label>
+                  <div className="text-gray-900 font-medium">{extendingClient.username}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    현재 계약 종료일
+                  </label>
+                  <div className="text-gray-600">
+                    {extendingClient.contractEndDate
+                      ? new Date(extendingClient.contractEndDate).toLocaleDateString('ko-KR')
+                      : '미설정'}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    새로운 계약 종료일 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={extendDate}
+                    onChange={(e) => setExtendDate(e.target.value)}
+                    min={(() => {
+                      const currentEnd = extendingClient.contractEndDate 
+                        ? new Date(extendingClient.contractEndDate) 
+                        : new Date();
+                      const today = new Date();
+                      return currentEnd > today 
+                        ? currentEnd.toISOString().split('T')[0]
+                        : today.toISOString().split('T')[0];
+                    })()}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    ⚠️ 계약 기간만 연장되며, 작업 개수는 추가되지 않습니다.
+                  </p>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setExtendingClient(null);
+                      setExtendDate('');
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleExtendContract}
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                  >
+                    연장
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 재계약 모달 */}
+        {renewingClient && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setRenewingClient(null);
+              setRenewPlanType('1');
+            }}
+          >
+            <div
+              className="bg-white rounded-lg max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                재계약
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    광고주
+                  </label>
+                  <div className="text-gray-900 font-medium">{renewingClient.username}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    계약 기간 선택 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={renewPlanType}
+                    onChange={(e) => setRenewPlanType(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="1">1개월</option>
+                    <option value="3">3개월</option>
+                    <option value="6">6개월</option>
+                  </select>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="text-sm font-medium text-gray-700 mb-2">추가될 작업:</div>
+                  {renewPlanType === '1' && (
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      <li>• 인기게시물: 3개</li>
+                      <li>• 맘카페: 3개</li>
+                      <li className="text-gray-400">• 인스타 팔로워/좋아요: 없음</li>
+                    </ul>
+                  )}
+                  {renewPlanType === '3' && (
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      <li>• 인기게시물: 3개</li>
+                      <li>• 맘카페: 3개</li>
+                      <li>• 인스타 팔로워: 1000개</li>
+                      <li>• 인스타 좋아요: 1000개</li>
+                    </ul>
+                  )}
+                  {renewPlanType === '6' && (
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      <li>• 인기게시물: 6개</li>
+                      <li>• 맘카페: 6개</li>
+                      <li>• 인스타 팔로워: 2500개</li>
+                      <li>• 인스타 좋아요: 2500개</li>
+                    </ul>
+                  )}
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <div className="text-xs text-blue-700">
+                      💡 기존 작업 개수에 추가됩니다.
+                    </div>
+                    <div className="text-xs text-blue-700">
+                      계약 시작일: {new Date().toLocaleDateString('ko-KR')}
+                    </div>
+                    <div className="text-xs text-blue-700">
+                      계약 종료일: {new Date(getContractEndDate(new Date().toISOString().split('T')[0], renewPlanType)).toLocaleDateString('ko-KR')}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setRenewingClient(null);
+                      setRenewPlanType('1');
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleRenewContract}
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                  >
+                    재계약 완료
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 수정 모달 */}
+        {editingClient && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setEditingClient(null);
+              setEditForm({
+                username: '',
+                companyName: '',
+                quota: {
+                  follower: { total: 0, remaining: 0 },
+                  like: { total: 0, remaining: 0 },
+                  hotpost: { total: 0, remaining: 0 },
+                  momcafe: { total: 0, remaining: 0 },
+                },
+              });
+            }}
+          >
+            <div
+              className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                광고주 정보 수정
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    아이디 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.username}
+                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    상호명
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.companyName}
+                    onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
+                    placeholder="예: 인플루언서컴퍼니"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    작업별 개수
+                  </label>
+                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">인스타 팔로워 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.follower.total}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.follower = {
+                                ...newQuota.follower,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.follower.total}
+                            value={editForm.quota.follower.remaining}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.follower = {
+                                ...newQuota.follower,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">인스타 좋아요 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.like.total}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.like = {
+                                ...newQuota.like,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.like.total}
+                            value={editForm.quota.like.remaining}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.like = {
+                                ...newQuota.like,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">인기게시물 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.hotpost.total}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.hotpost = {
+                                ...newQuota.hotpost,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.hotpost.total}
+                            value={editForm.quota.hotpost.remaining}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.hotpost = {
+                                ...newQuota.hotpost,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">맘카페 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.momcafe.total}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.momcafe = {
+                                ...newQuota.momcafe,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.momcafe.total}
+                            value={editForm.quota.momcafe.remaining}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.momcafe = {
+                                ...newQuota.momcafe,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setEditingClient(null);
+                      setEditForm({
+                        username: '',
+                        companyName: '',
+                        quota: {
+                          follower: { total: 0, remaining: 0 },
+                          like: { total: 0, remaining: 0 },
+                          hotpost: { total: 0, remaining: 0 },
+                          momcafe: { total: 0, remaining: 0 },
+                        },
+                      });
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/users/${editingClient.id}`, {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            username: editForm.username,
+                            companyName: editForm.companyName,
+                            quota: editForm.quota,
+                          }),
+                        });
+
+                        if (response.ok) {
+                          fetchClients();
+                          setEditingClient(null);
+                          alert('수정이 완료되었습니다.');
+                        } else {
+                          const data = await response.json();
+                          alert(data.error || '수정에 실패했습니다.');
+                        }
+                      } catch (error) {
+                        console.error('Failed to update client:', error);
+                        alert('수정 중 오류가 발생했습니다.');
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                  >
+                    저장
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
