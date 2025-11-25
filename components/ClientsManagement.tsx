@@ -675,7 +675,7 @@ export default function ClientsManagement() {
                   </label>
                   <div className="text-gray-600">
                     {extendingClient.contractEndDate
-                      ? new Date(extendingClient.contractEndDate).toLocaleDateString('ko-KR')
+                      ? new Date(extendingClient.contractEndDate || '').toLocaleDateString('ko-KR')
                       : '미설정'}
                   </div>
                 </div>
