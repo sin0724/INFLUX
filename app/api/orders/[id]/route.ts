@@ -43,7 +43,7 @@ async function updateOrder(
   user: any,
   orderId: string
 ) {
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'superadmin') {
     return NextResponse.json(
       { error: '권한이 없습니다.' },
       { status: 403 }
@@ -108,7 +108,7 @@ async function deleteOrder(
   user: any,
   orderId: string
 ) {
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'superadmin') {
     return NextResponse.json(
       { error: '권한이 없습니다.' },
       { status: 403 }
@@ -216,7 +216,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return withAuth((r, u) => updateOrder(r, u, id), ['admin'])(req);
+  return withAuth((r, u) => updateOrder(r, u, id), ['superadmin', 'admin'])(req);
 }
 
 export async function DELETE(
@@ -224,6 +224,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return withAuth((r, u) => deleteOrder(r, u, id), ['admin'])(req);
+  return withAuth((r, u) => deleteOrder(r, u, id), ['superadmin', 'admin'])(req);
 }
 

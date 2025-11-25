@@ -5,7 +5,7 @@ import OrdersManagement from '@/components/OrdersManagement';
 export default async function AdminOrdersPage() {
   const session = await getSession();
 
-  if (!session || session.user.role !== 'admin') {
+  if (!session || (session.user.role !== 'admin' && session.user.role !== 'superadmin')) {
     redirect('/login');
   }
 
