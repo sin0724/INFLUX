@@ -119,14 +119,6 @@ export default function LoginPage() {
               {loading ? '로그인 중...' : '로그인'}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-center text-gray-500">
-              테스트 계정: admin1 / 1234 (관리자)
-              <br />
-              testclient / 1234 (광고주)
-            </p>
-          </div>
         </div>
       </div>
     </div>
