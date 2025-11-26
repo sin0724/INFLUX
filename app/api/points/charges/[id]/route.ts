@@ -154,5 +154,11 @@ async function updateChargeRequest(
   }
 }
 
-export const PATCH = withAuth(updateChargeRequest, ['admin', 'superadmin']);
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  return withAuth((r, u) => updateChargeRequest(r, u, id), ['admin', 'superadmin'])(req);
+}
 
