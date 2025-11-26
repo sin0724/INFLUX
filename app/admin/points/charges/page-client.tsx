@@ -199,14 +199,18 @@ export default function PointChargesPageClient() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg font-bold text-gray-900">
+                    <div className="mb-2">
+                      <div className="text-lg font-bold text-gray-900">
                         {charge.clientUsername}
-                      </span>
-                      {charge.companyName && (
-                        <span className="text-sm text-gray-600">
-                          ({charge.companyName})
-                        </span>
+                      </div>
+                      {charge.companyName ? (
+                        <div className="text-sm font-medium text-gray-700 mt-1">
+                          상호명: {charge.companyName}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400 mt-1">
+                          상호명 없음
+                        </div>
                       )}
                     </div>
                     <div className="text-sm text-gray-600">
@@ -292,10 +296,13 @@ export default function PointChargesPageClient() {
 
               <div className="mb-4 space-y-2">
                 <div>
-                  <span className="text-sm text-gray-600">광고주:</span>{' '}
+                  <span className="text-sm text-gray-600">아이디:</span>{' '}
+                  <span className="font-medium">{selectedCharge.clientUsername}</span>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">상호명:</span>{' '}
                   <span className="font-medium">
-                    {selectedCharge.clientUsername}
-                    {selectedCharge.companyName && ` (${selectedCharge.companyName})`}
+                    {selectedCharge.companyName || '없음'}
                   </span>
                 </div>
                 <div>
