@@ -211,6 +211,10 @@ export default function ClientsManagement() {
         companyName: '',
         planType: '1',
         contractStartDate: new Date().toISOString().split('T')[0],
+        notes: '',
+        naverId: '',
+        naverPassword: '',
+        businessType: '',
       });
       setShowCreateForm(false);
       fetchClients();
