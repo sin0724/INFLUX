@@ -6,6 +6,7 @@ interface ChecklistItem {
   id: string;
   admin_id: string;
   title: string;
+  company_name: string | null;
   description: string | null;
   is_completed: boolean;
   completed_by: string | null;
@@ -39,8 +40,8 @@ export default function ChecklistManagement() {
 
   const [formData, setFormData] = useState({
     title: '',
+    companyName: '',
     description: '',
-    dueDate: '',
     priority: 'medium' as 'high' | 'medium' | 'low',
   });
 
@@ -91,19 +92,20 @@ export default function ChecklistManagement() {
         },
         body: JSON.stringify({
           title: formData.title,
+          companyName: formData.companyName || null,
           description: formData.description || null,
-          dueDate: formData.dueDate || null,
           priority: formData.priority,
         }),
       });
 
       if (response.ok) {
         fetchItems();
-        setFormData({ title: '', description: '', dueDate: '', priority: 'medium' });
+        setFormData({ title: '', companyName: '', description: '', priority: 'medium' });
         setShowAddForm(false);
       } else {
         const data = await response.json();
-        alert(data.error || '체크리스트를 생성하는데 실패했습니다.');
+        console.error('Create checklist error:', data);
+        alert(data.error + (data.details ? `\n\n오류 내용: ${data.details}` : '') || '체크리스트를 생성하는데 실패했습니다.');
       }
     } catch (error) {
       console.error('Failed to create checklist item:', error);
@@ -126,8 +128,8 @@ export default function ChecklistManagement() {
         },
         body: JSON.stringify({
           title: formData.title,
+          companyName: formData.companyName || null,
           description: formData.description || null,
-          dueDate: formData.dueDate || null,
           priority: formData.priority,
         }),
       });
@@ -135,7 +137,7 @@ export default function ChecklistManagement() {
       if (response.ok) {
         fetchItems();
         setEditingItem(null);
-        setFormData({ title: '', description: '', dueDate: '', priority: 'medium' });
+        setFormData({ title: '', companyName: '', description: '', priority: 'medium' });
       } else {
         const data = await response.json();
         alert(data.error || '체크리스트를 수정하는데 실패했습니다.');
@@ -196,8 +198,8 @@ export default function ChecklistManagement() {
     setEditingItem(item);
     setFormData({
       title: item.title,
+      companyName: item.company_name || '',
       description: item.description || '',
-      dueDate: item.due_date || '',
       priority: item.priority,
     });
   };
@@ -228,14 +230,6 @@ export default function ChecklistManagement() {
     }
   };
 
-  const isOverdue = (dueDate: string | null) => {
-    if (!dueDate) return false;
-    const due = new Date(dueDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    due.setHours(0, 0, 0, 0);
-    return due < today && !items.find(item => item.due_date === dueDate)?.is_completed;
-  };
 
   const filteredItems = items.filter((item) => {
     if (filter === 'pending') return !item.is_completed;
@@ -313,7 +307,7 @@ export default function ChecklistManagement() {
             onClick={() => {
               setShowAddForm(true);
               setEditingItem(null);
-              setFormData({ title: '', description: '', dueDate: '', priority: 'medium' });
+              setFormData({ title: '', companyName: '', description: '', priority: 'medium' });
             }}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition"
           >
@@ -343,6 +337,18 @@ export default function ChecklistManagement() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  상호명
+                </label>
+                <input
+                  type="text"
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  placeholder="상호명을 입력하세요"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   특이사항/설명
                 </label>
                 <textarea
@@ -353,32 +359,19 @@ export default function ChecklistManagement() {
                   placeholder="특이사항이나 설명을 입력하세요"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    마감일
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    우선순위
-                  </label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'high' | 'medium' | 'low' })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  >
-                    <option value="low">낮음</option>
-                    <option value="medium">보통</option>
-                    <option value="high">높음</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  우선순위
+                </label>
+                <select
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'high' | 'medium' | 'low' })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                >
+                  <option value="low">낮음</option>
+                  <option value="medium">보통</option>
+                  <option value="high">높음</option>
+                </select>
               </div>
               <div className="flex gap-2">
                 <button
@@ -392,7 +385,7 @@ export default function ChecklistManagement() {
                   onClick={() => {
                     setShowAddForm(false);
                     setEditingItem(null);
-                    setFormData({ title: '', description: '', dueDate: '', priority: 'medium' });
+                    setFormData({ title: '', companyName: '', description: '', priority: 'medium' });
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
                 >
@@ -418,8 +411,6 @@ export default function ChecklistManagement() {
                 className={`bg-white rounded-lg border-2 p-4 transition ${
                   item.is_completed
                     ? 'border-green-200 bg-green-50'
-                    : isOverdue(item.due_date)
-                    ? 'border-red-200 bg-red-50'
                     : 'border-gray-200'
                 }`}
               >
@@ -449,13 +440,13 @@ export default function ChecklistManagement() {
                         >
                           {getPriorityLabel(item.priority)}
                         </span>
-                        {isOverdue(item.due_date) && !item.is_completed && (
-                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                            마감 초과
-                          </span>
-                        )}
                       </div>
                     </div>
+                    {item.company_name && (
+                      <div className="text-sm text-gray-700 mb-2">
+                        <span className="font-medium">상호명:</span> {item.company_name}
+                      </div>
+                    )}
                     {item.description && (
                       <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">
                         {item.description}
@@ -465,11 +456,9 @@ export default function ChecklistManagement() {
                       <span>
                         작성자: <span className="font-medium">{item.admin?.username || '-'}</span>
                       </span>
-                      {item.due_date && (
-                        <span>
-                          마감일: <span className="font-medium">{new Date(item.due_date).toLocaleDateString('ko-KR')}</span>
-                        </span>
-                      )}
+                      <span>
+                        생성일: <span className="font-medium">{new Date(item.created_at).toLocaleDateString('ko-KR')}</span>
+                      </span>
                       {item.is_completed && item.completedByUser && (
                         <span>
                           완료자: <span className="font-medium">{item.completedByUser.username}</span>
@@ -507,3 +496,4 @@ export default function ChecklistManagement() {
     </div>
   );
 }
+

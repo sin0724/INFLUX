@@ -51,7 +51,7 @@ async function createChecklistItem(req: NextRequest, user: any) {
 
   try {
     const body = await req.json();
-    const { title, description, dueDate, priority } = body;
+    const { title, companyName, description, priority } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -65,8 +65,8 @@ async function createChecklistItem(req: NextRequest, user: any) {
       .insert({
         admin_id: user.id,
         title: title.trim(),
+        company_name: companyName?.trim() || null,
         description: description?.trim() || null,
-        due_date: dueDate || null,
         priority: priority || 'medium',
       })
       .select(`
@@ -78,8 +78,12 @@ async function createChecklistItem(req: NextRequest, user: any) {
 
     if (error) {
       console.error('Failed to create checklist item:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return NextResponse.json(
-        { error: '체크리스트를 생성하는데 실패했습니다.' },
+        { 
+          error: '체크리스트를 생성하는데 실패했습니다.',
+          details: error.message || '알 수 없는 오류가 발생했습니다.'
+        },
         { status: 500 }
       );
     }

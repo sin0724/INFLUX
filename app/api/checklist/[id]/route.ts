@@ -17,7 +17,7 @@ async function updateChecklistItem(
 
   try {
     const body = await req.json();
-    const { title, description, isCompleted, dueDate, priority } = body;
+    const { title, companyName, description, isCompleted, priority } = body;
 
     const updateData: any = {};
 
@@ -31,12 +31,12 @@ async function updateChecklistItem(
       updateData.title = title.trim();
     }
 
-    if (description !== undefined) {
-      updateData.description = description?.trim() || null;
+    if (companyName !== undefined) {
+      updateData.company_name = companyName?.trim() || null;
     }
 
-    if (dueDate !== undefined) {
-      updateData.due_date = dueDate || null;
+    if (description !== undefined) {
+      updateData.description = description?.trim() || null;
     }
 
     if (priority !== undefined) {
