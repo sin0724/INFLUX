@@ -14,8 +14,33 @@ interface Client {
   contractStartDate?: string;
   contractEndDate?: string;
   isActive?: boolean;
+  notes?: string;
+  naverId?: string;
+  naverPassword?: string;
+  businessType?: string;
   createdAt: string;
 }
+
+// 업종 리스트
+const BUSINESS_TYPES = [
+  '네일',
+  '속눈썹/눈썹/메이크업',
+  '왁싱/피부관리/체형관리',
+  '미용실',
+  '꽃집/공방',
+  '맛집/술집',
+  '카페/디저트',
+  'PT/필라테스',
+  '스포츠/운동',
+  '자동차',
+  '인테리어',
+  '핸드폰',
+  '반려동물',
+  '학원/스터디카페',
+  '펜션/숙소/민박/호텔',
+  '공간대여/파티룸/스튜디오',
+  '기타',
+];
 
 export default function ClientsManagement() {
   const router = useRouter();
@@ -34,6 +59,10 @@ export default function ClientsManagement() {
     companyName: '',
     planType: '1', // '1', '3', '6' 개월
     contractStartDate: new Date().toISOString().split('T')[0], // 오늘 날짜
+    notes: '',
+    naverId: '',
+    naverPassword: '',
+    businessType: '',
   });
   
   // 수정 모달 상태
@@ -41,6 +70,10 @@ export default function ClientsManagement() {
   const [editForm, setEditForm] = useState({
     username: '',
     companyName: '',
+    notes: '',
+    naverId: '',
+    naverPassword: '',
+    businessType: '',
     quota: {
       follower: { total: 0, remaining: 0 },
       like: { total: 0, remaining: 0 },
@@ -155,6 +188,10 @@ export default function ClientsManagement() {
           quota: getQuotaByPlan(formData.planType),
           contractStartDate: formData.contractStartDate,
           contractEndDate: getContractEndDate(formData.contractStartDate, formData.planType),
+          notes: formData.notes || undefined,
+          naverId: formData.naverId || undefined,
+          naverPassword: formData.naverPassword || undefined,
+          businessType: formData.businessType || undefined,
         }),
       });
 
@@ -187,6 +224,8 @@ export default function ClientsManagement() {
 
   // 계약 만료 필터 상태
   const [contractFilter, setContractFilter] = useState<string>('all'); // 'all', 'expired', '7days', '14days', '30days'
+  // 업종 필터 상태
+  const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('all'); // 'all' 또는 특정 업종
 
   const filteredClients = clients.filter((client) => {
     // 검색 필터 (아이디 및 상호명)
@@ -195,6 +234,11 @@ export default function ClientsManagement() {
       const matchesUsername = client.username.toLowerCase().includes(searchLower);
       const matchesCompanyName = client.companyName?.toLowerCase().includes(searchLower) || false;
       if (!matchesUsername && !matchesCompanyName) return false;
+    }
+
+    // 업종 필터
+    if (businessTypeFilter !== 'all') {
+      if (client.businessType !== businessTypeFilter) return false;
     }
 
     // 계약 만료 필터
@@ -475,6 +519,25 @@ export default function ClientsManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    업종
+                  </label>
+                  <select
+                    value={formData.businessType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, businessType: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">선택 안 함</option>
+                    {BUSINESS_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     이용 기간
                   </label>
                   <select
@@ -528,6 +591,53 @@ export default function ClientsManagement() {
                   </div>
                 </div>
               </div>
+              {/* 비고, 네이버 아이디/비밀번호 추가 필드 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    비고 (특이사항)
+                  </label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    rows={3}
+                    placeholder="특이사항을 입력하세요..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      네이버 아이디
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.naverId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, naverId: e.target.value })
+                      }
+                      placeholder="네이버 아이디"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      네이버 비밀번호
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.naverPassword}
+                      onChange={(e) =>
+                        setFormData({ ...formData, naverPassword: e.target.value })
+                      }
+                      placeholder="네이버 비밀번호"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -538,7 +648,11 @@ export default function ClientsManagement() {
                       password: '', 
                       companyName: '',
                       planType: '1',
-                      contractStartDate: new Date().toISOString().split('T')[0]
+                      contractStartDate: new Date().toISOString().split('T')[0],
+                      notes: '',
+                      naverId: '',
+                      naverPassword: '',
+                      businessType: '',
                     });
                     setFormError('');
                   }}
@@ -559,18 +673,38 @@ export default function ClientsManagement() {
         )}
 
         {/* Search and Filters */}
-        <div className="mb-4 space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                광고주 검색
+              </label>
               <input
                 type="text"
-                placeholder="광고주 검색..."
+                placeholder="아이디 또는 상호명 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
-            <div className="md:w-64">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                업종 필터
+              </label>
+              <select
+                value={businessTypeFilter}
+                onChange={(e) => setBusinessTypeFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="all">전체 업종</option>
+                {BUSINESS_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 계약 만료 필터
               </label>
@@ -587,9 +721,9 @@ export default function ClientsManagement() {
               </select>
             </div>
           </div>
-          {contractFilter !== 'all' && (
-            <div className="text-sm text-gray-600">
-              필터링된 결과: {filteredClients.length}개
+          {(contractFilter !== 'all' || businessTypeFilter !== 'all' || searchTerm) && (
+            <div className="text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
+              필터링된 결과: <span className="font-semibold">{filteredClients.length}개</span>
             </div>
           )}
         </div>
@@ -614,6 +748,9 @@ export default function ClientsManagement() {
                       상호명
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      업종
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       작업별 남은 개수
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -635,6 +772,9 @@ export default function ClientsManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {client.companyName || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {client.businessType || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {client.quota ? (
@@ -733,6 +873,10 @@ export default function ClientsManagement() {
                               setEditForm({
                                 username: client.username,
                                 companyName: client.companyName || '',
+                                notes: client.notes || '',
+                                naverId: client.naverId || '',
+                                naverPassword: client.naverPassword || '',
+                                businessType: client.businessType || '',
                                 quota: {
                                   follower: existingQuota.follower || { total: 0, remaining: 0 },
                                   like: existingQuota.like || { total: 0, remaining: 0 },
@@ -1306,6 +1450,10 @@ export default function ClientsManagement() {
                       setEditForm({
                         username: '',
                         companyName: '',
+                        notes: '',
+                        naverId: '',
+                        naverPassword: '',
+                        businessType: '',
                         quota: {
                           follower: { total: 0, remaining: 0 },
                           like: { total: 0, remaining: 0 },
@@ -1334,6 +1482,10 @@ export default function ClientsManagement() {
                             username: editForm.username,
                             companyName: editForm.companyName,
                             quota: editForm.quota,
+                            notes: editForm.notes || null,
+                            naverId: editForm.naverId || null,
+                            naverPassword: editForm.naverPassword || null,
+                            businessType: editForm.businessType || null,
                           }),
                         });
 

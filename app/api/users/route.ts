@@ -16,7 +16,7 @@ async function getUsers(req: NextRequest, user: any) {
   // superadmin은 모든 사용자 조회, admin은 client와 admin만 조회
   let query = supabase
     .from('users')
-    .select('id, username, companyName, role, totalQuota, remainingQuota, quota, contractStartDate, contractEndDate, isActive, createdAt')
+    .select('id, username, companyName, role, totalQuota, remainingQuota, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", createdAt')
     .order('createdAt', { ascending: false });
 
   if (user.role !== 'superadmin') {
@@ -48,7 +48,7 @@ async function createUser(req: NextRequest, user: any) {
   }
 
   try {
-    const { username, password, role, quota, contractStartDate, contractEndDate, companyName } = await req.json();
+    const { username, password, role, quota, contractStartDate, contractEndDate, companyName, notes, naverId, naverPassword, businessType } = await req.json();
 
     if (!username || !password || !role) {
       return NextResponse.json(
@@ -116,6 +116,20 @@ async function createUser(req: NextRequest, user: any) {
     }
     if (role === 'client') {
       insertData.isActive = true;
+    }
+
+    // 추가 필드 (비고, 네이버 아이디/비밀번호, 업종)
+    if (notes !== undefined && notes !== '') {
+      insertData.notes = notes;
+    }
+    if (naverId !== undefined && naverId !== '') {
+      insertData.naverId = naverId;
+    }
+    if (naverPassword !== undefined && naverPassword !== '') {
+      insertData.naverPassword = naverPassword;
+    }
+    if (businessType !== undefined && businessType !== '') {
+      insertData.businessType = businessType;
     }
 
     const { data, error } = await supabase

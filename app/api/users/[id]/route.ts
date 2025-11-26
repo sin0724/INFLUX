@@ -18,7 +18,7 @@ async function updateUser(
 
   try {
     const body = await req.json();
-    const { isActive, contractEndDate, contractStartDate, quota, username, companyName } = body;
+    const { isActive, contractEndDate, contractStartDate, quota, username, companyName, notes, naverId, naverPassword, businessType } = body;
 
     const updateData: any = {};
     
@@ -40,6 +40,20 @@ async function updateUser(
     
     if (companyName !== undefined) {
       updateData.companyName = companyName;
+    }
+    
+    // 추가 필드 (비고, 네이버 아이디/비밀번호, 업종)
+    if (notes !== undefined) {
+      updateData.notes = notes || null;
+    }
+    if (naverId !== undefined) {
+      updateData.naverId = naverId || null;
+    }
+    if (naverPassword !== undefined) {
+      updateData.naverPassword = naverPassword || null;
+    }
+    if (businessType !== undefined) {
+      updateData.businessType = businessType || null;
     }
     
     if (quota) {
@@ -69,7 +83,7 @@ async function updateUser(
       .from('users')
       .update(updateData)
       .eq('id', userId)
-      .select('id, username, companyName, role, quota, contractStartDate, contractEndDate, isActive, createdAt')
+      .select('id, username, companyName, role, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", createdAt')
       .single();
 
     if (error || !data) {
