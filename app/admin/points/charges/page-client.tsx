@@ -18,7 +18,7 @@ interface PointCharge {
   approvedAt?: string;
 }
 
-export default export default function PointChargesPageClient() {
+export default function PointChargesPageClient() {
   const [charges, setCharges] = useState<PointCharge[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('all');
