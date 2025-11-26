@@ -198,22 +198,21 @@ export default function CompletedLinksView() {
             </button>
             <h1 className="text-2xl font-bold text-gray-900">완료된 링크 모아보기</h1>
           </div>
-            <button
-              onClick={() => {
-                setShowBlogReceiptModal(true);
-                setSelectedClientForLink(null);
-                setBlogLink('');
-                setReceiptLink('');
-                setClientSearchTerm('');
-                setShowClientDropdown(false);
-              }}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-            >
-              블로그/영수증 리뷰 링크 추가
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              setShowBlogReceiptModal(true);
+              setSelectedClientForLink(null);
+              setBlogLink('');
+              setReceiptLink('');
+              setClientSearchTerm('');
+              setShowClientDropdown(false);
+            }}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+          >
+            블로그/영수증 리뷰 링크 추가
+          </button>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 mt-4">
             {/* 검색 필드 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
