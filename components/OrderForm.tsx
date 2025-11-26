@@ -11,6 +11,8 @@ interface Quota {
   momcafe?: { total: number; remaining: number };
   powerblog?: { total: number; remaining: number };
   clip?: { total: number; remaining: number };
+  blog?: { total: number; remaining: number };
+  receipt?: { total: number; remaining: number };
 }
 
 interface User {
@@ -45,6 +47,8 @@ const TASK_TYPES = [
   { id: 'daangn', name: '당근마켓', requiresImage: false, disabled: true, comingSoon: true },
   { id: 'powerblog', name: '파워블로그', requiresImage: false },
   { id: 'clip', name: '클립', requiresImage: false },
+  { id: 'blog', name: '블로그 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
+  { id: 'receipt', name: '영수증 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
 ];
 
 export default function OrderForm({ user }: OrderFormProps) {
@@ -102,6 +106,8 @@ export default function OrderForm({ user }: OrderFormProps) {
     if (task?.disabled) {
       if (task.comingSoon) {
         alert('준비중입니다.');
+      } else if (task.kakaoOnly) {
+        alert('블로그/영수증 리뷰는 추가 신청 시 단톡방으로 신청 부탁드립니다.');
       } else {
         alert('이 작업은 담당자를 통해 카카오톡으로 신청부탁드립니다.');
       }
@@ -301,12 +307,14 @@ export default function OrderForm({ user }: OrderFormProps) {
                 
                 if (userQuota && !hasExternalLink) {
                   const taskQuota = userQuota[task.id as keyof Quota];
-                  if (!taskQuota || taskQuota.remaining <= 0) {
-                    isDisabled = true;
-                  } else {
-                    remainingCount = taskQuota.remaining;
+                  if (taskQuota) {
+                    remainingCount = taskQuota.remaining || 0;
                   }
-                } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0 && !hasExternalLink) {
+                  // 블로그/영수증은 항상 비활성화되지만 남은 개수는 표시
+                  if (!task.disabled && (!taskQuota || taskQuota.remaining <= 0)) {
+                    isDisabled = true;
+                  }
+                } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0 && !hasExternalLink && !task.disabled) {
                   isDisabled = true;
                 }
                 
@@ -327,9 +335,14 @@ export default function OrderForm({ user }: OrderFormProps) {
                     }`}
                   >
                     <div className="font-medium text-gray-900">{task.name}</div>
-                    {!hasExternalLink && userQuota && remainingCount > 0 && (
-                      <div className="text-xs text-primary-600 mt-1 font-medium">
+                    {!hasExternalLink && userQuota && (
+                      <div className={`text-xs mt-1 font-medium ${remainingCount > 0 ? 'text-primary-600' : task.kakaoOnly ? 'text-gray-600' : 'text-red-600'}`}>
                         남은 개수: {remainingCount}개
+                      </div>
+                    )}
+                    {!hasExternalLink && userQuota && task.kakaoOnly && remainingCount === 0 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        (남은 개수 없음)
                       </div>
                     )}
                     {task.minCount && (
@@ -340,9 +353,14 @@ export default function OrderForm({ user }: OrderFormProps) {
                     {task.requiresImage && (
                       <div className="text-xs text-gray-500 mt-1">이미지 필요</div>
                     )}
-                    {task.disabled && !task.comingSoon && (
+                    {task.disabled && !task.comingSoon && !task.kakaoOnly && (
                       <div className="text-xs text-orange-600 mt-1">
                         카카오톡 신청
+                      </div>
+                    )}
+                    {task.kakaoOnly && (
+                      <div className="text-xs text-orange-600 mt-1">
+                        단톡방 신청
                       </div>
                     )}
                     {task.comingSoon && (
@@ -673,6 +691,21 @@ export default function OrderForm({ user }: OrderFormProps) {
               </h3>
               <p className="text-sm text-blue-700">
                 신청 후 카카오톡방으로 문의해주세요.
+              </p>
+            </div>
+          )}
+
+          {/* 블로그/영수증 리뷰 안내사항 */}
+          {(taskType === 'blog' || taskType === 'receipt') && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-orange-800 mb-2">
+                ℹ️ 안내사항
+              </h3>
+              <p className="text-sm text-orange-700">
+                블로그 리뷰와 영수증 리뷰는 관리자가 완료 링크를 입력할 때 자동으로 차감됩니다.
+              </p>
+              <p className="text-sm text-orange-700 mt-2 font-medium">
+                추가 신청은 단톡방으로 신청 부탁드립니다.
               </p>
             </div>
           )}
