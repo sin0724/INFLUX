@@ -104,8 +104,6 @@ export default function OrderForm({ user }: OrderFormProps) {
     if (task?.disabled) {
       if (task.comingSoon) {
         alert('준비중입니다.');
-      } else if (task.kakaoOnly) {
-        alert('블로그/영수증 리뷰는 추가 신청 시 단톡방으로 신청 부탁드립니다.');
       } else {
         alert('이 작업은 담당자를 통해 카카오톡으로 신청부탁드립니다.');
       }
@@ -308,8 +306,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   if (taskQuota) {
                     remainingCount = taskQuota.remaining || 0;
                   }
-                  // 블로그/영수증은 항상 비활성화되지만 남은 개수는 표시
-                  if (!task.disabled && (!taskQuota || taskQuota.remaining <= 0)) {
+                  if (!taskQuota || taskQuota.remaining <= 0) {
                     isDisabled = true;
                   }
                 } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0 && !hasExternalLink && !task.disabled) {
@@ -333,14 +330,9 @@ export default function OrderForm({ user }: OrderFormProps) {
                     }`}
                   >
                     <div className="font-medium text-gray-900">{task.name}</div>
-                    {!hasExternalLink && userQuota && (
-                      <div className={`text-xs mt-1 font-medium ${remainingCount > 0 ? 'text-primary-600' : task.kakaoOnly ? 'text-gray-600' : 'text-red-600'}`}>
+                    {!hasExternalLink && userQuota && remainingCount > 0 && (
+                      <div className="text-xs text-primary-600 mt-1 font-medium">
                         남은 개수: {remainingCount}개
-                      </div>
-                    )}
-                    {!hasExternalLink && userQuota && task.kakaoOnly && remainingCount === 0 && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        (남은 개수 없음)
                       </div>
                     )}
                     {task.minCount && (
@@ -351,14 +343,9 @@ export default function OrderForm({ user }: OrderFormProps) {
                     {task.requiresImage && (
                       <div className="text-xs text-gray-500 mt-1">이미지 필요</div>
                     )}
-                    {task.disabled && !task.comingSoon && !task.kakaoOnly && (
+                    {task.disabled && !task.comingSoon && (
                       <div className="text-xs text-orange-600 mt-1">
                         카카오톡 신청
-                      </div>
-                    )}
-                    {task.kakaoOnly && (
-                      <div className="text-xs text-orange-600 mt-1">
-                        단톡방 신청
                       </div>
                     )}
                     {task.comingSoon && (
