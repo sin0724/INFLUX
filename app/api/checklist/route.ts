@@ -51,11 +51,11 @@ async function createChecklistItem(req: NextRequest, user: any) {
 
   try {
     const body = await req.json();
-    const { title, companyName, description, priority } = body;
+    const { companyName, description, priority } = body;
 
-    if (!title || !title.trim()) {
+    if (!companyName || !companyName.trim()) {
       return NextResponse.json(
-        { error: '제목을 입력해주세요.' },
+        { error: '상호명을 입력해주세요.' },
         { status: 400 }
       );
     }
@@ -64,8 +64,8 @@ async function createChecklistItem(req: NextRequest, user: any) {
       .from('checklist_items')
       .insert({
         admin_id: user.id,
-        title: title.trim(),
-        company_name: companyName?.trim() || null,
+        title: companyName.trim(), // title 필드는 DB 스키마상 필요하므로 상호명으로 채움
+        company_name: companyName.trim(),
         description: description?.trim() || null,
         priority: priority || 'medium',
       })

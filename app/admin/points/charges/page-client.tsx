@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDateTime } from '@/lib/utils';
 
 interface PointCharge {
@@ -19,6 +20,7 @@ interface PointCharge {
 }
 
 export default function PointChargesPageClient() {
+  const router = useRouter();
   const [charges, setCharges] = useState<PointCharge[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -129,9 +131,20 @@ export default function PointChargesPageClient() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            포인트 충전 신청 관리
-          </h1>
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => router.push('/admin')}
+              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>뒤로가기</span>
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">
+              포인트 충전 신청 관리
+            </h1>
+          </div>
 
           {/* 필터 */}
           <div className="flex gap-2 mb-4">

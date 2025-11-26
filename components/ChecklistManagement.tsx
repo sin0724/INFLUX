@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface ChecklistItem {
   id: string;
   admin_id: string;
-  title: string;
+  title?: string; // 선택적 필드 (더 이상 사용하지 않지만 DB 호환성을 위해 유지)
   company_name: string | null;
   description: string | null;
   is_completed: boolean;
@@ -31,6 +32,7 @@ interface User {
 }
 
 export default function ChecklistManagement() {
+  const router = useRouter();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -39,7 +41,6 @@ export default function ChecklistManagement() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [formData, setFormData] = useState({
-    title: '',
     companyName: '',
     description: '',
     priority: 'medium' as 'high' | 'medium' | 'low',
@@ -79,8 +80,8 @@ export default function ChecklistManagement() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim()) {
-      alert('제목을 입력해주세요.');
+    if (!formData.companyName.trim()) {
+      alert('상호명을 입력해주세요.');
       return;
     }
 
@@ -91,8 +92,7 @@ export default function ChecklistManagement() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: formData.title,
-          companyName: formData.companyName || null,
+          companyName: formData.companyName.trim(),
           description: formData.description || null,
           priority: formData.priority,
         }),
@@ -100,7 +100,7 @@ export default function ChecklistManagement() {
 
       if (response.ok) {
         fetchItems();
-        setFormData({ title: '', companyName: '', description: '', priority: 'medium' });
+        setFormData({ companyName: '', description: '', priority: 'medium' });
         setShowAddForm(false);
       } else {
         const data = await response.json();
@@ -115,8 +115,8 @@ export default function ChecklistManagement() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingItem || !formData.title.trim()) {
-      alert('제목을 입력해주세요.');
+    if (!editingItem || !formData.companyName.trim()) {
+      alert('상호명을 입력해주세요.');
       return;
     }
 
@@ -127,8 +127,7 @@ export default function ChecklistManagement() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: formData.title,
-          companyName: formData.companyName || null,
+          companyName: formData.companyName.trim(),
           description: formData.description || null,
           priority: formData.priority,
         }),
@@ -137,7 +136,7 @@ export default function ChecklistManagement() {
       if (response.ok) {
         fetchItems();
         setEditingItem(null);
-        setFormData({ title: '', companyName: '', description: '', priority: 'medium' });
+        setFormData({ companyName: '', description: '', priority: 'medium' });
       } else {
         const data = await response.json();
         alert(data.error || '체크리스트를 수정하는데 실패했습니다.');
@@ -197,7 +196,6 @@ export default function ChecklistManagement() {
   const handleEdit = (item: ChecklistItem) => {
     setEditingItem(item);
     setFormData({
-      title: item.title,
       companyName: item.company_name || '',
       description: item.description || '',
       priority: item.priority,
@@ -246,8 +244,19 @@ export default function ChecklistManagement() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">체크리스트</h1>
-          <p className="text-sm text-gray-600">
+          <div className="flex items-center gap-3 mb-2">
+            <button
+              onClick={() => router.push('/admin')}
+              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>뒤로가기</span>
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">체크리스트</h1>
+          </div>
+          <p className="text-sm text-gray-600 ml-16">
             작업 체크리스트를 관리하고 스케줄링하세요
           </p>
         </div>
@@ -307,7 +316,7 @@ export default function ChecklistManagement() {
             onClick={() => {
               setShowAddForm(true);
               setEditingItem(null);
-              setFormData({ title: '', companyName: '', description: '', priority: 'medium' });
+              setFormData({ companyName: '', description: '', priority: 'medium' });
             }}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition"
           >
@@ -324,25 +333,13 @@ export default function ChecklistManagement() {
             <form onSubmit={editingItem ? handleUpdate : handleCreate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  제목 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  placeholder="체크리스트 제목을 입력하세요"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  상호명
+                  상호명 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.companyName}
                   onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   placeholder="상호명을 입력하세요"
                 />
@@ -385,7 +382,7 @@ export default function ChecklistManagement() {
                   onClick={() => {
                     setShowAddForm(false);
                     setEditingItem(null);
-                    setFormData({ title: '', companyName: '', description: '', priority: 'medium' });
+                    setFormData({ companyName: '', description: '', priority: 'medium' });
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
                 >
@@ -430,7 +427,7 @@ export default function ChecklistManagement() {
                             : 'text-gray-900'
                         }`}
                       >
-                        {item.title}
+                        {item.company_name || '(상호명 없음)'}
                       </h3>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span
@@ -442,11 +439,6 @@ export default function ChecklistManagement() {
                         </span>
                       </div>
                     </div>
-                    {item.company_name && (
-                      <div className="text-sm text-gray-700 mb-2">
-                        <span className="font-medium">상호명:</span> {item.company_name}
-                      </div>
-                    )}
                     {item.description && (
                       <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">
                         {item.description}

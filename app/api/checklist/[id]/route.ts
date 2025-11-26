@@ -17,22 +17,19 @@ async function updateChecklistItem(
 
   try {
     const body = await req.json();
-    const { title, companyName, description, isCompleted, priority } = body;
+    const { companyName, description, isCompleted, priority } = body;
 
     const updateData: any = {};
 
-    if (title !== undefined) {
-      if (!title.trim()) {
+    if (companyName !== undefined) {
+      if (!companyName || !companyName.trim()) {
         return NextResponse.json(
-          { error: '제목을 입력해주세요.' },
+          { error: '상호명을 입력해주세요.' },
           { status: 400 }
         );
       }
-      updateData.title = title.trim();
-    }
-
-    if (companyName !== undefined) {
-      updateData.company_name = companyName?.trim() || null;
+      updateData.company_name = companyName.trim();
+      updateData.title = companyName.trim(); // title 필드는 DB 스키마상 필요하므로 상호명으로 채움
     }
 
     if (description !== undefined) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDate } from '@/lib/utils';
 
 interface AdminLog {
@@ -33,6 +34,7 @@ const ACTION_NAMES: Record<string, string> = {
 };
 
 export default function AdminActivityLogs() {
+  const router = useRouter();
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -78,7 +80,18 @@ export default function AdminActivityLogs() {
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">관리자 활동 로그</h1>
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={() => router.push('/admin')}
+              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>뒤로가기</span>
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">관리자 활동 로그</h1>
+          </div>
 
           {/* 필터 */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
