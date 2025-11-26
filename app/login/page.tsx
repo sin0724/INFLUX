@@ -62,8 +62,20 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
+            {/* 로고 이미지가 있으면 표시 */}
+            <div className="mb-4 flex justify-center">
+              <img 
+                src="/logo.png" 
+                alt="인플루언서컴퍼니" 
+                className="h-16 w-auto object-contain"
+                onError={(e) => {
+                  // 이미지가 없으면 숨김
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              INFLUX
+              인플루언서컴퍼니
             </h1>
             <p className="text-gray-600">캠페인 발주 시스템</p>
           </div>

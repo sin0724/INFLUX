@@ -39,6 +39,8 @@ const TASK_TYPES = [
   },
   { id: 'hotpost', name: '인스타그램 인기게시물', requiresImage: true },
   { id: 'momcafe', name: '맘카페', requiresImage: false },
+  { id: 'eventbanner', name: '이벤트배너/블로그스킨', requiresImage: false, externalLink: 'https://pf.kakao.com/_UxoANn' },
+  { id: 'daangn', name: '당근마켓', requiresImage: false, disabled: true, comingSoon: true },
   { id: 'powerblog', name: '파워블로그', requiresImage: false, disabled: true },
   { id: 'clip', name: '클립', requiresImage: false, disabled: true },
 ];
@@ -85,8 +87,19 @@ export default function OrderForm({ user }: OrderFormProps) {
 
   const handleTaskSelect = (type: string) => {
     const task = TASK_TYPES.find((t) => t.id === type);
+    
+    // 외부 링크가 있는 경우 (이벤트배너/블로그스킨)
+    if (task?.externalLink) {
+      window.open(task.externalLink, '_blank');
+      return;
+    }
+    
     if (task?.disabled) {
-      alert('이 작업은 담당자를 통해 카카오톡으로 신청부탁드립니다.');
+      if (task.comingSoon) {
+        alert('준비중입니다.');
+      } else {
+        alert('이 작업은 담당자를 통해 카카오톡으로 신청부탁드립니다.');
+      }
       return;
     }
     
@@ -267,15 +280,16 @@ export default function OrderForm({ user }: OrderFormProps) {
                 // 작업별 quota 체크
                 let isDisabled = task.disabled;
                 let remainingCount = 0;
+                const hasExternalLink = !!task.externalLink;
                 
-                if (userQuota) {
+                if (userQuota && !hasExternalLink) {
                   const taskQuota = userQuota[task.id as keyof Quota];
                   if (!taskQuota || taskQuota.remaining <= 0) {
                     isDisabled = true;
                   } else {
                     remainingCount = taskQuota.remaining;
                   }
-                } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0) {
+                } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0 && !hasExternalLink) {
                   isDisabled = true;
                 }
                 
@@ -286,10 +300,12 @@ export default function OrderForm({ user }: OrderFormProps) {
                     onClick={() => handleTaskSelect(task.id)}
                     disabled={isDisabled}
                     className={`p-4 border-2 rounded-lg text-left transition ${
-                      taskType === task.id
+                      taskType === task.id && !hasExternalLink
                         ? 'border-primary-500 bg-primary-50'
                         : isDisabled
                         ? 'border-gray-200 bg-gray-100 opacity-60 cursor-not-allowed'
+                        : hasExternalLink
+                        ? 'border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100'
                         : 'border-gray-200 bg-white hover:border-primary-300'
                     }`}
                   >
@@ -307,9 +323,19 @@ export default function OrderForm({ user }: OrderFormProps) {
                     {task.requiresImage && (
                       <div className="text-xs text-gray-500 mt-1">이미지 필요</div>
                     )}
-                    {task.disabled && (
+                    {task.disabled && !task.comingSoon && (
                       <div className="text-xs text-orange-600 mt-1">
                         카카오톡 신청
+                      </div>
+                    )}
+                    {task.comingSoon && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        준비중
+                      </div>
+                    )}
+                    {task.externalLink && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        카카오톡 채널로 이동
                       </div>
                     )}
                     {!task.disabled && userQuota && remainingCount === 0 && (

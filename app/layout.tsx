@@ -2,19 +2,19 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'INFLUX 캠페인 발주 시스템',
+  title: '인플루언서컴퍼니 캠페인 발주 시스템',
   description: '광고주 캠페인 발주 관리 시스템',
   openGraph: {
-    title: 'INFLUX 캠페인 발주 시스템',
+    title: '인플루언서컴퍼니 캠페인 발주 시스템',
     description: '광고주 캠페인 발주 관리 시스템',
     url: 'https://influx-production.up.railway.app',
-    siteName: 'INFLUX',
+    siteName: '인플루언서컴퍼니',
     images: [
       {
-        url: '/og-image.jpg',
+        url: 'https://influx-production.up.railway.app/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'INFLUX 캠페인 발주 시스템',
+        alt: '인플루언서컴퍼니 캠페인 발주 시스템',
       },
     ],
     locale: 'ko_KR',
@@ -22,9 +22,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'INFLUX 캠페인 발주 시스템',
+    title: '인플루언서컴퍼니 캠페인 발주 시스템',
     description: '광고주 캠페인 발주 관리 시스템',
-    images: ['/og-image.jpg'],
+    images: ['https://influx-production.up.railway.app/og-image.jpg'],
   },
 };
 

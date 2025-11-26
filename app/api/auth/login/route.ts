@@ -27,11 +27,12 @@ export async function POST(request: NextRequest) {
     const isProduction = process.env.NODE_ENV === 'production';
     
     // 모바일 브라우저에서도 쿠키가 제대로 설정되도록 명시적 설정
+    // 자동로그인: 만료 시간을 30일로 연장
     cookieStore.set('auth-token', result.token!, {
       httpOnly: true,
       secure: isProduction, // HTTPS에서만 secure 쿠키 전송
       sameSite: 'lax', // 모바일 호환성을 위해 lax 사용 (strict는 크로스 사이트 요청에서 문제 발생 가능)
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 30, // 30 days (자동로그인)
       path: '/', // 모든 경로에서 쿠키 사용 가능
     });
 
