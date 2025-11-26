@@ -16,7 +16,7 @@ async function getUsers(req: NextRequest, user: any) {
   // superadmin은 모든 사용자 조회, admin은 client와 admin만 조회
   let query = supabase
     .from('users')
-    .select('id, username, companyName, role, totalQuota, remainingQuota, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", createdAt')
+    .select('id, username, companyName, role, totalQuota, remainingQuota, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", optimization, reservation, createdAt')
     .order('createdAt', { ascending: false });
 
   if (user.role !== 'superadmin') {

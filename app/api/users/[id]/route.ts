@@ -18,7 +18,7 @@ async function updateUser(
 
   try {
     const body = await req.json();
-    const { isActive, contractEndDate, contractStartDate, quota, username, companyName, notes, naverId, naverPassword, businessType } = body;
+    const { isActive, contractEndDate, contractStartDate, quota, username, companyName, notes, naverId, naverPassword, businessType, optimization, reservation } = body;
 
     const updateData: any = {};
     
@@ -55,6 +55,12 @@ async function updateUser(
     if (businessType !== undefined) {
       updateData.businessType = businessType || null;
     }
+    if (optimization !== undefined) {
+      updateData.optimization = optimization;
+    }
+    if (reservation !== undefined) {
+      updateData.reservation = reservation;
+    }
     
     if (quota) {
       updateData.quota = quota;
@@ -83,7 +89,7 @@ async function updateUser(
       .from('users')
       .update(updateData)
       .eq('id', userId)
-      .select('id, username, companyName, role, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", createdAt')
+      .select('id, username, companyName, role, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", optimization, reservation, createdAt')
       .single();
 
     if (error || !data) {
@@ -103,17 +109,29 @@ async function updateUser(
       logAction = AdminActions.ACTIVATE_USER;
     }
     
+    // 최적화/예약 변경 시 로그에 명시적으로 기록
+    const logDetails: any = {
+      updatedFields: Object.keys(updateData),
+      previousStatus: data.isActive,
+      ...updateData,
+    };
+    
+    if (optimization !== undefined) {
+      logDetails.optimizationChanged = true;
+      logDetails.optimization = optimization;
+    }
+    if (reservation !== undefined) {
+      logDetails.reservationChanged = true;
+      logDetails.reservation = reservation;
+    }
+    
     await logAdminActivity(
       user.id,
       user.username,
       logAction,
       targetType,
       userId,
-      {
-        updatedFields: Object.keys(updateData),
-        previousStatus: data.isActive,
-        ...updateData,
-      },
+      logDetails,
       req
     );
 

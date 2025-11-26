@@ -18,6 +18,8 @@ interface Client {
   naverId?: string;
   naverPassword?: string;
   businessType?: string;
+  optimization?: boolean;
+  reservation?: boolean;
   createdAt: string;
 }
 
@@ -74,6 +76,8 @@ export default function ClientsManagement() {
     naverId: '',
     naverPassword: '',
     businessType: '',
+    optimization: false,
+    reservation: false,
     quota: {
       follower: { total: 0, remaining: 0 },
       like: { total: 0, remaining: 0 },
@@ -767,6 +771,9 @@ export default function ClientsManagement() {
                       계약 상태
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      최적화 / 예약
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       생성일
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -876,6 +883,22 @@ export default function ClientsManagement() {
                           return <span className="text-gray-500 text-xs">-</span>;
                         })()}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-600">최적화:</span>
+                            <span className={`text-xs font-medium ${client.optimization ? 'text-green-600' : 'text-gray-400'}`}>
+                              {client.optimization ? '완료' : '대기'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-600">예약:</span>
+                            <span className={`text-xs font-medium ${client.reservation ? 'text-green-600' : 'text-gray-400'}`}>
+                              {client.reservation ? '완료' : '대기'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(client.createdAt)}
                       </td>
@@ -893,6 +916,8 @@ export default function ClientsManagement() {
                                 naverId: client.naverId || '',
                                 naverPassword: client.naverPassword || '',
                                 businessType: client.businessType || '',
+                                optimization: client.optimization || false,
+                                reservation: client.reservation || false,
                                 quota: {
                                   follower: existingQuota.follower || { total: 0, remaining: 0 },
                                   like: existingQuota.like || { total: 0, remaining: 0 },
@@ -1518,6 +1543,32 @@ export default function ClientsManagement() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
                     />
                   </div>
+                  {/* 최적화/예약 체크박스 */}
+                  <div className="md:col-span-2 pt-2 border-t border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      상태 관리
+                    </label>
+                    <div className="flex gap-6">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editForm.optimization}
+                          onChange={(e) => setEditForm({ ...editForm, optimization: e.target.checked })}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-700">최적화</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editForm.reservation}
+                          onChange={(e) => setEditForm({ ...editForm, reservation: e.target.checked })}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-700">예약</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button
@@ -1530,6 +1581,8 @@ export default function ClientsManagement() {
                         naverId: '',
                         naverPassword: '',
                         businessType: '',
+                        optimization: false,
+                        reservation: false,
                         quota: {
                           follower: { total: 0, remaining: 0 },
                           like: { total: 0, remaining: 0 },
@@ -1562,6 +1615,8 @@ export default function ClientsManagement() {
                             naverId: editForm.naverId || null,
                             naverPassword: editForm.naverPassword || null,
                             businessType: editForm.businessType || null,
+                            optimization: editForm.optimization,
+                            reservation: editForm.reservation,
                           }),
                         });
 
