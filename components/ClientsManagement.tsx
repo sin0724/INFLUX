@@ -189,10 +189,13 @@ export default function ClientsManagement() {
   const [contractFilter, setContractFilter] = useState<string>('all'); // 'all', 'expired', '7days', '14days', '30days'
 
   const filteredClients = clients.filter((client) => {
-    // 검색 필터
-    const matchesSearch = client.username.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (!matchesSearch) return false;
+    // 검색 필터 (아이디 및 상호명)
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesUsername = client.username.toLowerCase().includes(searchLower);
+      const matchesCompanyName = client.companyName?.toLowerCase().includes(searchLower) || false;
+      if (!matchesUsername && !matchesCompanyName) return false;
+    }
 
     // 계약 만료 필터
     if (contractFilter === 'all') return true;
@@ -246,6 +249,32 @@ export default function ClientsManagement() {
     } catch (error) {
       console.error('Failed to toggle active:', error);
       alert('상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDeleteClient = async (client: Client) => {
+    if (!confirm(`정말로 ${client.username}${client.companyName ? ` (${client.companyName})` : ''} 광고주를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 해당 광고주의 모든 데이터가 삭제됩니다.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${client.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        fetchClients();
+        alert('광고주가 삭제되었습니다.');
+      } else {
+        const data = await response.json();
+        alert(data.error || '광고주 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to delete client:', error);
+      alert('광고주 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -588,9 +617,6 @@ export default function ClientsManagement() {
                       작업별 남은 개수
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      총 작업 갯수
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       계약 상태
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -651,9 +677,6 @@ export default function ClientsManagement() {
                             {client.remainingQuota || 0}건
                           </span>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {client.totalQuota || 0}건
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {(() => {
@@ -749,6 +772,12 @@ export default function ClientsManagement() {
                             className="text-xs px-2 py-1 rounded border hover:bg-gray-50 bg-blue-50"
                           >
                             재계약
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClient(client)}
+                            className="text-xs px-2 py-1 rounded border hover:bg-red-50 bg-red-50 text-red-700"
+                          >
+                            삭제
                           </button>
                         </div>
                       </td>
