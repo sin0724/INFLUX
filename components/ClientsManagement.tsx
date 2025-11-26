@@ -50,6 +50,7 @@ export default function ClientsManagement() {
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [extendingClient, setExtendingClient] = useState<Client | null>(null);
   const [renewingClient, setRenewingClient] = useState<Client | null>(null);
   const [extendDate, setExtendDate] = useState('');
@@ -745,231 +746,255 @@ export default function ClientsManagement() {
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      아이디
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      상호명
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      업종
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      네이버 아이디
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      네이버 비밀번호
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      작업별 남은 개수
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      계약 상태
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      최적화 / 예약
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      생성일
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      관리
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredClients.map((client) => (
-                    <tr key={client.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {client.username}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {client.companyName || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {client.businessType || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {client.naverId || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono">
-                        {client.naverPassword || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {client.quota ? (
-                          <div className="space-y-1">
-                            <div className="text-xs">
-                              <span className="text-blue-600">인기게시물:</span>{' '}
-                              <span className="font-medium">{client.quota.hotpost?.remaining || 0}개</span>
-                            </div>
-                            <div className="text-xs">
-                              <span className="text-purple-600">맘카페:</span>{' '}
-                              <span className="font-medium">{client.quota.momcafe?.remaining || 0}개</span>
-                            </div>
-                            <div className="text-xs">
-                              <span className="text-green-600">팔로워:</span>{' '}
-                              <span className="font-medium">{client.quota.follower?.remaining || 0}개</span>
-                            </div>
-                            <div className="text-xs">
-                              <span className="text-orange-600">좋아요:</span>{' '}
-                              <span className="font-medium">{client.quota.like?.remaining || 0}개</span>
-                            </div>
-                            <div className="text-xs">
-                              <span className="text-indigo-600">파워블로그:</span>{' '}
-                              <span className="font-medium">{client.quota.powerblog?.remaining || 0}개</span>
-                            </div>
-                            <div className="text-xs">
-                              <span className="text-teal-600">클립:</span>{' '}
-                              <span className="font-medium">{client.quota.clip?.remaining || 0}개</span>
-                            </div>
-                            <div className="text-xs">
-                              <span className="text-pink-600">블로그 리뷰:</span>{' '}
-                              <span className="font-medium">{client.quota.blog?.remaining || 0}개</span>
-                            </div>
-                            <div className="text-xs">
-                              <span className="text-red-600">영수증 리뷰:</span>{' '}
-                              <span className="font-medium">{client.quota.receipt?.remaining || 0}개</span>
-                            </div>
+            <div className="divide-y divide-gray-200">
+              {filteredClients.map((client) => {
+                const isExpanded = expandedClients.has(client.id);
+                const now = new Date();
+                const endDate = client.contractEndDate ? new Date(client.contractEndDate) : null;
+                const isExpired = endDate && endDate < now;
+                const isActive = client.isActive !== false && !isExpired;
+                const daysLeft = endDate ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                
+                return (
+                  <div key={client.id} className="hover:bg-gray-50 transition-colors">
+                    {/* 기본 정보 행 (항상 표시) */}
+                    <div 
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => {
+                        const newExpanded = new Set(expandedClients);
+                        if (newExpanded.has(client.id)) {
+                          newExpanded.delete(client.id);
+                        } else {
+                          newExpanded.add(client.id);
+                        }
+                        setExpandedClients(newExpanded);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          {/* 아이디 */}
+                          <div className="font-medium text-gray-900 min-w-[120px]">
+                            {client.username}
                           </div>
-                        ) : (
-                          <span className="text-gray-500">
-                            {client.remainingQuota || 0}건
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {(() => {
-                          const now = new Date();
-                          const endDate = client.contractEndDate 
-                            ? new Date(client.contractEndDate) 
-                            : null;
-                          const isExpired = endDate && endDate < now;
-                          const isActive = client.isActive !== false && !isExpired;
                           
-                          if (isExpired) {
-                            return (
+                          {/* 상호명 */}
+                          <div className="text-gray-700 min-w-[150px] truncate">
+                            {client.companyName || '-'}
+                          </div>
+                          
+                          {/* 계약 상태 */}
+                          <div className="min-w-[120px]">
+                            {isExpired ? (
                               <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
                                 만료됨
                               </span>
-                            );
-                          }
-                          if (!client.isActive) {
-                            return (
+                            ) : !client.isActive ? (
                               <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
                                 차단됨
                               </span>
-                            );
-                          }
-                          if (endDate) {
-                            const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                            return (
-                              <div>
+                            ) : endDate ? (
+                              <div className="flex items-center gap-2">
                                 <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
                                   활성
                                 </span>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {daysLeft > 0 ? `${daysLeft}일 남음` : '만료 임박'}
+                                <span className="text-xs text-gray-500">
+                                  {daysLeft && daysLeft > 0 ? `${daysLeft}일 남음` : '만료 임박'}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 text-xs">-</span>
+                            )}
+                          </div>
+                          
+                          {/* 최적화/예약 상태 */}
+                          <div className="flex items-center gap-3 min-w-[140px]">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-600">최적화:</span>
+                              <span className={`text-xs font-medium ${client.optimization ? 'text-green-600' : 'text-gray-400'}`}>
+                                {client.optimization ? '완료' : '대기'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-600">예약:</span>
+                              <span className={`text-xs font-medium ${client.reservation ? 'text-green-600' : 'text-gray-400'}`}>
+                                {client.reservation ? '완료' : '대기'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* 펼치기/접기 아이콘 */}
+                        <div className="flex items-center gap-3 ml-4">
+                          <svg
+                            className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 펼쳐진 상세 정보 */}
+                    {isExpanded && (
+                      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {/* 업종 */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">업종</label>
+                            <div className="text-sm text-gray-900">{client.businessType || '-'}</div>
+                          </div>
+                          
+                          {/* 네이버 아이디 */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">네이버 아이디</label>
+                            <div className="text-sm text-gray-900">{client.naverId || '-'}</div>
+                          </div>
+                          
+                          {/* 네이버 비밀번호 */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">네이버 비밀번호</label>
+                            <div className="text-sm text-gray-900 font-mono">{client.naverPassword || '-'}</div>
+                          </div>
+                          
+                          {/* 생성일 */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">생성일</label>
+                            <div className="text-sm text-gray-900">{formatDate(client.createdAt)}</div>
+                          </div>
+                          
+                          {/* 계약 정보 */}
+                          {endDate && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">계약 종료일</label>
+                              <div className="text-sm text-gray-900">{endDate.toLocaleDateString('ko-KR')}</div>
+                            </div>
+                          )}
+                          
+                          {/* 작업별 남은 개수 */}
+                          <div className="md:col-span-2 lg:col-span-3">
+                            <label className="block text-xs font-medium text-gray-500 mb-2">작업별 남은 개수</label>
+                            {client.quota ? (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="text-xs text-blue-600 mb-1">인기게시물</div>
+                                  <div className="text-lg font-bold text-gray-900">{client.quota.hotpost?.remaining || 0}개</div>
                                 </div>
-                                <div className="text-xs text-gray-500">
-                                  {endDate.toLocaleDateString('ko-KR')}
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="text-xs text-purple-600 mb-1">맘카페</div>
+                                  <div className="text-lg font-bold text-gray-900">{client.quota.momcafe?.remaining || 0}개</div>
+                                </div>
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="text-xs text-green-600 mb-1">팔로워</div>
+                                  <div className="text-lg font-bold text-gray-900">{client.quota.follower?.remaining || 0}개</div>
+                                </div>
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="text-xs text-orange-600 mb-1">좋아요</div>
+                                  <div className="text-lg font-bold text-gray-900">{client.quota.like?.remaining || 0}개</div>
+                                </div>
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="text-xs text-indigo-600 mb-1">파워블로그</div>
+                                  <div className="text-lg font-bold text-gray-900">{client.quota.powerblog?.remaining || 0}개</div>
+                                </div>
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="text-xs text-teal-600 mb-1">클립</div>
+                                  <div className="text-lg font-bold text-gray-900">{client.quota.clip?.remaining || 0}개</div>
+                                </div>
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="text-xs text-pink-600 mb-1">블로그 리뷰</div>
+                                  <div className="text-lg font-bold text-gray-900">{client.quota.blog?.remaining || 0}개</div>
+                                </div>
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="text-xs text-red-600 mb-1">영수증 리뷰</div>
+                                  <div className="text-lg font-bold text-gray-900">{client.quota.receipt?.remaining || 0}개</div>
                                 </div>
                               </div>
-                            );
-                          }
-                          return <span className="text-gray-500 text-xs">-</span>;
-                        })()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600">최적화:</span>
-                            <span className={`text-xs font-medium ${client.optimization ? 'text-green-600' : 'text-gray-400'}`}>
-                              {client.optimization ? '완료' : '대기'}
-                            </span>
+                            ) : (
+                              <div className="text-sm text-gray-500">{client.remainingQuota || 0}건</div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600">예약:</span>
-                            <span className={`text-xs font-medium ${client.reservation ? 'text-green-600' : 'text-gray-400'}`}>
-                              {client.reservation ? '완료' : '대기'}
-                            </span>
+                          
+                          {/* 관리 버튼 */}
+                          <div className="md:col-span-2 lg:col-span-3 pt-2 border-t border-gray-200">
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingClient(client);
+                                  const existingQuota = client.quota || {};
+                                  setEditForm({
+                                    username: client.username,
+                                    companyName: client.companyName || '',
+                                    notes: client.notes || '',
+                                    naverId: client.naverId || '',
+                                    naverPassword: client.naverPassword || '',
+                                    businessType: client.businessType || '',
+                                    optimization: client.optimization || false,
+                                    reservation: client.reservation || false,
+                                    quota: {
+                                      follower: existingQuota.follower || { total: 0, remaining: 0 },
+                                      like: existingQuota.like || { total: 0, remaining: 0 },
+                                      hotpost: existingQuota.hotpost || { total: 0, remaining: 0 },
+                                      momcafe: existingQuota.momcafe || { total: 0, remaining: 0 },
+                                      powerblog: existingQuota.powerblog || { total: 0, remaining: 0 },
+                                      clip: existingQuota.clip || { total: 0, remaining: 0 },
+                                      blog: existingQuota.blog || { total: 0, remaining: 0 },
+                                      receipt: existingQuota.receipt || { total: 0, remaining: 0 },
+                                    },
+                                  });
+                                }}
+                                className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50 bg-green-50 text-green-700 font-medium"
+                              >
+                                수정
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleActive(client);
+                                }}
+                                className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50 text-gray-700 font-medium"
+                              >
+                                {client.isActive !== false ? '차단' : '활성화'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExtendingClient(client);
+                                  setExtendDate(client.contractEndDate || '');
+                                }}
+                                className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50 text-gray-700 font-medium"
+                              >
+                                연장
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRenewingClient(client);
+                                  setRenewPlanType('1');
+                                }}
+                                className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50 bg-blue-50 text-blue-700 font-medium"
+                              >
+                                재계약
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteClient(client);
+                                }}
+                                className="px-3 py-1.5 text-sm rounded border hover:bg-red-50 bg-red-50 text-red-700 font-medium"
+                              >
+                                삭제
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(client.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex flex-wrap gap-1">
-                          <button
-                            onClick={() => {
-                              setEditingClient(client);
-                              // 기존 quota가 있으면 powerblog와 clip이 없을 수 있으므로 보완
-                              const existingQuota = client.quota || {};
-                              setEditForm({
-                                username: client.username,
-                                companyName: client.companyName || '',
-                                notes: client.notes || '',
-                                naverId: client.naverId || '',
-                                naverPassword: client.naverPassword || '',
-                                businessType: client.businessType || '',
-                                optimization: client.optimization || false,
-                                reservation: client.reservation || false,
-                                quota: {
-                                  follower: existingQuota.follower || { total: 0, remaining: 0 },
-                                  like: existingQuota.like || { total: 0, remaining: 0 },
-                                  hotpost: existingQuota.hotpost || { total: 0, remaining: 0 },
-                                  momcafe: existingQuota.momcafe || { total: 0, remaining: 0 },
-                                  powerblog: existingQuota.powerblog || { total: 0, remaining: 0 },
-                                  clip: existingQuota.clip || { total: 0, remaining: 0 },
-                                  blog: existingQuota.blog || { total: 0, remaining: 0 },
-                                  receipt: existingQuota.receipt || { total: 0, remaining: 0 },
-                                },
-                              });
-                            }}
-                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50 bg-green-50"
-                          >
-                            수정
-                          </button>
-                          <button
-                            onClick={() => handleToggleActive(client)}
-                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-                          >
-                            {client.isActive !== false ? '차단' : '활성화'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setExtendingClient(client);
-                              setExtendDate(client.contractEndDate || '');
-                            }}
-                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
-                          >
-                            연장
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRenewingClient(client);
-                              setRenewPlanType('1');
-                            }}
-                            className="text-xs px-2 py-1 rounded border hover:bg-gray-50 bg-blue-50"
-                          >
-                            재계약
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClient(client)}
-                            className="text-xs px-2 py-1 rounded border hover:bg-red-50 bg-red-50 text-red-700"
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
