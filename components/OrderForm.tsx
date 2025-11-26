@@ -47,8 +47,6 @@ const TASK_TYPES = [
   { id: 'daangn', name: '당근마켓', requiresImage: false, disabled: true, comingSoon: true },
   { id: 'powerblog', name: '파워블로그', requiresImage: false },
   { id: 'clip', name: '클립', requiresImage: false },
-  { id: 'blog', name: '블로그 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
-  { id: 'receipt', name: '영수증 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
 ];
 
 export default function OrderForm({ user }: OrderFormProps) {
@@ -695,20 +693,6 @@ export default function OrderForm({ user }: OrderFormProps) {
             </div>
           )}
 
-          {/* 블로그/영수증 리뷰 안내사항 */}
-          {(taskType === 'blog' || taskType === 'receipt') && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-orange-800 mb-2">
-                ℹ️ 안내사항
-              </h3>
-              <p className="text-sm text-orange-700">
-                블로그 리뷰와 영수증 리뷰는 관리자가 완료 링크를 입력할 때 자동으로 차감됩니다.
-              </p>
-              <p className="text-sm text-orange-700 mt-2 font-medium">
-                추가 신청은 단톡방으로 신청 부탁드립니다.
-              </p>
-            </div>
-          )}
           </div>
           {/* End of form section */}
 

@@ -631,7 +631,7 @@ export default function ClientsManagement() {
                       네이버 비밀번호
                     </label>
                     <input
-                      type="password"
+                      type="text"
                       value={formData.naverPassword}
                       onChange={(e) =>
                         setFormData({ ...formData, naverPassword: e.target.value })
@@ -755,6 +755,12 @@ export default function ClientsManagement() {
                       업종
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      네이버 아이디
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      네이버 비밀번호
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       작업별 남은 개수
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -779,6 +785,12 @@ export default function ClientsManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {client.businessType || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {client.naverId || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono">
+                        {client.naverPassword || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {client.quota ? (
@@ -1487,7 +1499,7 @@ export default function ClientsManagement() {
                       네이버 비밀번호
                     </label>
                     <input
-                      type="password"
+                      type="text"
                       value={editForm.naverPassword}
                       onChange={(e) => setEditForm({ ...editForm, naverPassword: e.target.value })}
                       placeholder="네이버 비밀번호 (변경 시에만 입력)"
