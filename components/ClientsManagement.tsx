@@ -1121,6 +1121,10 @@ export default function ClientsManagement() {
               setEditForm({
                 username: '',
                 companyName: '',
+                notes: '',
+                naverId: '',
+                naverPassword: '',
+                businessType: '',
                 quota: {
                   follower: { total: 0, remaining: 0 },
                   like: { total: 0, remaining: 0 },
