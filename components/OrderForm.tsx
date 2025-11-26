@@ -327,7 +327,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                     }`}
                   >
                     <div className="font-medium text-gray-900">{task.name}</div>
-                    {userQuota && remainingCount > 0 && (
+                    {!hasExternalLink && userQuota && remainingCount > 0 && (
                       <div className="text-xs text-primary-600 mt-1 font-medium">
                         남은 개수: {remainingCount}개
                       </div>
@@ -355,7 +355,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                         카카오톡 채널로 이동
                       </div>
                     )}
-                    {!task.disabled && userQuota && remainingCount === 0 && (
+                    {!hasExternalLink && !task.disabled && userQuota && remainingCount === 0 && (
                       <div className="text-xs text-red-600 mt-1">
                         남은 개수 없음
                       </div>
