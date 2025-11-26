@@ -14,13 +14,9 @@ async function getChargeRequests(req: NextRequest, user: any) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
 
-  // 상호명이 없는 경우 users 테이블에서 조인하여 가져오기
   let query = supabaseAdmin
     .from('point_charges')
-    .select(`
-      *,
-      client:users!point_charges_clientId_fkey(id, username, "companyName")
-    `)
+    .select('*')
     .order('createdAt', { ascending: false });
 
   if (status) {
@@ -37,16 +33,27 @@ async function getChargeRequests(req: NextRequest, user: any) {
     );
   }
 
-  // 상호명이 없는 경우 users 테이블에서 가져온 데이터로 보완
-  const chargeRequests = (data || []).map((charge: any) => {
-    if (!charge.companyName && charge.client?.companyName) {
-      return {
-        ...charge,
-        companyName: charge.client.companyName,
-      };
-    }
-    return charge;
-  });
+  // 상호명이 없는 경우 users 테이블에서 가져오기
+  const chargeRequests = await Promise.all(
+    (data || []).map(async (charge: any) => {
+      if (!charge.companyName) {
+        try {
+          const { data: userData } = await supabaseAdmin
+            .from('users')
+            .select('companyName')
+            .eq('id', charge.clientId)
+            .single();
+          
+          if (userData?.companyName) {
+            charge.companyName = userData.companyName;
+          }
+        } catch (err) {
+          console.error('Failed to fetch company name:', err);
+        }
+      }
+      return charge;
+    })
+  );
 
   return NextResponse.json({ chargeRequests });
 }
