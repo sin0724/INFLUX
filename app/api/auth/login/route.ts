@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { login } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import { checkRateLimit, recordFailedAttempt, resetRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,14 +14,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Rate Limiting 체크
+    const clientIp = getClientIp(request);
+    const identifier = username; // 사용자명 기반으로 제한
+    const rateLimitCheck = checkRateLimit(identifier);
+
+    if (!rateLimitCheck.allowed) {
+      const blockedUntil = rateLimitCheck.blockedUntil!;
+      const minutesLeft = Math.ceil((blockedUntil - Date.now()) / (1000 * 60));
+      
+      return NextResponse.json(
+        { 
+          error: `너무 많은 로그인 시도가 있었습니다. ${minutesLeft}분 후에 다시 시도해주세요.`,
+          rateLimitExceeded: true,
+          blockedUntil: blockedUntil,
+        },
+        { status: 429 }
+      );
+    }
+
     const result = await login(username, password);
 
     if (!result.success) {
+      // 실패한 시도 기록
+      recordFailedAttempt(identifier);
+      
+      // 남은 시도 횟수 포함
+      const remainingCheck = checkRateLimit(identifier);
+      const remainingAttempts = remainingCheck.remainingAttempts;
+      
       return NextResponse.json(
-        { error: result.error || '로그인에 실패했습니다.' },
+        { 
+          error: result.error || '로그인에 실패했습니다.',
+          remainingAttempts: remainingAttempts,
+          ...(remainingAttempts <= 3 && remainingAttempts > 0 ? {
+            warning: `로그인 시도가 ${10 - remainingAttempts}회 실패했습니다. ${remainingAttempts}회 더 실패하면 30분간 차단됩니다.`
+          } : {})
+        },
         { status: 401 }
       );
     }
+
+    // 성공 시 Rate Limit 리셋
+    resetRateLimit(identifier);
 
     // Set HTTP-only cookie (모바일 호환성 고려)
     const cookieStore = await cookies();

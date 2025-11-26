@@ -118,6 +118,9 @@ export const AdminActions = {
   APPROVE_POINT_CHARGE: 'approve_point_charge',
   REJECT_POINT_CHARGE: 'reject_point_charge',
   
+  // 개인정보 접근 관련
+  VIEW_NAVER_CREDENTIALS: 'view_naver_credentials',
+  
   // 시스템 관련
   LOGIN: 'login',
   LOGOUT: 'logout',

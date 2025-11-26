@@ -33,7 +33,46 @@ async function getUsers(req: NextRequest, user: any) {
     );
   }
 
-  return NextResponse.json({ users: data });
+  // 네이버 정보 접근 로깅
+  if (data && data.length > 0) {
+    const hasNaverInfo = data.some((u: any) => u.naverId || u.naverPassword);
+    if (hasNaverInfo) {
+      await logAdminActivity({
+        adminId: user.id,
+        adminUsername: user.username,
+        action: 'view_naver_credentials',
+        target_type: 'client',
+        details: {
+          viewedClients: data.filter((u: any) => u.naverId || u.naverPassword).map((u: any) => ({
+            id: u.id,
+            username: u.username,
+            companyName: u.companyName,
+          })),
+          totalClients: data.length,
+        },
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        user_agent: req.headers.get('user-agent') || 'unknown',
+      });
+    }
+  }
+
+  // 네이버 비밀번호 복호화 (관리자에게만 표시)
+  if (data) {
+    const { decrypt } = await import('@/lib/encryption');
+    const decryptedData = data.map((user: any) => {
+      if (user.naverPassword) {
+        return {
+          ...user,
+          naverPassword: decrypt(user.naverPassword),
+        };
+      }
+      return user;
+    });
+
+    return NextResponse.json({ users: decryptedData });
+  }
+
+  return NextResponse.json({ users: data || [] });
 }
 
 // POST: Create new user
@@ -126,7 +165,9 @@ async function createUser(req: NextRequest, user: any) {
       insertData.naverId = naverId;
     }
     if (naverPassword !== undefined && naverPassword !== '') {
-      insertData.naverPassword = naverPassword;
+      // 네이버 비밀번호 암호화
+      const { encrypt } = await import('@/lib/encryption');
+      insertData.naverPassword = encrypt(naverPassword);
     }
     if (businessType !== undefined && businessType !== '') {
       insertData.businessType = businessType;

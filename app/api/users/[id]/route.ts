@@ -50,7 +50,13 @@ async function updateUser(
       updateData.naverId = naverId || null;
     }
     if (naverPassword !== undefined) {
-      updateData.naverPassword = naverPassword || null;
+      // 네이버 비밀번호 암호화 (값이 있는 경우만)
+      if (naverPassword) {
+        const { encrypt } = await import('@/lib/encryption');
+        updateData.naverPassword = encrypt(naverPassword);
+      } else {
+        updateData.naverPassword = null;
+      }
     }
     if (businessType !== undefined) {
       updateData.businessType = businessType || null;
@@ -99,6 +105,24 @@ async function updateUser(
       );
     }
 
+    // 네이버 정보 수정 시 로깅
+    if ((updateData.naverId !== undefined || updateData.naverPassword !== undefined) && (data.naverId || data.naverPassword)) {
+      await logAdminActivity({
+        adminId: user.id,
+        adminUsername: user.username,
+        action: 'view_naver_credentials',
+        target_type: 'client',
+        targetId: userId,
+        details: {
+          action: 'updated_naver_credentials',
+          username: data.username,
+          companyName: data.companyName,
+        },
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        user_agent: req.headers.get('user-agent') || 'unknown',
+      });
+    }
+
     // 활동 로그 기록
     const targetType = data.role === 'admin' ? 'admin' : data.role === 'client' ? 'client' : 'user';
     let logAction: string = AdminActions.UPDATE_USER;
@@ -135,7 +159,17 @@ async function updateUser(
       req
     );
 
-    return NextResponse.json({ user: data });
+    // 네이버 비밀번호 복호화 (관리자에게만 표시)
+    let decryptedData = { ...data };
+    if (data.naverPassword) {
+      const { decrypt } = await import('@/lib/encryption');
+      decryptedData = {
+        ...data,
+        naverPassword: decrypt(data.naverPassword),
+      };
+    }
+
+    return NextResponse.json({ user: decryptedData });
   } catch (error) {
     console.error('Update user error:', error);
     return NextResponse.json(
