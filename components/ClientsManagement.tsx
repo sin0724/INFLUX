@@ -857,6 +857,8 @@ export default function ClientsManagement() {
                   like: { total: 0, remaining: 0 },
                   hotpost: { total: 0, remaining: 0 },
                   momcafe: { total: 0, remaining: 0 },
+                  powerblog: { total: 0, remaining: 0 },
+                  clip: { total: 0, remaining: 0 },
                 },
               });
             }}
