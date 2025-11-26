@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, requireAdmin } from '@/lib/middleware';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 // GET: Get all point charge requests (admin only)
 async function getChargeRequests(req: NextRequest, user: any) {
@@ -14,9 +14,13 @@ async function getChargeRequests(req: NextRequest, user: any) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
 
-  let query = supabase
+  // 상호명이 없는 경우 users 테이블에서 조인하여 가져오기
+  let query = supabaseAdmin
     .from('point_charges')
-    .select('*')
+    .select(`
+      *,
+      client:users!point_charges_clientId_fkey(id, username, "companyName")
+    `)
     .order('createdAt', { ascending: false });
 
   if (status) {
@@ -33,7 +37,18 @@ async function getChargeRequests(req: NextRequest, user: any) {
     );
   }
 
-  return NextResponse.json({ chargeRequests: data || [] });
+  // 상호명이 없는 경우 users 테이블에서 가져온 데이터로 보완
+  const chargeRequests = (data || []).map((charge: any) => {
+    if (!charge.companyName && charge.client?.companyName) {
+      return {
+        ...charge,
+        companyName: charge.client.companyName,
+      };
+    }
+    return charge;
+  });
+
+  return NextResponse.json({ chargeRequests });
 }
 
 export const GET = withAuth(getChargeRequests, ['admin', 'superadmin']);

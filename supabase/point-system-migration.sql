@@ -28,9 +28,20 @@ CREATE INDEX IF NOT EXISTS idx_point_charges_status ON point_charges(status);
 CREATE INDEX IF NOT EXISTS idx_point_charges_created_at ON point_charges("createdAt");
 CREATE INDEX IF NOT EXISTS idx_users_points ON users(points);
 
--- 4. updatedAt 자동 업데이트 트리거
-CREATE TRIGGER update_point_charges_updated_at BEFORE UPDATE ON point_charges
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- 4. updatedAt 자동 업데이트 트리거 (point_charges 전용 함수 사용)
+-- point_charges 전용 트리거 함수 생성
+CREATE OR REPLACE FUNCTION update_point_charges_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW."updatedAt" = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_point_charges_updated_at_trigger 
+BEFORE UPDATE ON point_charges
+FOR EACH ROW 
+EXECUTE FUNCTION update_point_charges_updated_at();
 
 -- 5. 기존 사용자 포인트 기본값 설정
 UPDATE users 
