@@ -79,10 +79,33 @@ async function createChecklistItem(req: NextRequest, user: any) {
     if (error) {
       console.error('Failed to create checklist item:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // 테이블이 없는 경우
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        return NextResponse.json(
+          { 
+            error: '체크리스트 테이블이 생성되지 않았습니다.',
+            details: 'Supabase SQL Editor에서 checklist_items 테이블을 생성해주세요.'
+          },
+          { status: 500 }
+        );
+      }
+      
+      // 외래 키 오류
+      if (error.code === '23503') {
+        return NextResponse.json(
+          { 
+            error: '사용자 정보를 찾을 수 없습니다.',
+            details: '관리자 계정이 올바르게 설정되어 있는지 확인해주세요.'
+          },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
         { 
           error: '체크리스트를 생성하는데 실패했습니다.',
-          details: error.message || '알 수 없는 오류가 발생했습니다.'
+          details: error.message || error.details || '알 수 없는 오류가 발생했습니다.'
         },
         { status: 500 }
       );

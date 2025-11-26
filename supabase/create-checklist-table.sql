@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS checklist_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
+  company_name TEXT,
   description TEXT,
   is_completed BOOLEAN DEFAULT false,
   completed_by UUID REFERENCES users(id) ON DELETE SET NULL,
