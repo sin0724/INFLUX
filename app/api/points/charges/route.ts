@@ -33,10 +33,11 @@ async function getChargeRequests(req: NextRequest, user: any) {
     );
   }
 
-  // 상호명이 없는 경우 users 테이블에서 가져오기
+  // 모든 충전 신청에 대해 users 테이블에서 최신 상호명 가져오기 (저장된 상호명이 없거나 빈 경우)
   const chargeRequests = await Promise.all(
     (data || []).map(async (charge: any) => {
-      if (!charge.companyName) {
+      // 상호명이 없거나 빈 문자열인 경우 users 테이블에서 가져오기
+      if (!charge.companyName || (typeof charge.companyName === 'string' && charge.companyName.trim() === '')) {
         try {
           const { data: userData } = await supabaseAdmin
             .from('users')
@@ -44,11 +45,11 @@ async function getChargeRequests(req: NextRequest, user: any) {
             .eq('id', charge.clientId)
             .single();
           
-          if (userData?.companyName) {
+          if (userData && userData.companyName) {
             charge.companyName = userData.companyName;
           }
         } catch (err) {
-          console.error('Failed to fetch company name:', err);
+          console.error('Failed to fetch company name for charge:', charge.id, err);
         }
       }
       return charge;
