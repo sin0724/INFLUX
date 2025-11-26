@@ -27,7 +27,7 @@ async function updateChargeRequest(
     }
 
     // Get the charge request first
-    const { data: chargeRequest, error: fetchError } = await supabase
+    const { data: chargeRequest, error: fetchError } = await supabaseAdmin
       .from('point_charges')
       .select('*')
       .eq('id', chargeId)
@@ -53,14 +53,15 @@ async function updateChargeRequest(
       adminId: user.id,
       adminUsername: user.username,
       adminNote: adminNote || null,
-      updatedAt: new Date().toISOString(),
     };
 
     if (status === 'approved') {
       updateData.approvedAt = new Date().toISOString();
     }
 
-    const { data: updatedRequest, error: updateError } = await supabase
+    // updatedAt는 트리거로 자동 업데이트되므로 제외
+
+    const { data: updatedRequest, error: updateError } = await supabaseAdmin
       .from('point_charges')
       .update(updateData)
       .eq('id', chargeId)
@@ -69,38 +70,52 @@ async function updateChargeRequest(
 
     if (updateError) {
       console.error('Failed to update charge request:', updateError);
+      console.error('Update error details:', JSON.stringify(updateError, null, 2));
       return NextResponse.json(
-        { error: '포인트 충전 신청 처리에 실패했습니다.' },
+        { error: `포인트 충전 신청 처리에 실패했습니다: ${updateError.message || '알 수 없는 오류'}` },
+        { status: 500 }
+      );
+    }
+
+    if (!updatedRequest) {
+      console.error('Updated request is null');
+      return NextResponse.json(
+        { error: '포인트 충전 신청 업데이트 결과를 가져올 수 없습니다.' },
         { status: 500 }
       );
     }
 
     // If approved, add points to user
     if (status === 'approved') {
-      const { data: clientUser, error: userError } = await supabase
+      const { data: clientUser, error: userError } = await supabaseAdmin
         .from('users')
         .select('points')
         .eq('id', chargeRequest.clientId)
         .single();
 
       if (userError || !clientUser) {
+        console.error('Failed to fetch client user:', userError);
         return NextResponse.json(
-          { error: '사용자 정보를 찾을 수 없습니다.' },
+          { error: `사용자 정보를 찾을 수 없습니다: ${userError?.message || '알 수 없는 오류'}` },
           { status: 404 }
         );
       }
 
-      const newPoints = (clientUser.points || 0) + chargeRequest.points;
+      const currentPoints = clientUser.points || 0;
+      const newPoints = currentPoints + chargeRequest.points;
 
-      const { error: pointsError } = await supabase
+      console.log(`Updating points for user ${chargeRequest.clientId}: ${currentPoints} + ${chargeRequest.points} = ${newPoints}`);
+
+      const { error: pointsError } = await supabaseAdmin
         .from('users')
         .update({ points: newPoints })
         .eq('id', chargeRequest.clientId);
 
       if (pointsError) {
         console.error('Failed to update user points:', pointsError);
+        console.error('Points error details:', JSON.stringify(pointsError, null, 2));
         return NextResponse.json(
-          { error: '포인트 충전에 실패했습니다.' },
+          { error: `포인트 충전에 실패했습니다: ${pointsError.message || '알 수 없는 오류'}` },
           { status: 500 }
         );
       }

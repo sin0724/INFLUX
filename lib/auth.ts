@@ -23,6 +23,7 @@ export interface User {
   contractStartDate?: string;
   contractEndDate?: string;
   isActive?: boolean;
+  points?: number;
 }
 
 export interface Session {
@@ -109,6 +110,7 @@ export async function getSession(): Promise<Session | null> {
       contractStartDate: data.contractStartDate,
       contractEndDate: data.contractEndDate,
       isActive,
+      points: data.points || 0,
     },
     token,
   };

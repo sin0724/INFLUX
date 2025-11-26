@@ -24,6 +24,7 @@ interface User {
   contractStartDate?: string;
   contractEndDate?: string;
   isActive?: boolean;
+  points?: number;
 }
 
 interface ClientDashboardProps {
@@ -169,12 +170,30 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
             <div className="text-sm text-gray-600 mt-1">작업 신청 방법 안내</div>
           </button>
 
+          {/* 포인트 정보 */}
+          <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 mb-3 text-white">
+            <div className="text-sm opacity-90 mb-1">현재 포인트</div>
+            <div className="text-2xl font-bold">
+              {currentUser.points !== undefined
+                ? currentUser.points.toLocaleString()
+                : '0'}P
+            </div>
+          </div>
+
           <button
             onClick={() => router.push('/client/points/charge')}
             className="w-full bg-white border border-gray-200 rounded-lg p-4 text-left hover:border-primary-300 hover:bg-primary-50 transition"
           >
             <div className="font-medium text-gray-900">포인트 충전 신청</div>
             <div className="text-sm text-gray-600 mt-1">포인트 충전 신청하기</div>
+          </button>
+
+          <button
+            onClick={() => router.push('/client/points/history')}
+            className="w-full bg-white border border-gray-200 rounded-lg p-4 text-left hover:border-primary-300 hover:bg-primary-50 transition"
+          >
+            <div className="font-medium text-gray-900">포인트 충전 내역</div>
+            <div className="text-sm text-gray-600 mt-1">충전 신청 상태 확인</div>
           </button>
 
           <button
