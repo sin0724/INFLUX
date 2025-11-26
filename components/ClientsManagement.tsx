@@ -217,18 +217,65 @@ export default function ClientsManagement() {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      // 필드명 매핑
-      const clients = jsonData.map((row: any) => ({
-        username: row['아이디*'] || row['아이디'],
-        password: row['비밀번호*'] || row['비밀번호'],
-        companyName: row['상호명'] || '',
-        planType: String(row['이용기간(개월)*'] || row['이용기간(개월)'] || row['이용기간'] || '1'),
-        contractStartDate: row['계약시작일'] || new Date().toISOString().split('T')[0],
-        notes: row['비고'] || '',
-        naverId: row['네이버 아이디'] || '',
-        naverPassword: row['네이버 비밀번호'] || '',
-        businessType: row['업종'] || '',
-      }));
+      // 엑셀 날짜를 YYYY-MM-DD 형식으로 변환하는 함수
+      const excelDateToDateString = (excelDate: any): string => {
+        if (!excelDate) return new Date().toISOString().split('T')[0];
+        
+        // 이미 문자열이고 YYYY-MM-DD 형식인 경우
+        if (typeof excelDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(excelDate)) {
+          return excelDate;
+        }
+        
+        // 숫자인 경우 (엑셀 시리얼 날짜)
+        if (typeof excelDate === 'number') {
+          // 엑셀 날짜는 1900-01-01부터의 일수 (단, 1900년을 윤년으로 잘못 계산해서 1일 더해짐)
+          const excelEpoch = new Date(1900, 0, 1);
+          const date = new Date(excelEpoch.getTime() + (excelDate - 2) * 24 * 60 * 60 * 1000);
+          
+          if (!isNaN(date.getTime())) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          }
+        }
+        
+        // 문자열인 경우 Date 객체로 파싱 시도
+        if (typeof excelDate === 'string') {
+          const parsed = new Date(excelDate);
+          if (!isNaN(parsed.getTime())) {
+            const year = parsed.getFullYear();
+            const month = String(parsed.getMonth() + 1).padStart(2, '0');
+            const day = String(parsed.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          }
+        }
+        
+        // 기본값: 오늘 날짜
+        return new Date().toISOString().split('T')[0];
+      };
+
+      // 필드명 매핑 및 데이터 정규화
+      const clients = jsonData.map((row: any) => {
+        // 날짜 처리
+        const contractStartDate = excelDateToDateString(row['계약시작일']);
+
+        // 이용기간 처리 (숫자 또는 문자열)
+        let planType = row['이용기간(개월)*'] || row['이용기간(개월)'] || row['이용기간'] || '1';
+        planType = String(planType);
+
+        return {
+          username: String(row['아이디*'] || row['아이디'] || '').trim(),
+          password: String(row['비밀번호*'] || row['비밀번호'] || '').trim(),
+          companyName: String(row['상호명'] || '').trim(),
+          planType: planType,
+          contractStartDate: contractStartDate,
+          notes: String(row['비고'] || '').trim(),
+          naverId: String(row['네이버 아이디'] || '').trim(),
+          naverPassword: String(row['네이버 비밀번호'] || '').trim(),
+          businessType: String(row['업종'] || '').trim(),
+        };
+      });
 
       if (clients.length === 0) {
         alert('엑셀 파일에 데이터가 없습니다.');

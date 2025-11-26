@@ -101,12 +101,56 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
         const remainingQuota = totalQuota;
 
         // 계약 종료일 계산
-        const startDate = contractStartDate ? new Date(contractStartDate) : new Date();
+        let startDate: Date;
+        if (contractStartDate) {
+          const parsedDate = new Date(contractStartDate);
+          if (isNaN(parsedDate.getTime())) {
+            results.failed.push({
+              row: rowNumber,
+              username,
+              error: '계약시작일 형식이 올바르지 않습니다. (YYYY-MM-DD 형식)',
+            });
+            continue;
+          }
+          startDate = parsedDate;
+        } else {
+          startDate = new Date();
+        }
+
+        // 계약 종료일 계산 - 안전한 방법
+        const months = parseInt(String(planType || '1'), 10);
+        if (isNaN(months) || months < 1 || months > 12) {
+          results.failed.push({
+            row: rowNumber,
+            username,
+            error: '이용기간은 1-12 사이의 숫자여야 합니다.',
+          });
+          continue;
+        }
+        
+        // 안전한 날짜 계산
         const endDate = new Date(startDate);
-        const months = parseInt(planType || '1', 10);
         endDate.setMonth(endDate.getMonth() + months);
+        
+        // 유효한 날짜인지 확인
+        if (isNaN(endDate.getTime())) {
+          results.failed.push({
+            row: rowNumber,
+            username,
+            error: '계약 종료일 계산에 실패했습니다.',
+          });
+          continue;
+        }
 
         const hashedPassword = await hashPassword(password);
+
+        // 날짜 포맷팅 (YYYY-MM-DD)
+        const formatDate = (date: Date): string => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
 
         const insertData: any = {
           username,
@@ -115,8 +159,8 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
           totalQuota,
           remainingQuota,
           quota,
-          contractStartDate: startDate.toISOString().split('T')[0],
-          contractEndDate: endDate.toISOString().split('T')[0],
+          contractStartDate: formatDate(startDate),
+          contractEndDate: formatDate(endDate),
           isActive: true,
         };
 
