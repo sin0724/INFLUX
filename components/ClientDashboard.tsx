@@ -84,7 +84,7 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">INFLUX</h1>
+              <h1 className="text-xl font-bold text-gray-900">인플루언서컴퍼니</h1>
               <p className="text-sm text-gray-600">{formatDate(today)}</p>
               {currentUser.companyName && (
                 <p className="text-sm font-medium text-gray-800 mt-1">
@@ -167,6 +167,14 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
           >
             <div className="font-medium text-gray-900">가이드</div>
             <div className="text-sm text-gray-600 mt-1">작업 신청 방법 안내</div>
+          </button>
+
+          <button
+            onClick={() => router.push('/client/points/charge')}
+            className="w-full bg-white border border-gray-200 rounded-lg p-4 text-left hover:border-primary-300 hover:bg-primary-50 transition"
+          >
+            <div className="font-medium text-gray-900">포인트 충전 신청</div>
+            <div className="text-sm text-gray-600 mt-1">포인트 충전 신청하기</div>
           </button>
 
           <button

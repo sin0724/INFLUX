@@ -148,6 +148,18 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             </div>
           </button>
 
+          <button
+            onClick={() => router.push('/admin/points/charges')}
+            className="bg-white border border-gray-200 rounded-lg p-6 text-left hover:border-primary-300 hover:bg-primary-50 transition"
+          >
+            <div className="font-medium text-gray-900 text-lg mb-2">
+              포인트 충전 관리
+            </div>
+            <div className="text-sm text-gray-600">
+              포인트 충전 신청 승인 및 관리
+            </div>
+          </button>
+
           {/* 최고관리자 전용 메뉴 */}
           {user.role === 'superadmin' && (
             <>
