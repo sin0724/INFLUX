@@ -9,6 +9,8 @@ interface Quota {
   like?: { total: number; remaining: number };
   hotpost?: { total: number; remaining: number };
   momcafe?: { total: number; remaining: number };
+  powerblog?: { total: number; remaining: number };
+  clip?: { total: number; remaining: number };
 }
 
 interface User {

@@ -46,6 +46,8 @@ export default function ClientsManagement() {
       like: { total: 0, remaining: 0 },
       hotpost: { total: 0, remaining: 0 },
       momcafe: { total: 0, remaining: 0 },
+      powerblog: { total: 0, remaining: 0 },
+      clip: { total: 0, remaining: 0 },
     },
   });
 
@@ -82,6 +84,8 @@ export default function ClientsManagement() {
           like: { total: 0, remaining: 0 },
           hotpost: { total: 0, remaining: 0 },
           momcafe: { total: 0, remaining: 0 },
+          powerblog: { total: 0, remaining: 0 },
+          clip: { total: 0, remaining: 0 },
         };
     }
   };
@@ -256,6 +260,14 @@ export default function ClientsManagement() {
       momcafe: {
         total: (currentQuota.momcafe?.total || 0) + (newQuota.momcafe?.total || 0),
         remaining: (currentQuota.momcafe?.remaining || 0) + (newQuota.momcafe?.remaining || 0),
+      },
+      powerblog: {
+        total: (currentQuota.powerblog?.total || 0) + (newQuota.powerblog?.total || 0),
+        remaining: (currentQuota.powerblog?.remaining || 0) + (newQuota.powerblog?.remaining || 0),
+      },
+      clip: {
+        total: (currentQuota.clip?.total || 0) + (newQuota.clip?.total || 0),
+        remaining: (currentQuota.clip?.remaining || 0) + (newQuota.clip?.remaining || 0),
       },
     };
 
@@ -537,6 +549,14 @@ export default function ClientsManagement() {
                               <span className="text-orange-600">좋아요:</span>{' '}
                               <span className="font-medium">{client.quota.like?.remaining || 0}개</span>
                             </div>
+                            <div className="text-xs">
+                              <span className="text-indigo-600">파워블로그:</span>{' '}
+                              <span className="font-medium">{client.quota.powerblog?.remaining || 0}개</span>
+                            </div>
+                            <div className="text-xs">
+                              <span className="text-teal-600">클립:</span>{' '}
+                              <span className="font-medium">{client.quota.clip?.remaining || 0}개</span>
+                            </div>
                           </div>
                         ) : (
                           <span className="text-gray-500">
@@ -605,6 +625,8 @@ export default function ClientsManagement() {
                                   like: { total: 0, remaining: 0 },
                                   hotpost: { total: 0, remaining: 0 },
                                   momcafe: { total: 0, remaining: 0 },
+                                  powerblog: { total: 0, remaining: 0 },
+                                  clip: { total: 0, remaining: 0 },
                                 },
                               });
                             }}
@@ -1013,6 +1035,74 @@ export default function ClientsManagement() {
                           />
                         </div>
                       </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">파워블로그 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.powerblog.total}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.powerblog = {
+                                ...newQuota.powerblog,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.powerblog.total}
+                            value={editForm.quota.powerblog.remaining}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.powerblog = {
+                                ...newQuota.powerblog,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">클립 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.clip.total}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.clip = {
+                                ...newQuota.clip,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.clip.total}
+                            value={editForm.quota.clip.remaining}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.clip = {
+                                ...newQuota.clip,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1028,6 +1118,8 @@ export default function ClientsManagement() {
                           like: { total: 0, remaining: 0 },
                           hotpost: { total: 0, remaining: 0 },
                           momcafe: { total: 0, remaining: 0 },
+                          powerblog: { total: 0, remaining: 0 },
+                          clip: { total: 0, remaining: 0 },
                         },
                       });
                     }}
