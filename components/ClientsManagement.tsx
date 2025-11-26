@@ -617,16 +617,18 @@ export default function ClientsManagement() {
                           <button
                             onClick={() => {
                               setEditingClient(client);
+                              // 기존 quota가 있으면 powerblog와 clip이 없을 수 있으므로 보완
+                              const existingQuota = client.quota || {};
                               setEditForm({
                                 username: client.username,
                                 companyName: client.companyName || '',
-                                quota: client.quota || {
-                                  follower: { total: 0, remaining: 0 },
-                                  like: { total: 0, remaining: 0 },
-                                  hotpost: { total: 0, remaining: 0 },
-                                  momcafe: { total: 0, remaining: 0 },
-                                  powerblog: { total: 0, remaining: 0 },
-                                  clip: { total: 0, remaining: 0 },
+                                quota: {
+                                  follower: existingQuota.follower || { total: 0, remaining: 0 },
+                                  like: existingQuota.like || { total: 0, remaining: 0 },
+                                  hotpost: existingQuota.hotpost || { total: 0, remaining: 0 },
+                                  momcafe: existingQuota.momcafe || { total: 0, remaining: 0 },
+                                  powerblog: existingQuota.powerblog || { total: 0, remaining: 0 },
+                                  clip: existingQuota.clip || { total: 0, remaining: 0 },
                                 },
                               });
                             }}
