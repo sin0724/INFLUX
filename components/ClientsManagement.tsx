@@ -575,9 +575,21 @@ export default function ClientsManagement() {
       },
     };
 
-    // 계약 시작일 = 오늘, 종료일 계산
-    const startDate = new Date().toISOString().split('T')[0];
-    const endDate = getContractEndDate(startDate, renewPlanType);
+    // 계약 종료일 기준으로 연장 (계약 시작일은 유지)
+    const currentEndDate = renewingClient.contractEndDate 
+      ? new Date(renewingClient.contractEndDate) 
+      : new Date();
+    
+    // 계약 종료일이 과거인 경우 오늘 날짜부터 시작
+    const baseDate = currentEndDate > new Date() ? currentEndDate : new Date();
+    
+    // 새로운 종료일 계산 (기존 종료일 또는 오늘 + 재계약 기간)
+    const months = parseInt(renewPlanType, 10);
+    const newEndDate = new Date(baseDate);
+    newEndDate.setMonth(newEndDate.getMonth() + months);
+    
+    const endDateString = newEndDate.toISOString().split('T')[0];
+    // 계약 시작일은 변경하지 않음 (기존 값 유지)
 
     try {
       const response = await fetch(`/api/users/${renewingClient.id}`, {
@@ -586,8 +598,8 @@ export default function ClientsManagement() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contractStartDate: startDate,
-          contractEndDate: endDate,
+          // contractStartDate는 전송하지 않음 (기존 값 유지)
+          contractEndDate: endDateString,
           quota: mergedQuota,
           isActive: true,
         }),
