@@ -1443,6 +1443,62 @@ export default function ClientsManagement() {
                     </div>
                   </div>
                 </div>
+                {/* 추가 정보 필드 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      업종
+                    </label>
+                    <select
+                      value={editForm.businessType}
+                      onChange={(e) => setEditForm({ ...editForm, businessType: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    >
+                      <option value="">선택 안 함</option>
+                      {BUSINESS_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      네이버 아이디
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.naverId}
+                      onChange={(e) => setEditForm({ ...editForm, naverId: e.target.value })}
+                      placeholder="네이버 아이디"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      네이버 비밀번호
+                    </label>
+                    <input
+                      type="password"
+                      value={editForm.naverPassword}
+                      onChange={(e) => setEditForm({ ...editForm, naverPassword: e.target.value })}
+                      placeholder="네이버 비밀번호 (변경 시에만 입력)"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      비고 (특이사항)
+                    </label>
+                    <textarea
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      rows={3}
+                      placeholder="특이사항을 입력하세요..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                    />
+                  </div>
+                </div>
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => {
