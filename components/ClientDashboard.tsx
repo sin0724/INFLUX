@@ -11,6 +11,8 @@ interface Quota {
   like?: { total: number; remaining: number };
   hotpost?: { total: number; remaining: number };
   momcafe?: { total: number; remaining: number };
+  powerblog?: { total: number; remaining: number };
+  clip?: { total: number; remaining: number };
 }
 
 interface User {
@@ -121,6 +123,18 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                   <div className="text-xs text-gray-600">인스타 좋아요</div>
                   <div className="text-lg font-bold text-orange-700">
                     {currentUser.quota.like?.remaining || 0}개
+                  </div>
+                </div>
+                <div className="bg-indigo-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">파워블로그</div>
+                  <div className="text-lg font-bold text-indigo-700">
+                    {currentUser.quota.powerblog?.remaining || 0}개
+                  </div>
+                </div>
+                <div className="bg-teal-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">클립</div>
+                  <div className="text-lg font-bold text-teal-700">
+                    {currentUser.quota.clip?.remaining || 0}개
                   </div>
                 </div>
               </div>

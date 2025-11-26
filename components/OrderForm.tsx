@@ -221,11 +221,8 @@ export default function OrderForm({ user }: OrderFormProps) {
       }
       orderCaption = `상호명: ${momcafeBusinessName}\n원하시는 카페이름 or 주소: ${momcafeCafeName || '(미기재)'}\n게시글 가이드라인: ${momcafePostGuideline || '(미기재)'}\n댓글 가이드라인: ${momcafeCommentGuideline || '(미기재)'}`;
     } else if (taskType === 'powerblog' || taskType === 'clip') {
-      if (!customTaskCaption.trim()) {
-        setError('작업 내용을 입력해주세요.');
-        return;
-      }
-      orderCaption = customTaskCaption;
+      // 파워블로그/클립은 작업 내용 입력 없이 바로 신청 가능
+      orderCaption = '';
     } else {
       orderCaption = caption || '';
     }
@@ -592,31 +589,6 @@ export default function OrderForm({ user }: OrderFormProps) {
             </div>
           )}
 
-          {/* 파워블로그/클립 입력 필드 */}
-          {(taskType === 'powerblog' || taskType === 'clip') && (
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="customTaskCaption"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  작업 내용 <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  id="customTaskCaption"
-                  value={customTaskCaption}
-                  onChange={(e) => setCustomTaskCaption(e.target.value)}
-                  rows={6}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
-                  placeholder="작업 내용을 상세히 입력해주세요. (가이드라인, 요구사항 등)"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  담당자가 확인 후 작업을 진행합니다.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Image Upload - hotpost는 필수, momcafe는 선택 */}
           {(taskType === 'hotpost' || taskType === 'momcafe') && (
@@ -699,11 +671,9 @@ export default function OrderForm({ user }: OrderFormProps) {
               <h3 className="text-sm font-semibold text-blue-800 mb-2">
                 ℹ️ 안내사항
               </h3>
-              <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
-                <li>작업 내용을 상세히 입력해주시면 담당자가 확인 후 작업을 진행합니다.</li>
-                <li>작업 완료 후 완료 링크가 입력되면 발주 목록에서 확인할 수 있습니다.</li>
-                <li>사용한 개수는 발주 목록에서 확인 가능합니다.</li>
-              </ul>
+              <p className="text-sm text-blue-700">
+                신청 후 카카오톡방으로 문의해주세요.
+              </p>
             </div>
           )}
           </div>
