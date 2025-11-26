@@ -177,6 +177,8 @@ export default function ClientsManagement() {
         '네이버 아이디': 'naver_id',
         '네이버 비밀번호': 'naver_pw',
         '업종': '네일',
+        '최적화(예/아니오)': '아니오',
+        '예약(예/아니오)': '아니오',
       },
     ];
 
@@ -195,6 +197,8 @@ export default function ClientsManagement() {
       { wch: 15 }, // 네이버 아이디
       { wch: 15 }, // 네이버 비밀번호
       { wch: 15 }, // 업종
+      { wch: 15 }, // 최적화
+      { wch: 15 }, // 예약
     ];
 
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -264,6 +268,16 @@ export default function ClientsManagement() {
         let planType = row['이용기간(개월)*'] || row['이용기간(개월)'] || row['이용기간'] || '1';
         planType = String(planType);
 
+        // 최적화/예약 처리 (예/아니오, Y/N, true/false, 1/0 등 다양한 형식 지원)
+        const parseBoolean = (value: any): boolean => {
+          if (value === null || value === undefined || value === '') return false;
+          const str = String(value).toLowerCase().trim();
+          return str === '예' || str === 'yes' || str === 'y' || str === 'true' || str === '1' || str === '완료';
+        };
+
+        const optimization = parseBoolean(row['최적화(예/아니오)'] || row['최적화'] || row['최적화 완료']);
+        const reservation = parseBoolean(row['예약(예/아니오)'] || row['예약'] || row['예약 완료']);
+
         return {
           username: String(row['아이디*'] || row['아이디'] || '').trim(),
           password: String(row['비밀번호*'] || row['비밀번호'] || '').trim(),
@@ -274,6 +288,8 @@ export default function ClientsManagement() {
           naverId: String(row['네이버 아이디'] || '').trim(),
           naverPassword: String(row['네이버 비밀번호'] || '').trim(),
           businessType: String(row['업종'] || '').trim(),
+          optimization: optimization,
+          reservation: reservation,
         };
       });
 

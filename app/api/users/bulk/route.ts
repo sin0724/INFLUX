@@ -34,7 +34,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
       const rowNumber = i + 2; // 엑셀 행 번호 (헤더 제외, 1-based)
 
       try {
-        const { username, password, companyName, planType, contractStartDate, notes, naverId, naverPassword, businessType } = clientData;
+        const { username, password, companyName, planType, contractStartDate, notes, naverId, naverPassword, businessType, optimization, reservation } = clientData;
 
         // 필수 필드 검증
         if (!username || !password) {
@@ -179,6 +179,12 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
         }
         if (businessType) {
           insertData.businessType = businessType;
+        }
+        if (optimization !== undefined) {
+          insertData.optimization = Boolean(optimization);
+        }
+        if (reservation !== undefined) {
+          insertData.reservation = Boolean(reservation);
         }
 
         const { data, error } = await supabase
