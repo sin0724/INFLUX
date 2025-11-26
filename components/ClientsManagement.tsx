@@ -951,6 +951,8 @@ export default function ClientsManagement() {
                   momcafe: { total: 0, remaining: 0 },
                   powerblog: { total: 0, remaining: 0 },
                   clip: { total: 0, remaining: 0 },
+                  blog: { total: 0, remaining: 0 },
+                  receipt: { total: 0, remaining: 0 },
                 },
               });
             }}
@@ -1189,6 +1191,74 @@ export default function ClientsManagement() {
                               const newQuota = { ...editForm.quota };
                               newQuota.clip = {
                                 ...newQuota.clip,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">블로그 리뷰 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.blog.total}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.blog = {
+                                ...newQuota.blog,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.blog.total}
+                            value={editForm.quota.blog.remaining}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.blog = {
+                                ...newQuota.blog,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">영수증 리뷰 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.receipt.total}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.receipt = {
+                                ...newQuota.receipt,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.receipt.total}
+                            value={editForm.quota.receipt.remaining}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.receipt = {
+                                ...newQuota.receipt,
                                 remaining: parseInt(e.target.value) || 0,
                               };
                               setEditForm({ ...editForm, quota: newQuota });
