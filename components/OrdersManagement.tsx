@@ -281,6 +281,8 @@ export default function OrdersManagement() {
                 <option value="like">인스타그램 좋아요</option>
                 <option value="hotpost">인스타그램 인기게시물</option>
                 <option value="momcafe">맘카페</option>
+                <option value="powerblog">파워블로그</option>
+                <option value="clip">클립</option>
               </select>
             </div>
             <div className="relative">
