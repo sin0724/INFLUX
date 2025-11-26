@@ -184,7 +184,11 @@ async function deleteOrder(
           const totalRemaining = (quota.follower?.remaining || 0) + 
                                  (quota.like?.remaining || 0) + 
                                  (quota.hotpost?.remaining || 0) + 
-                                 (quota.momcafe?.remaining || 0);
+                                 (quota.momcafe?.remaining || 0) +
+                                 (quota.powerblog?.remaining || 0) +
+                                 (quota.clip?.remaining || 0) +
+                                 (quota.blog?.remaining || 0) +
+                                 (quota.receipt?.remaining || 0);
           
           await supabase
             .from('users')

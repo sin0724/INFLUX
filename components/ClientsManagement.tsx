@@ -48,6 +48,8 @@ export default function ClientsManagement() {
       momcafe: { total: 0, remaining: 0 },
       powerblog: { total: 0, remaining: 0 },
       clip: { total: 0, remaining: 0 },
+      blog: { total: 0, remaining: 0 },
+      receipt: { total: 0, remaining: 0 },
     },
   });
 
@@ -55,28 +57,40 @@ export default function ClientsManagement() {
   const getQuotaByPlan = (planType: string) => {
     switch (planType) {
       case '1':
-        // 1개월: 인기게시물 3개, 맘카페 3개 (팔로워/좋아요 없음)
+        // 1개월: 인기게시물 3개, 맘카페 3개, 블로그 리뷰 10개, 영수증 리뷰 20개 (팔로워/좋아요 없음)
         return {
           follower: { total: 0, remaining: 0 },
           like: { total: 0, remaining: 0 },
           hotpost: { total: 3, remaining: 3 },
           momcafe: { total: 3, remaining: 3 },
+          powerblog: { total: 0, remaining: 0 },
+          clip: { total: 0, remaining: 0 },
+          blog: { total: 10, remaining: 10 },
+          receipt: { total: 20, remaining: 20 },
         };
       case '3':
-        // 3개월: 인기게시물 3개, 맘카페 3개, 팔로워 1000개, 좋아요 1000개
+        // 3개월: 인기게시물 3개, 맘카페 3개, 팔로워 1000개, 좋아요 1000개, 블로그 리뷰 30개, 영수증 리뷰 60개
         return {
           follower: { total: 1000, remaining: 1000 },
           like: { total: 1000, remaining: 1000 },
           hotpost: { total: 3, remaining: 3 },
           momcafe: { total: 3, remaining: 3 },
+          powerblog: { total: 0, remaining: 0 },
+          clip: { total: 0, remaining: 0 },
+          blog: { total: 30, remaining: 30 },
+          receipt: { total: 60, remaining: 60 },
         };
       case '6':
-        // 6개월: 인기게시물 6개, 맘카페 6개, 팔로워 2500개, 좋아요 2500개
+        // 6개월: 인기게시물 6개, 맘카페 6개, 팔로워 2500개, 좋아요 2500개, 블로그 리뷰 60개, 영수증 리뷰 120개
         return {
           follower: { total: 2500, remaining: 2500 },
           like: { total: 2500, remaining: 2500 },
           hotpost: { total: 6, remaining: 6 },
           momcafe: { total: 6, remaining: 6 },
+          powerblog: { total: 0, remaining: 0 },
+          clip: { total: 0, remaining: 0 },
+          blog: { total: 60, remaining: 60 },
+          receipt: { total: 120, remaining: 120 },
         };
       default:
         return {
@@ -86,6 +100,8 @@ export default function ClientsManagement() {
           momcafe: { total: 0, remaining: 0 },
           powerblog: { total: 0, remaining: 0 },
           clip: { total: 0, remaining: 0 },
+          blog: { total: 0, remaining: 0 },
+          receipt: { total: 0, remaining: 0 },
         };
     }
   };
@@ -169,9 +185,42 @@ export default function ClientsManagement() {
     }
   };
 
-  const filteredClients = clients.filter((client) =>
-    client.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 계약 만료 필터 상태
+  const [contractFilter, setContractFilter] = useState<string>('all'); // 'all', 'expired', '7days', '14days', '30days'
+
+  const filteredClients = clients.filter((client) => {
+    // 검색 필터
+    const matchesSearch = client.username.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!matchesSearch) return false;
+
+    // 계약 만료 필터
+    if (contractFilter === 'all') return true;
+
+    const now = new Date();
+    const endDate = client.contractEndDate ? new Date(client.contractEndDate) : null;
+    
+    if (!endDate) {
+      // 계약 종료일이 없으면 'expired'가 아닌 경우만 표시
+      return contractFilter !== 'expired';
+    }
+
+    const diffTime = endDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    switch (contractFilter) {
+      case 'expired':
+        return diffDays < 0;
+      case '7days':
+        return diffDays >= 0 && diffDays <= 7;
+      case '14days':
+        return diffDays >= 0 && diffDays <= 14;
+      case '30days':
+        return diffDays >= 0 && diffDays <= 30;
+      default:
+        return true;
+    }
+  });
 
   const handleToggleActive = async (client: Client) => {
     if (!confirm(`${client.username} 계정을 ${client.isActive !== false ? '차단' : '활성화'}하시겠습니까?`)) {
@@ -407,9 +456,9 @@ export default function ClientsManagement() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   >
-                    <option value="1">1개월 (인기게시물 3개, 맘카페 3개)</option>
-                    <option value="3">3개월 (인기게시물 3개, 맘카페 3개, 팔로워 1000개, 좋아요 1000개)</option>
-                    <option value="6">6개월 (인기게시물 6개, 맘카페 6개, 팔로워 2500개, 좋아요 2500개)</option>
+                    <option value="1">1개월 (인기게시물 3개, 맘카페 3개, 블로그 리뷰 10개, 영수증 리뷰 20개)</option>
+                    <option value="3">3개월 (인기게시물 3개, 맘카페 3개, 팔로워 1000개, 좋아요 1000개, 블로그 리뷰 30개, 영수증 리뷰 60개)</option>
+                    <option value="6">6개월 (인기게시물 6개, 맘카페 6개, 팔로워 2500개, 좋아요 2500개, 블로그 리뷰 60개, 영수증 리뷰 120개)</option>
                   </select>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
                     <div className="font-medium mb-1">포함된 작업:</div>
@@ -417,6 +466,8 @@ export default function ClientsManagement() {
                       <ul className="list-disc list-inside text-gray-600 space-y-1">
                         <li>인기게시물: 3개</li>
                         <li>맘카페: 3개</li>
+                        <li>블로그 리뷰: 10개</li>
+                        <li>영수증 리뷰: 20개</li>
                         <li className="text-gray-400">인스타 팔로워/좋아요: 이용 불가</li>
                       </ul>
                     )}
@@ -426,6 +477,8 @@ export default function ClientsManagement() {
                         <li>맘카페: 3개</li>
                         <li>인스타 팔로워: 1000개</li>
                         <li>인스타 좋아요: 1000개</li>
+                        <li>블로그 리뷰: 30개</li>
+                        <li>영수증 리뷰: 60개</li>
                       </ul>
                     )}
                     {formData.planType === '6' && (
@@ -434,6 +487,8 @@ export default function ClientsManagement() {
                         <li>맘카페: 6개</li>
                         <li>인스타 팔로워: 2500개</li>
                         <li>인스타 좋아요: 2500개</li>
+                        <li>블로그 리뷰: 60개</li>
+                        <li>영수증 리뷰: 120개</li>
                       </ul>
                     )}
                     <div className="mt-2 pt-2 border-t border-gray-200">
@@ -474,15 +529,40 @@ export default function ClientsManagement() {
           </div>
         )}
 
-        {/* Search */}
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="광고주 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-          />
+        {/* Search and Filters */}
+        <div className="mb-4 space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="광고주 검색..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+            <div className="md:w-64">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                계약 만료 필터
+              </label>
+              <select
+                value={contractFilter}
+                onChange={(e) => setContractFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="all">전체</option>
+                <option value="expired">계약 만료됨</option>
+                <option value="7days">만료 7일 이내</option>
+                <option value="14days">만료 14일 이내</option>
+                <option value="30days">만료 30일 이내</option>
+              </select>
+            </div>
+          </div>
+          {contractFilter !== 'all' && (
+            <div className="text-sm text-gray-600">
+              필터링된 결과: {filteredClients.length}개
+            </div>
+          )}
         </div>
 
         {/* Clients List */}
@@ -557,6 +637,14 @@ export default function ClientsManagement() {
                               <span className="text-teal-600">클립:</span>{' '}
                               <span className="font-medium">{client.quota.clip?.remaining || 0}개</span>
                             </div>
+                            <div className="text-xs">
+                              <span className="text-pink-600">블로그 리뷰:</span>{' '}
+                              <span className="font-medium">{client.quota.blog?.remaining || 0}개</span>
+                            </div>
+                            <div className="text-xs">
+                              <span className="text-red-600">영수증 리뷰:</span>{' '}
+                              <span className="font-medium">{client.quota.receipt?.remaining || 0}개</span>
+                            </div>
                           </div>
                         ) : (
                           <span className="text-gray-500">
@@ -629,6 +717,8 @@ export default function ClientsManagement() {
                                   momcafe: existingQuota.momcafe || { total: 0, remaining: 0 },
                                   powerblog: existingQuota.powerblog || { total: 0, remaining: 0 },
                                   clip: existingQuota.clip || { total: 0, remaining: 0 },
+                                  blog: existingQuota.blog || { total: 0, remaining: 0 },
+                                  receipt: existingQuota.receipt || { total: 0, remaining: 0 },
                                 },
                               });
                             }}
@@ -1124,6 +1214,8 @@ export default function ClientsManagement() {
                           momcafe: { total: 0, remaining: 0 },
                           powerblog: { total: 0, remaining: 0 },
                           clip: { total: 0, remaining: 0 },
+                          blog: { total: 0, remaining: 0 },
+                          receipt: { total: 0, remaining: 0 },
                         },
                       });
                     }}

@@ -13,6 +13,8 @@ interface Quota {
   momcafe?: { total: number; remaining: number };
   powerblog?: { total: number; remaining: number };
   clip?: { total: number; remaining: number };
+  blog?: { total: number; remaining: number };
+  receipt?: { total: number; remaining: number };
 }
 
 interface User {
@@ -135,6 +137,18 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                   <div className="text-xs text-gray-600">클립</div>
                   <div className="text-lg font-bold text-teal-700">
                     {currentUser.quota.clip?.remaining || 0}개
+                  </div>
+                </div>
+                <div className="bg-pink-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">블로그 리뷰</div>
+                  <div className="text-lg font-bold text-pink-700">
+                    {currentUser.quota.blog?.remaining || 0}개
+                  </div>
+                </div>
+                <div className="bg-red-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">영수증 리뷰</div>
+                  <div className="text-lg font-bold text-red-700">
+                    {currentUser.quota.receipt?.remaining || 0}개
                   </div>
                 </div>
               </div>

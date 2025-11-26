@@ -24,6 +24,8 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   momcafe: '맘카페',
   powerblog: '파워블로그',
   clip: '클립',
+  blog: '블로그 리뷰',
+  receipt: '영수증 리뷰',
 };
 
 export default function CompletedLinksView() {
@@ -32,6 +34,13 @@ export default function CompletedLinksView() {
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [clients, setClients] = useState<any[]>([]);
+  
+  // 블로그/영수증 리뷰 링크 추가 모달 상태
+  const [showBlogReceiptModal, setShowBlogReceiptModal] = useState(false);
+  const [selectedClientForLink, setSelectedClientForLink] = useState<any>(null);
+  const [blogLink, setBlogLink] = useState('');
+  const [receiptLink, setReceiptLink] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -63,7 +72,7 @@ export default function CompletedLinksView() {
       const response = await fetch(`/api/orders?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        // 완료 링크가 있는 주문만 필터링
+        // 완료 링크가 있는 주문만 필터링 (블로그/영수증 리뷰 포함)
         const completedWithLinks = (data.orders || []).filter(
           (order: Order) => order.completedLink && order.completedLink.trim()
         );
@@ -73,6 +82,51 @@ export default function CompletedLinksView() {
       console.error('Failed to fetch orders:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 블로그/영수증 리뷰 링크 추가
+  const handleAddBlogReceiptLink = async () => {
+    if (!selectedClientForLink) return;
+    
+    if (!blogLink.trim() && !receiptLink.trim()) {
+      alert('블로그 리뷰 또는 영수증 리뷰 링크 중 하나는 입력해주세요.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/orders/blog-receipt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: selectedClientForLink.id,
+          blogLink: blogLink.trim() || null,
+          receiptLink: receiptLink.trim() || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || '링크 추가에 실패했습니다.');
+        setSubmitting(false);
+        return;
+      }
+
+      alert('링크가 성공적으로 추가되었습니다.');
+      setShowBlogReceiptModal(false);
+      setSelectedClientForLink(null);
+      setBlogLink('');
+      setReceiptLink('');
+      fetchCompletedOrders();
+    } catch (error) {
+      console.error('Failed to add blog/receipt link:', error);
+      alert('링크 추가 중 오류가 발생했습니다.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -128,7 +182,20 @@ export default function CompletedLinksView() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">완료된 링크 모아보기</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-gray-900">완료된 링크 모아보기</h1>
+            <button
+              onClick={() => {
+                setShowBlogReceiptModal(true);
+                setSelectedClientForLink(null);
+                setBlogLink('');
+                setReceiptLink('');
+              }}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+            >
+              블로그/영수증 리뷰 링크 추가
+            </button>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* 검색 필드 */}
@@ -197,17 +264,32 @@ export default function CompletedLinksView() {
                 className="bg-white rounded-lg border border-gray-200 p-6"
               >
                 <div className="mb-4 pb-4 border-b border-gray-200">
-                  <h2 className="text-lg font-bold text-gray-900">
-                    {group.client.username}
-                    {group.client.companyName && (
-                      <span className="text-gray-600 ml-2">
-                        ({group.client.companyName})
-                      </span>
-                    )}
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    완료된 작업: {group.orders.length}개
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900">
+                        {group.client.username}
+                        {group.client.companyName && (
+                          <span className="text-gray-600 ml-2">
+                            ({group.client.companyName})
+                          </span>
+                        )}
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-1">
+                        완료된 작업: {group.orders.length}개
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedClientForLink(group.client);
+                        setBlogLink('');
+                        setReceiptLink('');
+                        setShowBlogReceiptModal(true);
+                      }}
+                      className="text-sm px-3 py-1 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition"
+                    >
+                      블로그/영수증 링크 추가
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -261,7 +343,97 @@ export default function CompletedLinksView() {
           </div>
         )}
       </div>
+
+      {/* 블로그/영수증 리뷰 링크 추가 모달 */}
+      {showBlogReceiptModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              블로그/영수증 리뷰 링크 추가
+            </h2>
+
+            {/* 광고주 선택 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                광고주 선택 <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedClientForLink?.id || ''}
+                onChange={(e) => {
+                  const client = clients.find((c) => c.id === e.target.value);
+                  setSelectedClientForLink(client || null);
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                disabled={!!selectedClientForLink}
+              >
+                <option value="">광고주를 선택하세요</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.username} {client.companyName && `(${client.companyName})`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 블로그 리뷰 링크 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                블로그 리뷰 링크
+              </label>
+              <input
+                type="url"
+                value={blogLink}
+                onChange={(e) => setBlogLink(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                링크 입력 시 블로그 리뷰 quota가 1개 차감됩니다.
+              </p>
+            </div>
+
+            {/* 영수증 리뷰 링크 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                영수증 리뷰 링크
+              </label>
+              <input
+                type="url"
+                value={receiptLink}
+                onChange={(e) => setReceiptLink(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                링크 입력 시 영수증 리뷰 quota가 1개 차감됩니다.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBlogReceiptModal(false);
+                  setSelectedClientForLink(null);
+                  setBlogLink('');
+                  setReceiptLink('');
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleAddBlogReceiptLink}
+                disabled={submitting || !selectedClientForLink || (!blogLink.trim() && !receiptLink.trim())}
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? '추가 중...' : '추가'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

@@ -12,6 +12,8 @@ export interface Quota {
   momcafe?: { total: number; remaining: number };
   powerblog?: { total: number; remaining: number };
   clip?: { total: number; remaining: number };
+  blog?: { total: number; remaining: number };
+  receipt?: { total: number; remaining: number };
 }
 
 export interface User {

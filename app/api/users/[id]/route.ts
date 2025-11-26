@@ -48,11 +48,19 @@ async function updateUser(
       const totalQuota = (quota.follower?.total || 0) + 
                          (quota.like?.total || 0) + 
                          (quota.hotpost?.total || 0) + 
-                         (quota.momcafe?.total || 0);
+                         (quota.momcafe?.total || 0) +
+                         (quota.powerblog?.total || 0) +
+                         (quota.clip?.total || 0) +
+                         (quota.blog?.total || 0) +
+                         (quota.receipt?.total || 0);
       const remainingQuota = (quota.follower?.remaining || 0) + 
                              (quota.like?.remaining || 0) + 
                              (quota.hotpost?.remaining || 0) + 
-                             (quota.momcafe?.remaining || 0);
+                             (quota.momcafe?.remaining || 0) +
+                             (quota.powerblog?.remaining || 0) +
+                             (quota.clip?.remaining || 0) +
+                             (quota.blog?.remaining || 0) +
+                             (quota.receipt?.remaining || 0);
       updateData.totalQuota = totalQuota;
       updateData.remainingQuota = remainingQuota;
     }
