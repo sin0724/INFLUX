@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageUpload from './ImageUpload';
 
@@ -41,8 +41,8 @@ const TASK_TYPES = [
   { id: 'momcafe', name: '맘카페', requiresImage: false },
   { id: 'eventbanner', name: '이벤트배너/블로그스킨', requiresImage: false, externalLink: 'https://pf.kakao.com/_UxoANn' },
   { id: 'daangn', name: '당근마켓', requiresImage: false, disabled: true, comingSoon: true },
-  { id: 'powerblog', name: '파워블로그', requiresImage: false, disabled: true },
-  { id: 'clip', name: '클립', requiresImage: false, disabled: true },
+  { id: 'powerblog', name: '파워블로그', requiresImage: false },
+  { id: 'clip', name: '클립', requiresImage: false },
 ];
 
 export default function OrderForm({ user }: OrderFormProps) {
@@ -53,6 +53,7 @@ export default function OrderForm({ user }: OrderFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [userQuota, setUserQuota] = useState<Quota | undefined>(user.quota);
+  const formSectionRef = useRef<HTMLDivElement>(null);
 
   // 사용자 quota 정보 가져오기
   useEffect(() => {
@@ -80,6 +81,8 @@ export default function OrderForm({ user }: OrderFormProps) {
   const [momcafeCafeName, setMomcafeCafeName] = useState(''); // 맘카페: 카페이름 or 주소
   const [momcafePostGuideline, setMomcafePostGuideline] = useState(''); // 맘카페: 게시글 가이드라인
   const [momcafeCommentGuideline, setMomcafeCommentGuideline] = useState(''); // 맘카페: 댓글 가이드라인
+  // 파워블로그/클립 필드
+  const [customTaskCaption, setCustomTaskCaption] = useState(''); // 파워블로그/클립: 작업 내용
 
   const selectedTask = TASK_TYPES.find((t) => t.id === taskType);
   const requiresImage = selectedTask?.requiresImage || false;
@@ -130,7 +133,16 @@ export default function OrderForm({ user }: OrderFormProps) {
     setMomcafePostGuideline('');
     setMomcafeCommentGuideline('');
     setCaption('');
+    setCustomTaskCaption('');
     setImages([]);
+    
+    // 양식 섹션으로 스크롤 (모바일 최적화)
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }, 100);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -206,6 +218,12 @@ export default function OrderForm({ user }: OrderFormProps) {
         return;
       }
       orderCaption = `상호명: ${momcafeBusinessName}\n원하시는 카페이름 or 주소: ${momcafeCafeName || '(미기재)'}\n게시글 가이드라인: ${momcafePostGuideline || '(미기재)'}\n댓글 가이드라인: ${momcafeCommentGuideline || '(미기재)'}`;
+    } else if (taskType === 'powerblog' || taskType === 'clip') {
+      if (!customTaskCaption.trim()) {
+        setError('작업 내용을 입력해주세요.');
+        return;
+      }
+      orderCaption = customTaskCaption;
     } else {
       orderCaption = caption || '';
     }
@@ -349,6 +367,8 @@ export default function OrderForm({ user }: OrderFormProps) {
             </div>
           </div>
 
+          {/* 양식 섹션 (스크롤 타겟) */}
+          <div ref={formSectionRef}>
           {/* 인스타그램 좋아요 입력 필드 */}
           {taskType === 'like' && (
             <div className="space-y-4">
@@ -570,12 +590,38 @@ export default function OrderForm({ user }: OrderFormProps) {
             </div>
           )}
 
+          {/* 파워블로그/클립 입력 필드 */}
+          {(taskType === 'powerblog' || taskType === 'clip') && (
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="customTaskCaption"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  작업 내용 <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="customTaskCaption"
+                  value={customTaskCaption}
+                  onChange={(e) => setCustomTaskCaption(e.target.value)}
+                  rows={6}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="작업 내용을 상세히 입력해주세요. (가이드라인, 요구사항 등)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  담당자가 확인 후 작업을 진행합니다.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Image Upload - hotpost는 필수, momcafe는 선택 */}
           {(taskType === 'hotpost' || taskType === 'momcafe') && (
             <ImageUpload 
               images={images} 
               onImagesChange={setImages}
-              maxImages={taskType === 'hotpost' ? 1 : 10}
+              maxImages={taskType === 'hotpost' ? 1 : 4}
             />
           )}
 
@@ -644,6 +690,22 @@ export default function OrderForm({ user }: OrderFormProps) {
               </ul>
             </div>
           )}
+
+          {/* 파워블로그/클립 유의사항 */}
+          {(taskType === 'powerblog' || taskType === 'clip') && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-blue-800 mb-2">
+                ℹ️ 안내사항
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                <li>작업 내용을 상세히 입력해주시면 담당자가 확인 후 작업을 진행합니다.</li>
+                <li>작업 완료 후 완료 링크가 입력되면 발주 목록에서 확인할 수 있습니다.</li>
+                <li>사용한 개수는 발주 목록에서 확인 가능합니다.</li>
+              </ul>
+            </div>
+          )}
+          </div>
+          {/* End of form section */}
 
           {/* Submit Button */}
           <div className="flex gap-3">

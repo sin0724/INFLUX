@@ -112,8 +112,8 @@ export default function OrdersManagement() {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const order = orders.find(o => o.id === orderId);
     
-    // 인기게시물/맘카페를 완료로 변경할 때는 링크 입력 모달 표시
-    if (newStatus === 'done' && order && (order.taskType === 'hotpost' || order.taskType === 'momcafe')) {
+    // 인기게시물/맘카페/파워블로그/클립을 완료로 변경할 때는 링크 입력 모달 표시
+    if (newStatus === 'done' && order && (order.taskType === 'hotpost' || order.taskType === 'momcafe' || order.taskType === 'powerblog' || order.taskType === 'clip')) {
       setCompletingOrder(order);
       setCompletedLink(order.completedLink || '');
       return;
