@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, requireAdmin } from '@/lib/middleware';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { logAdminActivity, AdminActions } from '@/lib/admin-logs';
 
 // PATCH: Approve or reject point charge request (admin only)
