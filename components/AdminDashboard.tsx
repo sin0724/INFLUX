@@ -160,6 +160,18 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             </div>
           </button>
 
+          <button
+            onClick={() => router.push('/admin/checklist')}
+            className="bg-white border border-gray-200 rounded-lg p-6 text-left hover:border-primary-300 hover:bg-primary-50 transition"
+          >
+            <div className="font-medium text-gray-900 text-lg mb-2">
+              체크리스트
+            </div>
+            <div className="text-sm text-gray-600">
+              작업 체크리스트 관리 및 스케줄링
+            </div>
+          </button>
+
           {/* 최고관리자 전용 메뉴 */}
           {user.role === 'superadmin' && (
             <>
