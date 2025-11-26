@@ -1162,6 +1162,8 @@ export default function ClientsManagement() {
                 naverId: '',
                 naverPassword: '',
                 businessType: '',
+                optimization: false,
+                reservation: false,
                 quota: {
                   follower: { total: 0, remaining: 0 },
                   like: { total: 0, remaining: 0 },
