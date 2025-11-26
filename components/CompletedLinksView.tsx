@@ -41,6 +41,8 @@ export default function CompletedLinksView() {
   const [blogLink, setBlogLink] = useState('');
   const [receiptLink, setReceiptLink] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -190,6 +192,8 @@ export default function CompletedLinksView() {
                 setSelectedClientForLink(null);
                 setBlogLink('');
                 setReceiptLink('');
+                setClientSearchTerm('');
+                setShowClientDropdown(false);
               }}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
             >
@@ -283,6 +287,8 @@ export default function CompletedLinksView() {
                         setSelectedClientForLink(group.client);
                         setBlogLink('');
                         setReceiptLink('');
+                        setClientSearchTerm('');
+                        setShowClientDropdown(false);
                         setShowBlogReceiptModal(true);
                       }}
                       className="text-sm px-3 py-1 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition"
@@ -352,27 +358,104 @@ export default function CompletedLinksView() {
               블로그/영수증 리뷰 링크 추가
             </h2>
 
-            {/* 광고주 선택 */}
+            {/* 광고주 선택 - 검색 가능 */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 광고주 선택 <span className="text-red-500">*</span>
               </label>
-              <select
-                value={selectedClientForLink?.id || ''}
-                onChange={(e) => {
-                  const client = clients.find((c) => c.id === e.target.value);
-                  setSelectedClientForLink(client || null);
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                disabled={!!selectedClientForLink}
-              >
-                <option value="">광고주를 선택하세요</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.username} {client.companyName && `(${client.companyName})`}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={selectedClientForLink ? `${selectedClientForLink.username}${selectedClientForLink.companyName ? ` (${selectedClientForLink.companyName})` : ''}` : clientSearchTerm}
+                  onChange={(e) => {
+                    setClientSearchTerm(e.target.value);
+                    setShowClientDropdown(true);
+                    if (!e.target.value) {
+                      setSelectedClientForLink(null);
+                    }
+                  }}
+                  onFocus={() => setShowClientDropdown(true)}
+                  onBlur={() => {
+                    // 드롭다운 클릭을 위해 약간의 지연
+                    setTimeout(() => setShowClientDropdown(false), 200);
+                  }}
+                  placeholder="광고주를 검색하세요..."
+                  disabled={!!selectedClientForLink && !clientSearchTerm}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none pr-10"
+                />
+                {(selectedClientForLink || clientSearchTerm) && !selectedClientForLink && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setClientSearchTerm('');
+                      setShowClientDropdown(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xl leading-none"
+                  >
+                    ×
+                  </button>
+                )}
+                {selectedClientForLink && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedClientForLink(null);
+                      setClientSearchTerm('');
+                      setShowClientDropdown(true);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                  >
+                    변경
+                  </button>
+                )}
+                
+                {/* 검색 드롭다운 */}
+                {showClientDropdown && !selectedClientForLink && (
+                  <div 
+                    className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                    onMouseDown={(e) => e.preventDefault()} // blur 이벤트 방지
+                  >
+                    {clients
+                      .filter((client) => {
+                        const searchLower = clientSearchTerm.toLowerCase();
+                        return (
+                          client.username.toLowerCase().includes(searchLower) ||
+                          (client.companyName && client.companyName.toLowerCase().includes(searchLower))
+                        );
+                      })
+                      .map((client) => (
+                        <button
+                          key={client.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedClientForLink(client);
+                            setClientSearchTerm('');
+                            setShowClientDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-100 transition"
+                        >
+                          <div className="font-medium">{client.username}</div>
+                          {client.companyName && (
+                            <div className="text-xs text-gray-500">{client.companyName}</div>
+                          )}
+                        </button>
+                      ))}
+                    {clients.filter((client) => {
+                      const searchLower = clientSearchTerm.toLowerCase();
+                      return (
+                        client.username.toLowerCase().includes(searchLower) ||
+                        (client.companyName && client.companyName.toLowerCase().includes(searchLower))
+                      );
+                    }).length === 0 && clientSearchTerm && (
+                      <div className="px-3 py-2 text-gray-500 text-sm text-center">
+                        검색 결과가 없습니다
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 블로그 리뷰 링크 */}
@@ -417,6 +500,8 @@ export default function CompletedLinksView() {
                   setSelectedClientForLink(null);
                   setBlogLink('');
                   setReceiptLink('');
+                  setClientSearchTerm('');
+                  setShowClientDropdown(false);
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
               >
