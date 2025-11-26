@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDate } from '@/lib/utils';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 interface Client {
   id: string;
@@ -55,6 +57,9 @@ export default function ClientsManagement() {
   const [renewingClient, setRenewingClient] = useState<Client | null>(null);
   const [extendDate, setExtendDate] = useState('');
   const [renewPlanType, setRenewPlanType] = useState('1');
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkUploadResult, setBulkUploadResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     username: '',
@@ -158,6 +163,111 @@ export default function ClientsManagement() {
   useEffect(() => {
     fetchClients();
   }, []);
+
+  // 엑셀 템플릿 다운로드
+  const downloadExcelTemplate = () => {
+    const templateData = [
+      {
+        '아이디*': 'client01',
+        '비밀번호*': 'password123',
+        '상호명': '예시 회사',
+        '이용기간(개월)*': '1',
+        '계약시작일': '2024-01-01',
+        '비고': '특이사항',
+        '네이버 아이디': 'naver_id',
+        '네이버 비밀번호': 'naver_pw',
+        '업종': '네일',
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '광고주 목록');
+
+    // 열 너비 설정
+    ws['!cols'] = [
+      { wch: 15 }, // 아이디
+      { wch: 15 }, // 비밀번호
+      { wch: 20 }, // 상호명
+      { wch: 12 }, // 이용기간
+      { wch: 12 }, // 계약시작일
+      { wch: 20 }, // 비고
+      { wch: 15 }, // 네이버 아이디
+      { wch: 15 }, // 네이버 비밀번호
+      { wch: 15 }, // 업종
+    ];
+
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, '광고주_일괄등록_템플릿.xlsx');
+  };
+
+  // 엑셀 파일 파싱 및 업로드
+  const handleExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setBulkUploading(true);
+    setBulkUploadResult(null);
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      // 필드명 매핑
+      const clients = jsonData.map((row: any) => ({
+        username: row['아이디*'] || row['아이디'],
+        password: row['비밀번호*'] || row['비밀번호'],
+        companyName: row['상호명'] || '',
+        planType: String(row['이용기간(개월)*'] || row['이용기간(개월)'] || row['이용기간'] || '1'),
+        contractStartDate: row['계약시작일'] || new Date().toISOString().split('T')[0],
+        notes: row['비고'] || '',
+        naverId: row['네이버 아이디'] || '',
+        naverPassword: row['네이버 비밀번호'] || '',
+        businessType: row['업종'] || '',
+      }));
+
+      if (clients.length === 0) {
+        alert('엑셀 파일에 데이터가 없습니다.');
+        setBulkUploading(false);
+        return;
+      }
+
+      // API 호출
+      const response = await fetch('/api/users/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ clients }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setBulkUploadResult(result.results);
+        if (result.results.failedCount === 0) {
+          alert(`모든 광고주(${result.results.successCount}명)가 성공적으로 등록되었습니다.`);
+        } else {
+          alert(`${result.results.successCount}명 성공, ${result.results.failedCount}명 실패했습니다. 상세 내용을 확인해주세요.`);
+        }
+        fetchClients();
+      } else {
+        alert(result.error || '일괄 등록에 실패했습니다.');
+      }
+    } catch (error: any) {
+      console.error('Excel upload error:', error);
+      alert(`엑셀 파일 처리 중 오류가 발생했습니다: ${error.message}`);
+    } finally {
+      setBulkUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const fetchClients = async () => {
     try {
@@ -447,14 +557,93 @@ export default function ClientsManagement() {
           </button>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">광고주 관리</h1>
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition"
-            >
-              + 광고주 추가
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={downloadExcelTemplate}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
+              >
+                📥 엑셀 템플릿 다운로드
+              </button>
+              <label
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm cursor-pointer"
+              >
+                📤 엑셀 일괄 등록
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleExcelUpload}
+                  disabled={bulkUploading}
+                  className="hidden"
+                />
+              </label>
+              <button
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition"
+              >
+                + 광고주 추가
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* 일괄 등록 결과 */}
+        {bulkUploadResult && (
+          <div className="bg-white rounded-lg p-6 mb-6 border border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              일괄 등록 결과
+            </h2>
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-sm text-blue-700 mb-1">전체</div>
+                  <div className="text-2xl font-bold text-blue-900">{bulkUploadResult.total}명</div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-sm text-green-700 mb-1">성공</div>
+                  <div className="text-2xl font-bold text-green-900">{bulkUploadResult.successCount}명</div>
+                </div>
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="text-sm text-red-700 mb-1">실패</div>
+                  <div className="text-2xl font-bold text-red-900">{bulkUploadResult.failedCount}명</div>
+                </div>
+              </div>
+              
+              {bulkUploadResult.failed && bulkUploadResult.failed.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">실패 목록</h3>
+                  <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">행 번호</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">아이디</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">오류 내용</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {bulkUploadResult.failed.map((item: any, index: number) => (
+                          <tr key={index} className="bg-white">
+                            <td className="px-3 py-2 text-gray-900">{item.row}</td>
+                            <td className="px-3 py-2 text-gray-900">{item.username}</td>
+                            <td className="px-3 py-2 text-red-600">{item.error}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              
+              <button
+                onClick={() => setBulkUploadResult(null)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Create Form */}
         {showCreateForm && (
