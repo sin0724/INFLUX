@@ -69,8 +69,16 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
 
       if (blogOrderError || !blogOrder) {
         console.error('Failed to create blog order:', blogOrderError);
+        // 더 자세한 오류 메시지 반환
+        const errorMessage = blogOrderError?.message || '알 수 없는 오류';
+        const errorCode = blogOrderError?.code || '';
         return NextResponse.json(
-          { error: '블로그 리뷰 주문 생성에 실패했습니다.' },
+          { 
+            error: '블로그 리뷰 주문 생성에 실패했습니다.',
+            details: errorMessage,
+            code: errorCode,
+            hint: errorCode === '23514' ? 'orders 테이블의 taskType CHECK 제약조건에 "blog"가 포함되어 있지 않습니다. 데이터베이스 마이그레이션을 실행해주세요.' : undefined
+          },
           { status: 500 }
         );
       }
@@ -104,8 +112,16 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
 
       if (receiptOrderError || !receiptOrder) {
         console.error('Failed to create receipt order:', receiptOrderError);
+        // 더 자세한 오류 메시지 반환
+        const errorMessage = receiptOrderError?.message || '알 수 없는 오류';
+        const errorCode = receiptOrderError?.code || '';
         return NextResponse.json(
-          { error: '영수증 리뷰 주문 생성에 실패했습니다.' },
+          { 
+            error: '영수증 리뷰 주문 생성에 실패했습니다.',
+            details: errorMessage,
+            code: errorCode,
+            hint: errorCode === '23514' ? 'orders 테이블의 taskType CHECK 제약조건에 "receipt"가 포함되어 있지 않습니다. 데이터베이스 마이그레이션을 실행해주세요.' : undefined
+          },
           { status: 500 }
         );
       }
