@@ -117,30 +117,35 @@ export default function OrdersManagement() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // orders 조회
-      const params = new URLSearchParams();
-      if (filters.status) {
-        // 체험단은 다른 status를 사용하므로 필터링 시 주의
-        if (filters.status === 'pending') {
-          params.append('status', 'pending');
-        } else if (filters.status === 'working') {
-          params.append('status', 'working');
-        } else if (filters.status === 'done') {
-          params.append('status', 'done');
-        }
-      }
-      if (filters.taskType && filters.taskType !== 'experience') {
-        params.append('taskType', filters.taskType);
-      }
-      if (filters.clientId) params.append('clientId', filters.clientId);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-
-      const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
-      const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
-
-      // 체험단 신청 조회
+      let ordersData: any = { orders: [] };
       let experienceData: any[] = [];
+
+      // 체험단 필터가 선택된 경우 orders는 조회하지 않음
+      if (filters.taskType !== 'experience') {
+        // orders 조회
+        const params = new URLSearchParams();
+        if (filters.status) {
+          // 체험단은 다른 status를 사용하므로 필터링 시 주의
+          if (filters.status === 'pending') {
+            params.append('status', 'pending');
+          } else if (filters.status === 'working') {
+            params.append('status', 'working');
+          } else if (filters.status === 'done') {
+            params.append('status', 'done');
+          }
+        }
+        if (filters.taskType) {
+          params.append('taskType', filters.taskType);
+        }
+        if (filters.clientId) params.append('clientId', filters.clientId);
+        if (filters.startDate) params.append('startDate', filters.startDate);
+        if (filters.endDate) params.append('endDate', filters.endDate);
+
+        const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
+        ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
+      }
+
+      // 체험단 신청 조회 (taskType 필터가 없거나 experience인 경우)
       if (!filters.taskType || filters.taskType === 'experience') {
         try {
           const experienceResponse = await fetch('/api/experience-applications');
@@ -190,10 +195,15 @@ export default function OrdersManagement() {
       // orders와 체험단 합치기
       const allOrders = [...(ordersData.orders || []), ...experienceData];
       
-      // taskType 필터가 experience가 아닌 경우 체험단 제외
-      const filteredOrders = filters.taskType && filters.taskType !== 'experience'
-        ? allOrders.filter((o: Order) => o.taskType === filters.taskType)
-        : allOrders;
+      // taskType 필터 적용
+      let filteredOrders = allOrders;
+      if (filters.taskType === 'experience') {
+        // 체험단 필터: 체험단만 표시
+        filteredOrders = allOrders.filter((o: Order) => o.taskType === 'experience');
+      } else if (filters.taskType) {
+        // 다른 작업 필터: 해당 작업만 표시 (체험단 제외)
+        filteredOrders = allOrders.filter((o: Order) => o.taskType === filters.taskType);
+      }
 
       setOrders(filteredOrders);
     } catch (error) {
