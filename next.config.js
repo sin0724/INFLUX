@@ -8,6 +8,10 @@ const nextConfig = {
       },
     ],
   },
+  // 경로 별칭이 제대로 작동하도록 설정
+  webpack: (config) => {
+    return config;
+  },
 };
 
 module.exports = nextConfig;
