@@ -3,7 +3,14 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "NEXT_TELEMETRY_DISABLED=1 npm run build",
-    "installCommand": "npm install"
+    "installCommand": "npm install",
+    "nixpacksConfig": {
+      "phases": {
+        "setup": {
+          "nixPkgs": ["nodejs-20_x"]
+        }
+      }
+    }
   },
   "deploy": {
     "startCommand": "npm start",

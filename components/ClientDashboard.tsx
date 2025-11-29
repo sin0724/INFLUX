@@ -103,40 +103,40 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
             <div className="text-sm font-medium text-gray-700">남은 작업</div>
             {currentUser.quota ? (
               <div className="grid grid-cols-2 gap-2">
+                {/* 블로그 리뷰 (맨 위) */}
+                <div className="bg-pink-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">블로그 리뷰</div>
+                  <div className="text-lg font-bold text-pink-700">
+                    {currentUser.quota.blog?.remaining || 0}개
+                  </div>
+                </div>
+                {/* 영수증 리뷰 (맨 위) */}
+                <div className="bg-red-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">영수증 리뷰</div>
+                  <div className="text-lg font-bold text-red-700">
+                    {currentUser.quota.receipt?.remaining || 0}개
+                  </div>
+                </div>
+                {/* 인스타 팔로워+좋아요 합계 */}
+                <div className="bg-green-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">인스타그램</div>
+                  <div className="text-lg font-bold text-green-700">
+                    {(currentUser.quota.follower?.remaining || 0) + (currentUser.quota.like?.remaining || 0)}개
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">팔로워+좋아요</div>
+                </div>
+                {/* 인기게시물 */}
                 <div className="bg-blue-50 rounded-lg p-3">
                   <div className="text-xs text-gray-600">인기게시물</div>
                   <div className="text-lg font-bold text-blue-700">
                     {currentUser.quota.hotpost?.remaining || 0}개
                   </div>
                 </div>
+                {/* 맘카페 */}
                 <div className="bg-purple-50 rounded-lg p-3">
                   <div className="text-xs text-gray-600">맘카페</div>
                   <div className="text-lg font-bold text-purple-700">
                     {currentUser.quota.momcafe?.remaining || 0}개
-                  </div>
-                </div>
-                <div className="bg-green-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-600">인스타 팔로워</div>
-                  <div className="text-lg font-bold text-green-700">
-                    {currentUser.quota.follower?.remaining || 0}개
-                  </div>
-                </div>
-                <div className="bg-orange-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-600">인스타 좋아요</div>
-                  <div className="text-lg font-bold text-orange-700">
-                    {currentUser.quota.like?.remaining || 0}개
-                  </div>
-                </div>
-                <div className="bg-indigo-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-600">파워블로그</div>
-                  <div className="text-lg font-bold text-indigo-700">
-                    {currentUser.quota.powerblog?.remaining || 0}개
-                  </div>
-                </div>
-                <div className="bg-teal-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-600">클립</div>
-                  <div className="text-lg font-bold text-teal-700">
-                    {currentUser.quota.clip?.remaining || 0}개
                   </div>
                 </div>
               </div>
@@ -210,6 +210,14 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
           >
             <div className="font-medium text-gray-900">포인트 충전 내역</div>
             <div className="text-sm text-gray-600 mt-1">충전 신청 상태 확인</div>
+          </button>
+
+          <button
+            onClick={() => router.push('/client/experience-application')}
+            className="w-full bg-white border border-gray-200 rounded-lg p-4 text-left hover:border-primary-300 hover:bg-primary-50 transition"
+          >
+            <div className="font-medium text-gray-900">체험단 신청</div>
+            <div className="text-sm text-gray-600 mt-1">체험단 모집 신청하기</div>
           </button>
 
           <button
