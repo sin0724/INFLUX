@@ -47,6 +47,28 @@ const SIMPLE_STATUS_NAMES: Record<string, string> = {
   done: '신청완료',
 };
 
+// 체험단 상태를 표시용 상태로 매핑 (대기중, 진행중, 완료로 통일)
+const mapExperienceStatusForDisplay = (status: string): string => {
+  if (status === 'pending') return 'pending';
+  if (['reviewing', 'approved'].includes(status)) return 'working';
+  if (status === 'completed') return 'done';
+  return 'pending'; // rejected 등 기타 상태는 대기중으로
+};
+
+// 표시용 상태를 체험단 실제 상태로 매핑 (API 전송용)
+const mapExperienceStatusForAPI = (displayStatus: string): string => {
+  if (displayStatus === 'pending') return 'pending';
+  if (displayStatus === 'working') return 'approved'; // 진행중은 approved로 저장
+  if (displayStatus === 'done') return 'completed';
+  return 'pending';
+};
+
+// 체험단 상태를 표시용 이름으로 변환
+const getExperienceStatusDisplayName = (status: string): string => {
+  const displayStatus = mapExperienceStatusForDisplay(status);
+  return STATUS_NAMES[displayStatus] || status;
+};
+
 export default function OrdersManagement() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -130,10 +152,9 @@ export default function OrdersManagement() {
                 return null;
               }
               if (filters.status) {
-                // 체험단 status 매핑 (orders의 status와 매핑)
-                if (filters.status === 'pending' && exp.status !== 'pending') return null;
-                if (filters.status === 'working' && !['reviewing', 'approved'].includes(exp.status)) return null;
-                if (filters.status === 'done' && exp.status !== 'completed') return null;
+                // 체험단 status 매핑 (표시용 상태로 변환하여 필터링)
+                const displayStatus = mapExperienceStatusForDisplay(exp.status);
+                if (filters.status !== displayStatus) return null;
               }
               if (filters.startDate && new Date(exp.createdAt) < new Date(filters.startDate)) {
                 return null;
@@ -142,12 +163,14 @@ export default function OrdersManagement() {
                 return null;
               }
 
+              // 체험단의 실제 상태는 유지하되, 표시용으로는 매핑된 상태 저장
+              const originalStatus = exp.status || 'pending';
               return {
                 id: exp.id,
                 taskType: 'experience',
                 caption: `상호명: ${exp.companyName || ''}\n플레이스: ${exp.place || ''}\n희망모집인원: ${exp.desiredParticipants || ''}명\n예약 조율 가능한 번호: ${exp.reservationPhone || ''}\n제공내역: ${exp.providedDetails || ''}\n키워드: ${exp.keywords || ''}\n블로그미션 부가유무: ${exp.blogMissionRequired ? '예' : '아니오'}\n기타전달사항: ${exp.additionalNotes || '(없음)'}`,
                 imageUrls: [],
-                status: exp.status || 'pending',
+                status: originalStatus, // 실제 상태 유지 (표시할 때만 매핑)
                 completedLink: exp.completedLink || null,
                 createdAt: exp.createdAt,
                 client: {
@@ -196,13 +219,6 @@ export default function OrdersManagement() {
       return;
     }
     
-    // 체험단의 경우 completed 상태로 변경할 때도 링크 입력 모달 표시
-    if (newStatus === 'completed' && order && order.taskType === 'experience') {
-      setCompletingOrder(order);
-      setCompletedLink(order.completedLink || '');
-      return;
-    }
-    
     // 그 외의 경우는 바로 상태 변경
     await updateOrderStatus(orderId, newStatus, null);
   };
@@ -214,8 +230,8 @@ export default function OrdersManagement() {
 
       // 체험단 신청인 경우 별도 API 사용
       if (isExperience) {
-        // 체험단은 'done' 대신 'completed' 사용
-        const experienceStatus = newStatus === 'done' ? 'completed' : newStatus;
+        // 표시용 상태를 체험단 실제 상태로 변환
+        const experienceStatus = mapExperienceStatusForAPI(newStatus);
         
         const response = await fetch(`/api/experience-applications/${orderId}`, {
           method: 'PATCH',
@@ -234,12 +250,14 @@ export default function OrdersManagement() {
             const data = await response.json();
             // 체험단 데이터를 Order 형식으로 변환
             const exp = data.application;
+            // 체험단의 실제 상태는 유지 (표시할 때만 매핑)
+            const originalStatus = exp.status || 'pending';
             setSelectedOrder({
               id: exp.id,
               taskType: 'experience',
               caption: `상호명: ${exp.companyName || ''}\n플레이스: ${exp.place || ''}\n희망모집인원: ${exp.desiredParticipants || ''}명\n예약 조율 가능한 번호: ${exp.reservationPhone || ''}\n제공내역: ${exp.providedDetails || ''}\n키워드: ${exp.keywords || ''}\n블로그미션 부가유무: ${exp.blogMissionRequired ? '예' : '아니오'}\n기타전달사항: ${exp.additionalNotes || '(없음)'}`,
               imageUrls: [],
-              status: exp.status || 'pending',
+              status: originalStatus, // 실제 상태 유지
               completedLink: exp.completedLink || null,
               createdAt: exp.createdAt,
               client: {
@@ -296,8 +314,8 @@ export default function OrdersManagement() {
       return;
     }
     
-    // 체험단인 경우 'completed' 상태 사용
-    const status = completingOrder.taskType === 'experience' ? 'completed' : 'done';
+    // 체험단인 경우 'done' 상태를 사용 (updateOrderStatus에서 API 상태로 변환됨)
+    const status = 'done';
     updateOrderStatus(completingOrder.id, status, completedLink.trim());
   };
 
@@ -578,23 +596,23 @@ export default function OrdersManagement() {
                       </span>
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          order.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : order.status === 'working' || order.status === 'reviewing' || order.status === 'approved'
-                            ? 'bg-blue-100 text-blue-700'
-                            : order.status === 'done' || order.status === 'completed'
-                            ? 'bg-green-100 text-green-700'
-                            : order.status === 'rejected'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-gray-100 text-gray-700'
+                          (() => {
+                            // 체험단인 경우 표시용 상태로 변환하여 색상 결정
+                            const displayStatus = order.taskType === 'experience' 
+                              ? mapExperienceStatusForDisplay(order.status)
+                              : order.status;
+                            return displayStatus === 'pending'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : displayStatus === 'working'
+                              ? 'bg-blue-100 text-blue-700'
+                              : displayStatus === 'done'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-gray-100 text-gray-700';
+                          })()
                         }`}
                       >
                         {order.taskType === 'experience' 
-                          ? (order.status === 'pending' ? '대기중' : 
-                             order.status === 'reviewing' ? '검토중' :
-                             order.status === 'approved' ? '승인됨' :
-                             order.status === 'completed' ? '완료' :
-                             order.status === 'rejected' ? '거절됨' : order.status)
+                          ? getExperienceStatusDisplayName(order.status)
                           : (order.taskType === 'follower' || order.taskType === 'like')
                           ? (SIMPLE_STATUS_NAMES[order.status] || STATUS_NAMES[order.status])
                           : (STATUS_NAMES[order.status] || order.status)}
@@ -623,21 +641,21 @@ export default function OrdersManagement() {
                   </div>
                   <div className="flex gap-2">
                     <select
-                      value={order.status}
+                      value={order.taskType === 'experience' 
+                        ? mapExperienceStatusForDisplay(order.status)
+                        : order.status}
                       onChange={(e) =>
                         handleStatusChange(order.id, e.target.value)
                       }
                       onClick={(e) => e.stopPropagation()}
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      {/* 체험단은 다른 상태 옵션 */}
+                      {/* 체험단도 대기중, 진행중, 완료만 표시 */}
                       {order.taskType === 'experience' ? (
                         <>
                           <option value="pending">대기중</option>
-                          <option value="reviewing">검토중</option>
-                          <option value="approved">승인됨</option>
-                          <option value="completed">완료</option>
-                          <option value="rejected">거절됨</option>
+                          <option value="working">진행중</option>
+                          <option value="done">완료</option>
                         </>
                       ) : (order.taskType === 'follower' || order.taskType === 'like') ? (
                         <>
@@ -726,20 +744,20 @@ export default function OrdersManagement() {
                   <div>
                     <div className="text-sm text-gray-600 mb-2">상태</div>
                     <select
-                      value={selectedOrder.status}
+                      value={selectedOrder.taskType === 'experience' 
+                        ? mapExperienceStatusForDisplay(selectedOrder.status)
+                        : selectedOrder.status}
                       onChange={(e) =>
                         handleStatusChange(selectedOrder.id, e.target.value)
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      {/* 체험단은 다른 상태 옵션 */}
+                      {/* 체험단도 대기중, 진행중, 완료만 표시 */}
                       {selectedOrder.taskType === 'experience' ? (
                         <>
                           <option value="pending">대기중</option>
-                          <option value="reviewing">검토중</option>
-                          <option value="approved">승인됨</option>
-                          <option value="completed">완료</option>
-                          <option value="rejected">거절됨</option>
+                          <option value="working">진행중</option>
+                          <option value="done">완료</option>
                         </>
                       ) : (selectedOrder.taskType === 'follower' || selectedOrder.taskType === 'like') ? (
                         <>
