@@ -147,6 +147,16 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                     {currentUser.quota.daangn?.remaining || 0}개
                   </div>
                 </div>
+                {/* 체험단 신청 */}
+                <button
+                  onClick={() => router.push('/client/experience-application')}
+                  className="bg-indigo-50 rounded-lg p-3 text-left hover:bg-indigo-100 transition"
+                >
+                  <div className="text-xs text-gray-600">체험단 신청</div>
+                  <div className="text-lg font-bold text-indigo-700">
+                    신청하기
+                  </div>
+                </button>
               </div>
             ) : (
               <div className="p-4 bg-primary-50 rounded-lg">
@@ -218,14 +228,6 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
           >
             <div className="font-medium text-gray-900">포인트 충전 내역</div>
             <div className="text-sm text-gray-600 mt-1">충전 신청 상태 확인</div>
-          </button>
-
-          <button
-            onClick={() => router.push('/client/experience-application')}
-            className="w-full bg-white border border-gray-200 rounded-lg p-4 text-left hover:border-primary-300 hover:bg-primary-50 transition"
-          >
-            <div className="font-medium text-gray-900">체험단 신청</div>
-            <div className="text-sm text-gray-600 mt-1">체험단 모집 신청하기</div>
           </button>
 
           <button
