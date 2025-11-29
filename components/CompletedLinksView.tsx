@@ -79,22 +79,23 @@ export default function CompletedLinksView() {
       const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       
-      // 완료 링크가 있는 주문만 필터링
+      // 완료된 주문 모두 표시 (링크가 없어도 표시)
       const completedOrders = (ordersData.orders || []).filter(
-        (order: Order) => order.completedLink && order.completedLink.trim()
+        (order: Order) => order.status === 'done'
       );
 
       // 체험단(experience_applications) 조회
       const experienceResponse = await fetch('/api/experience-applications');
       const experienceData = experienceResponse.ok ? await experienceResponse.json() : { applications: [] };
       
-      // 완료 링크가 있는 체험단만 필터링
+      // 완료된 체험단 모두 표시 (링크가 없어도 표시)
       const completedExperiences = (experienceData.applications || [])
         .filter((exp: any) => {
           if (selectedClientId && exp.clientId !== selectedClientId) {
             return false;
           }
-          return exp.completedLink && exp.completedLink.trim();
+          // 완료된 체험단만 표시 (status가 completed이거나 completedLink가 있으면 표시)
+          return exp.status === 'completed' || exp.completedLink;
         })
         .map((exp: any) => ({
           id: exp.id,
@@ -145,7 +146,15 @@ export default function CompletedLinksView() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.error || '링크 추가에 실패했습니다.');
+        // 더 자세한 오류 메시지 표시
+        let errorMessage = data.error || '링크 추가에 실패했습니다.';
+        if (data.hint) {
+          errorMessage += `\n\n${data.hint}`;
+        }
+        if (data.details && data.details !== data.error) {
+          errorMessage += `\n\n오류 상세: ${data.details}`;
+        }
+        alert(errorMessage);
         setSubmitting(false);
         return;
       }
