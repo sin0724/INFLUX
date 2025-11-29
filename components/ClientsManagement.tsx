@@ -415,6 +415,18 @@ export default function ClientsManagement() {
         naverId: '',
         naverPassword: '',
         businessType: '',
+        quota: {
+          follower: { total: 0, remaining: 0 },
+          like: { total: 0, remaining: 0 },
+          hotpost: { total: 0, remaining: 0 },
+          momcafe: { total: 0, remaining: 0 },
+          powerblog: { total: 0, remaining: 0 },
+          clip: { total: 0, remaining: 0 },
+          blog: { total: 0, remaining: 0 },
+          receipt: { total: 0, remaining: 0 },
+          daangn: { total: 0, remaining: 0 },
+          experience: { total: 0, remaining: 0 },
+        },
       });
       setShowCreateForm(false);
       fetchClients();
