@@ -78,7 +78,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
                 experience: { total: 1, remaining: 1 },
               };
             case '6':
-              // 6개월: 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2000개, 파워블로그 2회, 체험단 2회
+              // 6개월: 블로그 리뷰 60개, 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2000개, 파워블로그 2회, 체험단 2회
               return {
                 follower: { total: 1000, remaining: 1000 }, // 통합 2000개 중 1000개 (팔로워/좋아요 자유 선택 가능)
                 like: { total: 1000, remaining: 1000 }, // 통합 2000개 중 1000개 (팔로워/좋아요 자유 선택 가능)
@@ -86,7 +86,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
                 momcafe: { total: 6, remaining: 6 },
                 powerblog: { total: 2, remaining: 2 }, // 6개월 플랜만 파워블로그 2회
                 clip: { total: 0, remaining: 0 },
-                blog: { total: 0, remaining: 0 }, // 6개월은 블로그 리뷰 없음
+                blog: { total: 60, remaining: 60 }, // 블로그 리뷰 60개
                 receipt: { total: 120, remaining: 120 },
                 daangn: { total: 6, remaining: 6 },
                 experience: { total: 2, remaining: 2 },

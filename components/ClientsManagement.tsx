@@ -71,6 +71,18 @@ export default function ClientsManagement() {
     naverId: '',
     naverPassword: '',
     businessType: '',
+    quota: {
+      follower: { total: 0, remaining: 0 },
+      like: { total: 0, remaining: 0 },
+      hotpost: { total: 0, remaining: 0 },
+      momcafe: { total: 0, remaining: 0 },
+      powerblog: { total: 0, remaining: 0 },
+      clip: { total: 0, remaining: 0 },
+      blog: { total: 0, remaining: 0 },
+      receipt: { total: 0, remaining: 0 },
+      daangn: { total: 0, remaining: 0 },
+      experience: { total: 0, remaining: 0 },
+    },
   });
   
   // 수정 모달 상태
@@ -130,7 +142,7 @@ export default function ClientsManagement() {
           experience: { total: 1, remaining: 1 },
         };
       case '6':
-        // 6개월: 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2000개, 파워블로그 2회, 체험단 2회
+        // 6개월: 블로그 리뷰 60개, 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2000개, 파워블로그 2회, 체험단 2회
         return {
           follower: { total: 1000, remaining: 1000 }, // 통합 2000개 중 1000개 (팔로워/좋아요 자유 선택 가능)
           like: { total: 1000, remaining: 1000 }, // 통합 2000개 중 1000개 (팔로워/좋아요 자유 선택 가능)
@@ -138,7 +150,7 @@ export default function ClientsManagement() {
           momcafe: { total: 6, remaining: 6 },
           powerblog: { total: 2, remaining: 2 }, // 6개월 플랜만 파워블로그 2회
           clip: { total: 0, remaining: 0 },
-          blog: { total: 0, remaining: 0 }, // 6개월은 블로그 리뷰 없음
+          blog: { total: 60, remaining: 60 }, // 블로그 리뷰 60개
           receipt: { total: 120, remaining: 120 },
           daangn: { total: 6, remaining: 6 },
           experience: { total: 2, remaining: 2 },
@@ -373,7 +385,7 @@ export default function ClientsManagement() {
           password: formData.password,
           companyName: formData.companyName,
           role: 'client',
-          quota: getQuotaByPlan(formData.planType),
+          quota: formData.planType === '1' ? formData.quota : getQuotaByPlan(formData.planType),
           contractStartDate: formData.contractStartDate,
           contractEndDate: getContractEndDate(formData.contractStartDate, formData.planType),
           notes: formData.notes || undefined,
@@ -833,7 +845,7 @@ export default function ClientsManagement() {
                   >
                     <option value="1">1개월 (기획상품 - 수기 입력)</option>
                     <option value="3">3개월 (블로그 30개, 영수증 60개, 인기게시물 3개, 맘카페 3개, 당근마켓 3개, 인스타그램 통합 1000개, 체험단 1회)</option>
-                    <option value="6">6개월 (영수증 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타그램 통합 2000개, 파워블로그 2회, 체험단 2회)</option>
+                    <option value="6">6개월 (블로그 60개, 영수증 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타그램 통합 2000개, 파워블로그 2회, 체험단 2회)</option>
                   </select>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
                     <div className="font-medium mb-1">포함된 작업:</div>
@@ -855,6 +867,7 @@ export default function ClientsManagement() {
                     )}
                     {formData.planType === '6' && (
                       <ul className="list-disc list-inside text-gray-600 space-y-1">
+                        <li>블로그 리뷰: 60개</li>
                         <li>영수증 리뷰: 120개</li>
                         <li>인기게시물: 6개</li>
                         <li>맘카페: 6개</li>
@@ -872,6 +885,394 @@ export default function ClientsManagement() {
                   </div>
                 </div>
               </div>
+              
+              {/* 1개월 플랜 할당량 수기 입력 필드 */}
+              {formData.planType === '1' && (
+                <div className="pt-4 border-t border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-700 mb-4">할당량 수기 입력</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">인스타 팔로워 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.follower.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                follower: {
+                                  ...formData.quota.follower,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.follower.total}
+                          value={formData.quota.follower.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                follower: {
+                                  ...formData.quota.follower,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">인스타 좋아요 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.like.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                like: {
+                                  ...formData.quota.like,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.like.total}
+                          value={formData.quota.like.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                like: {
+                                  ...formData.quota.like,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">인기게시물 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.hotpost.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                hotpost: {
+                                  ...formData.quota.hotpost,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.hotpost.total}
+                          value={formData.quota.hotpost.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                hotpost: {
+                                  ...formData.quota.hotpost,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">맘카페 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.momcafe.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                momcafe: {
+                                  ...formData.quota.momcafe,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.momcafe.total}
+                          value={formData.quota.momcafe.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                momcafe: {
+                                  ...formData.quota.momcafe,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">블로그 리뷰 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.blog.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                blog: {
+                                  ...formData.quota.blog,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.blog.total}
+                          value={formData.quota.blog.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                blog: {
+                                  ...formData.quota.blog,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">영수증 리뷰 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.receipt.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                receipt: {
+                                  ...formData.quota.receipt,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.receipt.total}
+                          value={formData.quota.receipt.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                receipt: {
+                                  ...formData.quota.receipt,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">당근마켓 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.daangn.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                daangn: {
+                                  ...formData.quota.daangn,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.daangn.total}
+                          value={formData.quota.daangn.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                daangn: {
+                                  ...formData.quota.daangn,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">체험단 모집 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.experience.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                experience: {
+                                  ...formData.quota.experience,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.experience.total}
+                          value={formData.quota.experience.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                experience: {
+                                  ...formData.quota.experience,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">파워블로그 (총/남은)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.quota.powerblog.total}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                powerblog: {
+                                  ...formData.quota.powerblog,
+                                  total: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={formData.quota.powerblog.total}
+                          value={formData.quota.powerblog.remaining}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              quota: {
+                                ...formData.quota,
+                                powerblog: {
+                                  ...formData.quota.powerblog,
+                                  remaining: parseInt(e.target.value) || 0,
+                                },
+                              },
+                            });
+                          }}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* 비고, 네이버 아이디/비밀번호 추가 필드 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -934,6 +1335,18 @@ export default function ClientsManagement() {
                       naverId: '',
                       naverPassword: '',
                       businessType: '',
+                      quota: {
+                        follower: { total: 0, remaining: 0 },
+                        like: { total: 0, remaining: 0 },
+                        hotpost: { total: 0, remaining: 0 },
+                        momcafe: { total: 0, remaining: 0 },
+                        powerblog: { total: 0, remaining: 0 },
+                        clip: { total: 0, remaining: 0 },
+                        blog: { total: 0, remaining: 0 },
+                        receipt: { total: 0, remaining: 0 },
+                        daangn: { total: 0, remaining: 0 },
+                        experience: { total: 0, remaining: 0 },
+                      },
                     });
                     setFormError('');
                   }}
