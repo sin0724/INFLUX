@@ -124,18 +124,32 @@ export default function OrderForm({ user }: OrderFormProps) {
     
     // 작업별 quota 체크
     if (userQuota) {
-      if (type === 'instagram') {
-        // 인스타그램 통합 쿼터 체크 (팔로워 + 좋아요 합계)
-        const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
-        if (totalInstagram <= 0) {
-          alert('인스타그램 작업의 남은 개수가 없습니다.');
-          return;
-        }
-      } else {
-        const taskQuota = userQuota[type as keyof Quota];
-        if (!taskQuota || taskQuota.remaining <= 0) {
-          alert('이 작업의 남은 개수가 없습니다.');
-          return;
+      // 1개월 플랜 체크: 모든 quota가 0이면 1개월 플랜(기획상품)으로 간주 - quota 체크 우회
+      const isOneMonthPlan = (userQuota.follower?.total || 0) === 0 &&
+        (userQuota.like?.total || 0) === 0 &&
+        (userQuota.hotpost?.total || 0) === 0 &&
+        (userQuota.momcafe?.total || 0) === 0 &&
+        (userQuota.blog?.total || 0) === 0 &&
+        (userQuota.receipt?.total || 0) === 0 &&
+        (userQuota.daangn?.total || 0) === 0 &&
+        (userQuota.experience?.total || 0) === 0 &&
+        (userQuota.powerblog?.total || 0) === 0;
+      
+      // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
+      if (!isOneMonthPlan) {
+        if (type === 'instagram') {
+          // 인스타그램 통합 쿼터 체크 (팔로워 + 좋아요 합계)
+          const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
+          if (totalInstagram <= 0) {
+            alert('인스타그램 작업의 남은 개수가 없습니다.');
+            return;
+          }
+        } else {
+          const taskQuota = userQuota[type as keyof Quota];
+          if (!taskQuota || taskQuota.remaining <= 0) {
+            alert('이 작업의 남은 개수가 없습니다.');
+            return;
+          }
         }
       }
     } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0) {
@@ -358,6 +372,12 @@ export default function OrderForm({ user }: OrderFormProps) {
           setLoading(false);
           return;
         }
+        
+        if (!data.success) {
+          setError(data.error || '체험단 신청에 실패했습니다.');
+          setLoading(false);
+          return;
+        }
 
         alert('체험단 신청이 완료되었습니다.');
         router.push('/client');
@@ -442,7 +462,22 @@ export default function OrderForm({ user }: OrderFormProps) {
                 let remainingCount = 0;
                 const hasExternalLink = !!task.externalLink;
                 
-                if (userQuota && !hasExternalLink) {
+                // 1개월 플랜 체크: 모든 quota가 0이면 1개월 플랜(기획상품)으로 간주
+                const isOneMonthPlan = userQuota && 
+                  (userQuota.follower?.total || 0) === 0 &&
+                  (userQuota.like?.total || 0) === 0 &&
+                  (userQuota.hotpost?.total || 0) === 0 &&
+                  (userQuota.momcafe?.total || 0) === 0 &&
+                  (userQuota.blog?.total || 0) === 0 &&
+                  (userQuota.receipt?.total || 0) === 0 &&
+                  (userQuota.daangn?.total || 0) === 0 &&
+                  (userQuota.experience?.total || 0) === 0 &&
+                  (userQuota.powerblog?.total || 0) === 0;
+                
+                // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
+                if (isOneMonthPlan && !task.kakaoOnly && !hasExternalLink) {
+                  isDisabled = false;
+                } else if (userQuota && !hasExternalLink) {
                   if (task.id === 'instagram' && task.combinedQuota) {
                     // 인스타그램 통합 쿼터 (팔로워 + 좋아요 합계)
                     const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
@@ -565,7 +600,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                 </div>
                 {userQuota && (
                   <div className="mt-2 text-xs text-gray-600">
-                    남은 개수: {Math.min((userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0), 1000)}개 (팔로워+좋아요 합계)
+                    남은 개수: {(userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0)}개 (팔로워+좋아요 합계)
                   </div>
                 )}
               </div>
