@@ -14,6 +14,7 @@ interface Quota {
   blog?: { total: number; remaining: number };
   receipt?: { total: number; remaining: number };
   daangn?: { total: number; remaining: number };
+  experience?: { total: number; remaining: number };
 }
 
 interface User {
@@ -41,6 +42,7 @@ const TASK_TYPES = [
   { id: 'hotpost', name: '인스타그램 인기게시물', requiresImage: true },
   { id: 'momcafe', name: '맘카페', requiresImage: false },
   { id: 'daangn', name: '당근마켓', requiresImage: true, disabled: false },
+  { id: 'experience', name: '체험단 신청', requiresImage: false, disabled: false },
   { id: 'eventbanner', name: '이벤트배너/블로그스킨', requiresImage: false, externalLink: 'https://pf.kakao.com/_UxoANn' },
 ];
 
@@ -83,6 +85,15 @@ export default function OrderForm({ user }: OrderFormProps) {
   const [momcafeCommentGuideline, setMomcafeCommentGuideline] = useState(''); // 맘카페: 댓글 가이드라인
   // 당근마켓 필드
   const [daangnBusinessProfile, setDaangnBusinessProfile] = useState(''); // 당근마켓: 비지니스 프로필 주소
+  // 체험단 필드
+  const [experienceCompanyName, setExperienceCompanyName] = useState(''); // 체험단: 상호명
+  const [experiencePlace, setExperiencePlace] = useState(''); // 체험단: 플레이스
+  const [experienceReservationPhone, setExperienceReservationPhone] = useState(''); // 체험단: 예약 조율 가능한 번호
+  const [experienceDesiredParticipants, setExperienceDesiredParticipants] = useState(''); // 체험단: 희망모집인원
+  const [experienceProvidedDetails, setExperienceProvidedDetails] = useState(''); // 체험단: 제공내역
+  const [experienceKeywords, setExperienceKeywords] = useState(''); // 체험단: 키워드
+  const [experienceBlogMissionRequired, setExperienceBlogMissionRequired] = useState(false); // 체험단: 블로그미션 부가유무
+  const [experienceAdditionalNotes, setExperienceAdditionalNotes] = useState(''); // 체험단: 기타전달사항
   // 파워블로그/클립 필드
   const [customTaskCaption, setCustomTaskCaption] = useState(''); // 파워블로그/클립: 작업 내용
 
@@ -147,6 +158,14 @@ export default function OrderForm({ user }: OrderFormProps) {
     setMomcafePostGuideline('');
     setMomcafeCommentGuideline('');
     setDaangnBusinessProfile('');
+    setExperienceCompanyName('');
+    setExperiencePlace('');
+    setExperienceReservationPhone('');
+    setExperienceDesiredParticipants('');
+    setExperienceProvidedDetails('');
+    setExperienceKeywords('');
+    setExperienceBlogMissionRequired(false);
+    setExperienceAdditionalNotes('');
     setCaption('');
     setCustomTaskCaption('');
     setImages([]);
@@ -222,6 +241,38 @@ export default function OrderForm({ user }: OrderFormProps) {
       }
     }
 
+    if (taskType === 'experience') {
+      if (!experienceCompanyName.trim()) {
+        setError('상호명을 입력해주세요.');
+        return;
+      }
+      if (!experiencePlace.trim()) {
+        setError('플레이스를 입력해주세요.');
+        return;
+      }
+      if (!experienceReservationPhone.trim()) {
+        setError('예약 조율 가능한 번호를 입력해주세요.');
+        return;
+      }
+      if (!experienceDesiredParticipants || parseInt(experienceDesiredParticipants) < 1) {
+        setError('희망모집인원을 입력해주세요.');
+        return;
+      }
+      if (!experienceProvidedDetails.trim()) {
+        setError('제공내역을 입력해주세요.');
+        return;
+      }
+      if (!experienceKeywords.trim()) {
+        setError('키워드를 입력해주세요.');
+        return;
+      }
+      // 체험단 할당량 체크
+      if (userQuota?.experience && userQuota.experience.remaining <= 0) {
+        setError('체험단 신청의 남은 개수가 없습니다.');
+        return;
+      }
+    }
+
     if (taskType === 'hotpost') {
       if (!hotpostNickname.trim()) {
         setError('인스타그램 닉네임을 입력해주세요.');
@@ -280,6 +331,38 @@ export default function OrderForm({ user }: OrderFormProps) {
     setLoading(true);
 
     try {
+      // 체험단은 별도 API 사용
+      if (taskType === 'experience') {
+        const response = await fetch('/api/experience-applications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            companyName: experienceCompanyName,
+            place: experiencePlace,
+            reservationPhone: experienceReservationPhone,
+            desiredParticipants: parseInt(experienceDesiredParticipants),
+            providedDetails: experienceProvidedDetails,
+            keywords: experienceKeywords,
+            blogMissionRequired: experienceBlogMissionRequired,
+            additionalNotes: experienceAdditionalNotes || null,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.error || '체험단 신청에 실패했습니다.');
+          setLoading(false);
+          return;
+        }
+
+        alert('체험단 신청이 완료되었습니다.');
+        router.push('/client');
+        return;
+      }
+
       // 신청 개수 추출 (follower, like의 경우)
       let requestCount = 1; // 기본값: hotpost, momcafe는 1개
       if (taskType === 'instagram') {
@@ -830,6 +913,151 @@ export default function OrderForm({ user }: OrderFormProps) {
                 <li>당근 비지니스 프로필 주소를 정확히 입력해주세요.</li>
                 <li>사진 1장을 업로드해주세요.</li>
               </ul>
+            </div>
+          )}
+
+          {/* 체험단 신청 입력 필드 */}
+          {taskType === 'experience' && (
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="experienceCompanyName"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  상호명 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="experienceCompanyName"
+                  type="text"
+                  value={experienceCompanyName}
+                  onChange={(e) => setExperienceCompanyName(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="상호명을 입력하세요"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="experiencePlace"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  플레이스 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="experiencePlace"
+                  type="text"
+                  value={experiencePlace}
+                  onChange={(e) => setExperiencePlace(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="플레이스명을 입력하세요"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="experienceReservationPhone"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  예약 조율 가능한 번호 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="experienceReservationPhone"
+                  type="tel"
+                  value={experienceReservationPhone}
+                  onChange={(e) => setExperienceReservationPhone(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="예: 010-1234-5678"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="experienceDesiredParticipants"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  희망모집인원 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="experienceDesiredParticipants"
+                  type="number"
+                  min="1"
+                  value={experienceDesiredParticipants}
+                  onChange={(e) => setExperienceDesiredParticipants(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="예: 10"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="experienceProvidedDetails"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  제공내역 <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="experienceProvidedDetails"
+                  value={experienceProvidedDetails}
+                  onChange={(e) => setExperienceProvidedDetails(e.target.value)}
+                  required
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="체험단에게 제공할 내역을 입력하세요"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="experienceKeywords"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  키워드 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="experienceKeywords"
+                  type="text"
+                  value={experienceKeywords}
+                  onChange={(e) => setExperienceKeywords(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="예: 맛집, 데이트, 카페"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={experienceBlogMissionRequired}
+                    onChange={(e) => setExperienceBlogMissionRequired(e.target.checked)}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <span className="ml-2 text-sm font-medium text-gray-700">
+                    블로그미션 부가유무
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="experienceAdditionalNotes"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  기타전달사항
+                </label>
+                <textarea
+                  id="experienceAdditionalNotes"
+                  value={experienceAdditionalNotes}
+                  onChange={(e) => setExperienceAdditionalNotes(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="기타 전달사항을 입력하세요 (선택사항)"
+                />
+              </div>
             </div>
           )}
 

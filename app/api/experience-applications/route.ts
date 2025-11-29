@@ -41,6 +41,31 @@ async function createExperienceApplication(req: NextRequest, user: any) {
       );
     }
 
+    // 체험단 할당량 체크 및 차감
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('quota')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      console.error('Get user quota error:', userError);
+      return NextResponse.json(
+        { error: '사용자 정보를 불러오는데 실패했습니다.' },
+        { status: 500 }
+      );
+    }
+
+    const quota = userData.quota as any;
+    if (quota?.experience) {
+      if (quota.experience.remaining <= 0) {
+        return NextResponse.json(
+          { error: '체험단 신청의 남은 개수가 없습니다.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const { data, error } = await supabase
       .from('experience_applications')
       .insert({
@@ -65,6 +90,22 @@ async function createExperienceApplication(req: NextRequest, user: any) {
         { error: '체험단 신청에 실패했습니다.' },
         { status: 500 }
       );
+    }
+
+    // 체험단 할당량 차감
+    if (quota?.experience) {
+      const updatedQuota = { ...quota };
+      updatedQuota.experience.remaining = Math.max(0, updatedQuota.experience.remaining - 1);
+      
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ quota: updatedQuota })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Update quota error:', updateError);
+        // 할당량 업데이트 실패해도 신청은 성공한 것으로 처리
+      }
     }
 
     return NextResponse.json({ 

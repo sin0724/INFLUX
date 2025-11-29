@@ -16,6 +16,7 @@ interface Quota {
   blog?: { total: number; remaining: number };
   receipt?: { total: number; remaining: number };
   daangn?: { total: number; remaining: number };
+  experience?: { total: number; remaining: number };
 }
 
 interface User {
@@ -147,16 +148,13 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                     {currentUser.quota.daangn?.remaining || 0}개
                   </div>
                 </div>
-                {/* 체험단 신청 */}
-                <button
-                  onClick={() => router.push('/client/experience-application')}
-                  className="bg-indigo-50 rounded-lg p-3 text-left hover:bg-indigo-100 transition"
-                >
-                  <div className="text-xs text-gray-600">체험단 신청</div>
+                {/* 체험단 */}
+                <div className="bg-indigo-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">체험단</div>
                   <div className="text-lg font-bold text-indigo-700">
-                    신청하기
+                    {currentUser.quota.experience?.remaining || 0}개
                   </div>
-                </button>
+                </div>
               </div>
             ) : (
               <div className="p-4 bg-primary-50 rounded-lg">
