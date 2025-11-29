@@ -9,17 +9,8 @@ export default async function OrderPage() {
     redirect('/login');
   }
 
-  // 계약 만료 체크
-  if (session.user.contractEndDate) {
-    const endDate = new Date(session.user.contractEndDate);
-    const now = new Date();
-    if (endDate < now || session.user.isActive === false) {
-      redirect('/client');
-    }
-  }
-
-  // 작업별 quota 체크 (새 시스템 우선)
-  // 1개월 플랜 체크: quota가 없거나 모든 quota가 0이면 1개월 플랜(기획상품)으로 간주
+  // 계약 만료 체크 (1개월 플랜은 계약 만료일이 없을 수 있으므로 체크)
+  // 1개월 플랜 체크 먼저 수행
   const quota = session.user.quota;
   const isOneMonthPlan = !quota || (
     (quota.follower?.total || 0) === 0 &&
@@ -33,6 +24,15 @@ export default async function OrderPage() {
     (quota.powerblog?.total || 0) === 0
   );
   
+  // 계약 만료 체크 (1개월 플랜이 아닌 경우만)
+  if (!isOneMonthPlan && session.user.contractEndDate) {
+    const endDate = new Date(session.user.contractEndDate);
+    const now = new Date();
+    if (endDate < now || session.user.isActive === false) {
+      redirect('/client');
+    }
+  }
+
   // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능) - 바로 접근 허용
   if (isOneMonthPlan) {
     // 1개월 플랜은 모든 작업 가능하므로 바로 OrderForm 표시

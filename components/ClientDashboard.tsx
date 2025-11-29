@@ -200,8 +200,38 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
         {/* 신청하기 버튼 */}
         <div className="mb-6">
           <button
-            onClick={() => router.push('/client/order')}
-            className="w-full bg-primary-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition shadow-lg"
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              console.log('신청하기 버튼 클릭됨');
+              console.log('Current user:', currentUser);
+              
+              // 1개월 플랜 체크
+              const isOneMonthPlan = !currentUser.quota || (
+                (currentUser.quota?.follower?.total || 0) === 0 &&
+                (currentUser.quota?.like?.total || 0) === 0 &&
+                (currentUser.quota?.hotpost?.total || 0) === 0 &&
+                (currentUser.quota?.momcafe?.total || 0) === 0 &&
+                (currentUser.quota?.blog?.total || 0) === 0 &&
+                (currentUser.quota?.receipt?.total || 0) === 0 &&
+                (currentUser.quota?.daangn?.total || 0) === 0 &&
+                (currentUser.quota?.experience?.total || 0) === 0 &&
+                (currentUser.quota?.powerblog?.total || 0) === 0
+              );
+              console.log('1개월 플랜 여부:', isOneMonthPlan);
+              
+              try {
+                const result = await router.push('/client/order');
+                console.log('페이지 이동 결과:', result);
+              } catch (error) {
+                console.error('페이지 이동 오류:', error);
+                alert('페이지 이동 중 오류가 발생했습니다. 다시 시도해주세요.');
+              }
+            }}
+            className="w-full bg-primary-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition shadow-lg cursor-pointer relative z-10"
+            style={{ pointerEvents: 'auto' }}
           >
             신청하기
           </button>
