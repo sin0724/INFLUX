@@ -11,7 +11,7 @@ interface Order {
   taskType: string;
   caption: string | null;
   imageUrls: string[];
-  status: 'pending' | 'working' | 'done';
+  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed';
   completedLink?: string | null;
   createdAt: string;
   client: {
@@ -19,6 +19,7 @@ interface Order {
     username: string;
     companyName?: string;
   };
+  isExperience?: boolean; // 체험단 신청인지 구분
 }
 
 const TASK_TYPE_NAMES: Record<string, string> = {
@@ -28,6 +29,10 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   momcafe: '맘카페',
   powerblog: '파워블로그',
   clip: '클립',
+  blog: '블로그 리뷰',
+  receipt: '영수증 리뷰',
+  daangn: '당근마켓',
+  experience: '체험단',
 };
 
 const STATUS_NAMES: Record<string, string> = {
@@ -90,18 +95,84 @@ export default function OrdersManagement() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
+      // orders 조회
       const params = new URLSearchParams();
-      if (filters.status) params.append('status', filters.status);
-      if (filters.taskType) params.append('taskType', filters.taskType);
+      if (filters.status) {
+        // 체험단은 다른 status를 사용하므로 필터링 시 주의
+        if (filters.status === 'pending') {
+          params.append('status', 'pending');
+        } else if (filters.status === 'working') {
+          params.append('status', 'working');
+        } else if (filters.status === 'done') {
+          params.append('status', 'done');
+        }
+      }
+      if (filters.taskType && filters.taskType !== 'experience') {
+        params.append('taskType', filters.taskType);
+      }
       if (filters.clientId) params.append('clientId', filters.clientId);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
 
-      const response = await fetch(`/api/orders?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data.orders || []);
+      const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
+      const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
+
+      // 체험단 신청 조회
+      let experienceData: any[] = [];
+      if (!filters.taskType || filters.taskType === 'experience') {
+        try {
+          const experienceResponse = await fetch('/api/experience-applications');
+          if (experienceResponse.ok) {
+            const expData = await experienceResponse.json();
+            experienceData = (expData.applications || []).map((exp: any) => {
+              // 필터링 적용
+              if (filters.clientId && exp.clientId !== filters.clientId) {
+                return null;
+              }
+              if (filters.status) {
+                // 체험단 status 매핑 (orders의 status와 매핑)
+                if (filters.status === 'pending' && exp.status !== 'pending') return null;
+                if (filters.status === 'working' && !['reviewing', 'approved'].includes(exp.status)) return null;
+                if (filters.status === 'done' && exp.status !== 'completed') return null;
+              }
+              if (filters.startDate && new Date(exp.createdAt) < new Date(filters.startDate)) {
+                return null;
+              }
+              if (filters.endDate && new Date(exp.createdAt) > new Date(filters.endDate + 'T23:59:59')) {
+                return null;
+              }
+
+              return {
+                id: exp.id,
+                taskType: 'experience',
+                caption: `상호명: ${exp.companyName || ''}\n플레이스: ${exp.place || ''}\n희망모집인원: ${exp.desiredParticipants || ''}명\n예약 조율 가능한 번호: ${exp.reservationPhone || ''}\n제공내역: ${exp.providedDetails || ''}\n키워드: ${exp.keywords || ''}\n블로그미션 부가유무: ${exp.blogMissionRequired ? '예' : '아니오'}\n기타전달사항: ${exp.additionalNotes || '(없음)'}`,
+                imageUrls: [],
+                status: exp.status || 'pending',
+                completedLink: exp.completedLink || null,
+                createdAt: exp.createdAt,
+                client: {
+                  id: exp.clientId,
+                  username: exp.clientUsername || '',
+                  companyName: exp.companyName || '',
+                },
+                isExperience: true,
+              };
+            }).filter((item: any) => item !== null);
+          }
+        } catch (error) {
+          console.error('Failed to fetch experience applications:', error);
+        }
       }
+
+      // orders와 체험단 합치기
+      const allOrders = [...(ordersData.orders || []), ...experienceData];
+      
+      // taskType 필터가 experience가 아닌 경우 체험단 제외
+      const filteredOrders = filters.taskType && filters.taskType !== 'experience'
+        ? allOrders.filter((o: Order) => o.taskType === filters.taskType)
+        : allOrders;
+
+      setOrders(filteredOrders);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {
@@ -112,8 +183,21 @@ export default function OrdersManagement() {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const order = orders.find(o => o.id === orderId);
     
-    // 인기게시물/맘카페/파워블로그/클립을 완료로 변경할 때는 링크 입력 모달 표시
-    if (newStatus === 'done' && order && (order.taskType === 'hotpost' || order.taskType === 'momcafe' || order.taskType === 'powerblog' || order.taskType === 'clip')) {
+    // 인기게시물/맘카페/파워블로그/클립/체험단을 완료로 변경할 때는 링크 입력 모달 표시
+    if (newStatus === 'done' && order && (
+      order.taskType === 'hotpost' || 
+      order.taskType === 'momcafe' || 
+      order.taskType === 'powerblog' || 
+      order.taskType === 'clip' ||
+      order.taskType === 'experience'
+    )) {
+      setCompletingOrder(order);
+      setCompletedLink(order.completedLink || '');
+      return;
+    }
+    
+    // 체험단의 경우 completed 상태로 변경할 때도 링크 입력 모달 표시
+    if (newStatus === 'completed' && order && order.taskType === 'experience') {
       setCompletingOrder(order);
       setCompletedLink(order.completedLink || '');
       return;
@@ -125,25 +209,78 @@ export default function OrdersManagement() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          status: newStatus,
-          completedLink: link 
-        }),
-      });
+      const order = orders.find(o => o.id === orderId);
+      const isExperience = order?.isExperience || order?.taskType === 'experience';
 
-      if (response.ok) {
-        fetchOrders();
-        if (selectedOrder?.id === orderId) {
+      // 체험단 신청인 경우 별도 API 사용
+      if (isExperience) {
+        // 체험단은 'done' 대신 'completed' 사용
+        const experienceStatus = newStatus === 'done' ? 'completed' : newStatus;
+        
+        const response = await fetch(`/api/experience-applications/${orderId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            status: experienceStatus,
+            completedLink: link 
+          }),
+        });
+
+        if (response.ok) {
+          fetchOrders();
+          if (selectedOrder?.id === orderId) {
+            const data = await response.json();
+            // 체험단 데이터를 Order 형식으로 변환
+            const exp = data.application;
+            setSelectedOrder({
+              id: exp.id,
+              taskType: 'experience',
+              caption: `상호명: ${exp.companyName || ''}\n플레이스: ${exp.place || ''}\n희망모집인원: ${exp.desiredParticipants || ''}명\n예약 조율 가능한 번호: ${exp.reservationPhone || ''}\n제공내역: ${exp.providedDetails || ''}\n키워드: ${exp.keywords || ''}\n블로그미션 부가유무: ${exp.blogMissionRequired ? '예' : '아니오'}\n기타전달사항: ${exp.additionalNotes || '(없음)'}`,
+              imageUrls: [],
+              status: exp.status || 'pending',
+              completedLink: exp.completedLink || null,
+              createdAt: exp.createdAt,
+              client: {
+                id: exp.clientId,
+                username: exp.clientUsername || '',
+                companyName: exp.companyName || '',
+              },
+              isExperience: true,
+            });
+          }
+          setCompletingOrder(null);
+          setCompletedLink('');
+        } else {
           const data = await response.json();
-          setSelectedOrder(data.order);
+          alert(data.error || '체험단 신청 상태 변경에 실패했습니다.');
         }
-        setCompletingOrder(null);
-        setCompletedLink('');
+      } else {
+        // 일반 주문인 경우
+        const response = await fetch(`/api/orders/${orderId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            status: newStatus,
+            completedLink: link 
+          }),
+        });
+
+        if (response.ok) {
+          fetchOrders();
+          if (selectedOrder?.id === orderId) {
+            const data = await response.json();
+            setSelectedOrder(data.order);
+          }
+          setCompletingOrder(null);
+          setCompletedLink('');
+        } else {
+          const data = await response.json();
+          alert(data.error || '상태 변경에 실패했습니다.');
+        }
       }
     } catch (error) {
       console.error('Failed to update order status:', error);
@@ -159,7 +296,9 @@ export default function OrdersManagement() {
       return;
     }
     
-    updateOrderStatus(completingOrder.id, 'done', completedLink.trim());
+    // 체험단인 경우 'completed' 상태 사용
+    const status = completingOrder.taskType === 'experience' ? 'completed' : 'done';
+    updateOrderStatus(completingOrder.id, status, completedLink.trim());
   };
 
   const handleEditOrder = (order: Order) => {
@@ -277,10 +416,14 @@ export default function OrdersManagement() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
                 <option value="">전체</option>
+                <option value="blog">블로그 리뷰</option>
+                <option value="receipt">영수증 리뷰</option>
                 <option value="follower">인스타그램 팔로워</option>
                 <option value="like">인스타그램 좋아요</option>
                 <option value="hotpost">인스타그램 인기게시물</option>
                 <option value="momcafe">맘카페</option>
+                <option value="daangn">당근마켓</option>
+                <option value="experience">체험단</option>
                 <option value="powerblog">파워블로그</option>
                 <option value="clip">클립</option>
               </select>
@@ -437,14 +580,24 @@ export default function OrdersManagement() {
                         className={`px-3 py-1 rounded-full text-sm font-medium ${
                           order.status === 'pending'
                             ? 'bg-yellow-100 text-yellow-700'
-                            : order.status === 'working'
+                            : order.status === 'working' || order.status === 'reviewing' || order.status === 'approved'
                             ? 'bg-blue-100 text-blue-700'
-                            : 'bg-green-100 text-green-700'
+                            : order.status === 'done' || order.status === 'completed'
+                            ? 'bg-green-100 text-green-700'
+                            : order.status === 'rejected'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {(order.taskType === 'follower' || order.taskType === 'like')
-                          ? SIMPLE_STATUS_NAMES[order.status] || STATUS_NAMES[order.status]
-                          : STATUS_NAMES[order.status]}
+                        {order.taskType === 'experience' 
+                          ? (order.status === 'pending' ? '대기중' : 
+                             order.status === 'reviewing' ? '검토중' :
+                             order.status === 'approved' ? '승인됨' :
+                             order.status === 'completed' ? '완료' :
+                             order.status === 'rejected' ? '거절됨' : order.status)
+                          : (order.taskType === 'follower' || order.taskType === 'like')
+                          ? (SIMPLE_STATUS_NAMES[order.status] || STATUS_NAMES[order.status])
+                          : (STATUS_NAMES[order.status] || order.status)}
                       </span>
                       <span className="text-sm text-gray-600">
                         {order.client?.username || '알 수 없음'}
@@ -477,8 +630,16 @@ export default function OrdersManagement() {
                       onClick={(e) => e.stopPropagation()}
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      {/* 인스타 좋아요/팔로워는 대기중/신청완료만 */}
-                      {(order.taskType === 'follower' || order.taskType === 'like') ? (
+                      {/* 체험단은 다른 상태 옵션 */}
+                      {order.taskType === 'experience' ? (
+                        <>
+                          <option value="pending">대기중</option>
+                          <option value="reviewing">검토중</option>
+                          <option value="approved">승인됨</option>
+                          <option value="completed">완료</option>
+                          <option value="rejected">거절됨</option>
+                        </>
+                      ) : (order.taskType === 'follower' || order.taskType === 'like') ? (
                         <>
                           <option value="pending">대기중</option>
                           <option value="done">신청완료</option>
@@ -571,8 +732,16 @@ export default function OrdersManagement() {
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      {/* 인스타 좋아요/팔로워는 대기중/신청완료만 */}
-                      {(selectedOrder.taskType === 'follower' || selectedOrder.taskType === 'like') ? (
+                      {/* 체험단은 다른 상태 옵션 */}
+                      {selectedOrder.taskType === 'experience' ? (
+                        <>
+                          <option value="pending">대기중</option>
+                          <option value="reviewing">검토중</option>
+                          <option value="approved">승인됨</option>
+                          <option value="completed">완료</option>
+                          <option value="rejected">거절됨</option>
+                        </>
+                      ) : (selectedOrder.taskType === 'follower' || selectedOrder.taskType === 'like') ? (
                         <>
                           <option value="pending">대기중</option>
                           <option value="done">신청완료</option>
@@ -586,25 +755,28 @@ export default function OrdersManagement() {
                       )}
                     </select>
                   </div>
-                  <div className="flex gap-2 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => handleEditOrder(selectedOrder)}
-                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-                    >
-                      수정
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm('정말 이 발주를 삭제하시겠습니까?')) {
-                          handleDeleteOrder(selectedOrder.id);
-                          setSelectedOrder(null);
-                        }
-                      }}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                    >
-                      삭제
-                    </button>
-                  </div>
+                  {/* 체험단은 수정/삭제 불가 (별도 관리 필요) */}
+                  {selectedOrder.taskType !== 'experience' && (
+                    <div className="flex gap-2 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => handleEditOrder(selectedOrder)}
+                        className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('정말 이 발주를 삭제하시겠습니까?')) {
+                            handleDeleteOrder(selectedOrder.id);
+                            setSelectedOrder(null);
+                          }
+                        }}
+                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  )}
                   {selectedOrder.caption && (
                     <div>
                       <div className="text-sm text-gray-600 mb-2">작업 정보</div>
