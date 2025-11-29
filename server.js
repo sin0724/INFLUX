@@ -2,7 +2,6 @@
 // PORT 환경 변수를 명시적으로 처리
 
 const { createServer } = require('http');
-const { parse } = require('url');
 const next = require('next');
 
 // 프로덕션 모드 강제 설정
@@ -46,8 +45,12 @@ app.prepare()
     
     const server = createServer(async (req, res) => {
       try {
-        const parsedUrl = parse(req.url, true);
-        await handle(req, res, parsedUrl);
+        // WHATWG URL API 사용 (url.parse() 대신)
+        const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+        await handle(req, res, {
+          pathname: parsedUrl.pathname,
+          query: Object.fromEntries(parsedUrl.searchParams),
+        });
       } catch (err) {
         console.error('❌ Error occurred handling', req.url, err);
         res.statusCode = 500;
