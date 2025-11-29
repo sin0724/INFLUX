@@ -94,7 +94,7 @@ async function createOrder(req: NextRequest, user: any) {
           const totalInstagram = (quota.follower?.remaining || 0) + (quota.like?.remaining || 0);
           if (totalInstagram < countToDeduct) {
             return NextResponse.json(
-              { error: `인스타그램 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${Math.min(totalInstagram, 1000)}개)` },
+              { error: `인스타그램 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${totalInstagram}개)` },
               { status: 400 }
             );
           }
@@ -155,8 +155,9 @@ async function createOrder(req: NextRequest, user: any) {
       .single();
 
     if (orderError) {
+      console.error('Order creation error:', orderError);
       return NextResponse.json(
-        { error: '주문 생성에 실패했습니다.' },
+        { error: `주문 생성에 실패했습니다: ${orderError.message || '알 수 없는 오류'}` },
         { status: 500 }
       );
     }
