@@ -80,22 +80,25 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            {/* 로고 이미지가 있으면 표시 */}
-            <div className="mb-4 flex justify-center">
+            {/* 로고 영역 - 이미지가 있으면 표시, 없으면 텍스트만 */}
+            <div className="mb-6 flex justify-center items-center min-h-[80px]">
               <img 
                 src="/logo.png" 
-                alt="인플루언서컴퍼니" 
-                className="h-16 w-auto object-contain"
+                alt="인플루언서컴퍼니 로고" 
+                className="h-20 w-auto object-contain max-w-full"
                 onError={(e) => {
                   // 이미지가 없으면 숨김
                   e.currentTarget.style.display = 'none';
                 }}
               />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              인플루언서컴퍼니
-            </h1>
-            <p className="text-gray-600">캠페인 발주 시스템</p>
+            <div className="mb-2">
+              <h1 className="text-4xl font-bold text-gray-900 mb-1">
+                인플루언서컴퍼니
+              </h1>
+              <div className="w-24 h-1 bg-primary-600 mx-auto mb-2"></div>
+              <p className="text-gray-600">캠페인 발주 시스템</p>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
