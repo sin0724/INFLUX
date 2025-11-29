@@ -28,6 +28,7 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   blog: '블로그 리뷰',
   receipt: '영수증 리뷰',
   daangn: '당근마켓',
+  experience: '체험단',
 };
 
 export default function CompletedLinksView() {
@@ -68,23 +69,51 @@ export default function CompletedLinksView() {
   const fetchCompletedOrders = async () => {
     setLoading(true);
     try {
+      // 주문(orders) 조회
       const params = new URLSearchParams();
       params.append('status', 'done');
       if (selectedClientId) {
         params.append('clientId', selectedClientId);
       }
 
-      const response = await fetch(`/api/orders?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        // 완료 링크가 있는 주문만 필터링 (블로그/영수증 리뷰 포함)
-        const completedWithLinks = (data.orders || []).filter(
-          (order: Order) => order.completedLink && order.completedLink.trim()
-        );
-        setOrders(completedWithLinks);
-      }
+      const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
+      const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
+      
+      // 완료 링크가 있는 주문만 필터링
+      const completedOrders = (ordersData.orders || []).filter(
+        (order: Order) => order.completedLink && order.completedLink.trim()
+      );
+
+      // 체험단(experience_applications) 조회
+      const experienceResponse = await fetch('/api/experience-applications');
+      const experienceData = experienceResponse.ok ? await experienceResponse.json() : { applications: [] };
+      
+      // 완료 링크가 있는 체험단만 필터링
+      const completedExperiences = (experienceData.applications || [])
+        .filter((exp: any) => {
+          if (selectedClientId && exp.clientId !== selectedClientId) {
+            return false;
+          }
+          return exp.completedLink && exp.completedLink.trim();
+        })
+        .map((exp: any) => ({
+          id: exp.id,
+          taskType: 'experience',
+          caption: `상호명: ${exp.companyName || ''}\n플레이스: ${exp.place || ''}\n희망모집인원: ${exp.desiredParticipants || ''}명`,
+          completedLink: exp.completedLink,
+          status: exp.status || 'completed',
+          createdAt: exp.createdAt,
+          client: {
+            id: exp.clientId,
+            username: exp.clientUsername || '',
+            companyName: exp.companyName || '',
+          },
+        }));
+
+      // 주문과 체험단 합치기
+      setOrders([...completedOrders, ...completedExperiences]);
     } catch (error) {
-      console.error('Failed to fetch orders:', error);
+      console.error('Failed to fetch completed orders:', error);
     } finally {
       setLoading(false);
     }
@@ -166,22 +195,25 @@ export default function CompletedLinksView() {
     });
   }, [orders, searchQuery]);
 
-  // 광고주별로 그룹화
-  const groupedByClient = useMemo(() => {
+  // 광고주별로 그룹화, 각 광고주 내에서 작업 타입별로 그룹화
+  const groupedByClientAndTaskType = useMemo(() => {
     return filteredOrders.reduce((acc, order) => {
       const clientId = order.client.id;
       if (!acc[clientId]) {
         acc[clientId] = {
           client: order.client,
-          orders: [],
+          taskTypes: {} as Record<string, Order[]>,
         };
       }
-      acc[clientId].orders.push(order);
+      if (!acc[clientId].taskTypes[order.taskType]) {
+        acc[clientId].taskTypes[order.taskType] = [];
+      }
+      acc[clientId].taskTypes[order.taskType].push(order);
       return acc;
-    }, {} as Record<string, { client: Order['client']; orders: Order[] }>);
+    }, {} as Record<string, { client: Order['client']; taskTypes: Record<string, Order[]> }>);
   }, [filteredOrders]);
 
-  const groupedOrders = Object.values(groupedByClient);
+  const groupedOrders = Object.values(groupedByClientAndTaskType);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -291,7 +323,7 @@ export default function CompletedLinksView() {
                         )}
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
-                        완료된 작업: {group.orders.length}개
+                        완료된 작업: {Object.values(group.taskTypes).reduce((sum, orders) => sum + orders.length, 0)}개
                       </p>
                     </div>
                     <button
@@ -310,48 +342,57 @@ export default function CompletedLinksView() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  {group.orders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
-                            {TASK_TYPE_NAMES[order.taskType] || order.taskType}
-                          </span>
-                          <p className="text-xs text-gray-500 mt-2">
-                            {formatDateTime(order.createdAt)}
-                          </p>
-                        </div>
+                <div className="space-y-6">
+                  {Object.entries(group.taskTypes).map(([taskType, orders]) => (
+                    <div key={taskType} className="space-y-3">
+                      <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                        <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+                          {TASK_TYPE_NAMES[taskType] || taskType}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {orders.length}개
+                        </span>
                       </div>
+                      <div className="space-y-3 pl-4">
+                        {orders.map((order) => (
+                          <div
+                            key={order.id}
+                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <p className="text-xs text-gray-500">
+                                {formatDateTime(order.createdAt)}
+                              </p>
+                            </div>
 
-                      {order.caption && (
-                        <div className="text-sm text-gray-700 mb-3">
-                          {order.caption.split('\n').slice(0, 2).map((line, idx) => (
-                            <p key={idx} className={idx === 0 ? 'font-medium' : ''}>
-                              {line}
-                            </p>
-                          ))}
-                        </div>
-                      )}
+                            {order.caption && (
+                              <div className="text-sm text-gray-700 mb-3">
+                                {order.caption.split('\n').slice(0, 2).map((line, idx) => (
+                                  <p key={idx} className={idx === 0 ? 'font-medium' : ''}>
+                                    {line}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
 
-                      <div>
-                        <div className="text-sm font-medium text-gray-700 mb-2">
-                          완료 링크
-                        </div>
-                        <a
-                          href={order.completedLink!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
-                        >
-                          <span className="truncate max-w-2xl">{order.completedLink}</span>
-                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
+                            <div>
+                              <div className="text-sm font-medium text-gray-700 mb-2">
+                                완료 링크
+                              </div>
+                              <a
+                                href={order.completedLink!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                              >
+                                <span className="truncate max-w-2xl">{order.completedLink}</span>
+                                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}

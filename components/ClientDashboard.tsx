@@ -61,10 +61,24 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      // 캐시 방지를 위해 timestamp 추가
+      const response = await fetch(`/api/auth/me?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setCurrentUser(data.user);
+        // 디버깅: 인스타그램 할당량 로그
+        if (data.user?.quota) {
+          console.log('Instagram quota:', {
+            follower: data.user.quota.follower,
+            like: data.user.quota.like,
+            total: (data.user.quota.follower?.remaining || 0) + (data.user.quota.like?.remaining || 0),
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to fetch user data:', error);
@@ -119,11 +133,11 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                     {currentUser.quota.receipt?.remaining || 0}개
                   </div>
                 </div>
-                {/* 인스타 팔로워+좋아요 합계 (최대 1000개) */}
+                {/* 인스타 팔로워+좋아요 합계 */}
                 <div className="bg-green-50 rounded-lg p-3">
                   <div className="text-xs text-gray-600">인스타그램</div>
                   <div className="text-lg font-bold text-green-700">
-                    {Math.min((currentUser.quota.follower?.remaining || 0) + (currentUser.quota.like?.remaining || 0), 1000)}개
+                    {(currentUser.quota.follower?.remaining || 0) + (currentUser.quota.like?.remaining || 0)}개
                   </div>
                   <div className="text-xs text-gray-500 mt-1">팔로워+좋아요</div>
                 </div>

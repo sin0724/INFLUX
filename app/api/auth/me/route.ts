@@ -12,6 +12,16 @@ export async function GET() {
   }
 
   // 계약 만료 체크 (클라이언트에게 최신 상태 전달)
-  return NextResponse.json({ user: session.user });
+  // 캐시 방지 헤더 추가
+  return NextResponse.json(
+    { user: session.user },
+    {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    }
+  );
 }
 

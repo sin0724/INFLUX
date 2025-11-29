@@ -33,8 +33,14 @@ export default async function OrderPage() {
     (quota.powerblog?.total || 0) === 0
   );
   
-  // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
-  if (!isOneMonthPlan && quota) {
+  // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능) - 바로 접근 허용
+  if (isOneMonthPlan) {
+    // 1개월 플랜은 모든 작업 가능하므로 바로 OrderForm 표시
+    return <OrderForm user={session.user} />;
+  }
+  
+  // 1개월 플랜이 아닌 경우 quota 체크
+  if (quota) {
     const hasAnyQuota = (quota.follower?.remaining || 0) > 0 ||
                         (quota.like?.remaining || 0) > 0 ||
                         (quota.hotpost?.remaining || 0) > 0 ||
@@ -45,8 +51,8 @@ export default async function OrderPage() {
     if (!hasAnyQuota) {
       redirect('/client');
     }
-  } else if (!quota && (!session.user.remainingQuota || session.user.remainingQuota <= 0)) {
-    // quota도 없고 remainingQuota도 없으면 접근 불가 (1개월 플랜은 quota가 0이지만 존재해야 함)
+  } else if (!session.user.remainingQuota || session.user.remainingQuota <= 0) {
+    // quota도 없고 remainingQuota도 없으면 접근 불가
     redirect('/client');
   }
 

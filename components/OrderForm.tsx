@@ -122,37 +122,37 @@ export default function OrderForm({ user }: OrderFormProps) {
       return;
     }
     
-    // 작업별 quota 체크
-    if (userQuota) {
-      // 1개월 플랜 체크: 모든 quota가 0이면 1개월 플랜(기획상품)으로 간주 - quota 체크 우회
-      const isOneMonthPlan = (userQuota.follower?.total || 0) === 0 &&
-        (userQuota.like?.total || 0) === 0 &&
-        (userQuota.hotpost?.total || 0) === 0 &&
-        (userQuota.momcafe?.total || 0) === 0 &&
-        (userQuota.blog?.total || 0) === 0 &&
-        (userQuota.receipt?.total || 0) === 0 &&
-        (userQuota.daangn?.total || 0) === 0 &&
-        (userQuota.experience?.total || 0) === 0 &&
-        (userQuota.powerblog?.total || 0) === 0;
-      
-      // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
-      if (!isOneMonthPlan) {
-        if (type === 'instagram') {
-          // 인스타그램 통합 쿼터 체크 (팔로워 + 좋아요 합계)
-          const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
-          if (totalInstagram <= 0) {
-            alert('인스타그램 작업의 남은 개수가 없습니다.');
-            return;
-          }
-        } else {
-          const taskQuota = userQuota[type as keyof Quota];
-          if (!taskQuota || taskQuota.remaining <= 0) {
-            alert('이 작업의 남은 개수가 없습니다.');
-            return;
-          }
+    // 1개월 플랜 체크: quota가 없거나 모든 quota가 0이면 1개월 플랜(기획상품)으로 간주
+    const isOneMonthPlan = !userQuota || (
+      (userQuota.follower?.total || 0) === 0 &&
+      (userQuota.like?.total || 0) === 0 &&
+      (userQuota.hotpost?.total || 0) === 0 &&
+      (userQuota.momcafe?.total || 0) === 0 &&
+      (userQuota.blog?.total || 0) === 0 &&
+      (userQuota.receipt?.total || 0) === 0 &&
+      (userQuota.daangn?.total || 0) === 0 &&
+      (userQuota.experience?.total || 0) === 0 &&
+      (userQuota.powerblog?.total || 0) === 0
+    );
+    
+    // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
+    if (!isOneMonthPlan && userQuota) {
+      if (type === 'instagram') {
+        // 인스타그램 통합 쿼터 체크 (팔로워 + 좋아요 합계)
+        const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
+        if (totalInstagram <= 0) {
+          alert('인스타그램 작업의 남은 개수가 없습니다.');
+          return;
+        }
+      } else {
+        const taskQuota = userQuota[type as keyof Quota];
+        if (!taskQuota || taskQuota.remaining <= 0) {
+          alert('이 작업의 남은 개수가 없습니다.');
+          return;
         }
       }
-    } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0) {
+    } else if (!isOneMonthPlan && !userQuota && user.remainingQuota !== undefined && user.remainingQuota <= 0) {
+      // 1개월 플랜이 아니고 quota도 없고 remainingQuota도 없으면 안내
       alert('남은 작업 가능 갯수가 없습니다.');
       return;
     }
@@ -462,8 +462,8 @@ export default function OrderForm({ user }: OrderFormProps) {
                 let remainingCount = 0;
                 const hasExternalLink = !!task.externalLink;
                 
-                // 1개월 플랜 체크: 모든 quota가 0이면 1개월 플랜(기획상품)으로 간주
-                const isOneMonthPlan = userQuota && 
+                // 1개월 플랜 체크: quota가 없거나 모든 quota가 0이면 1개월 플랜(기획상품)으로 간주
+                const isOneMonthPlan = !userQuota || (
                   (userQuota.follower?.total || 0) === 0 &&
                   (userQuota.like?.total || 0) === 0 &&
                   (userQuota.hotpost?.total || 0) === 0 &&
@@ -472,7 +472,8 @@ export default function OrderForm({ user }: OrderFormProps) {
                   (userQuota.receipt?.total || 0) === 0 &&
                   (userQuota.daangn?.total || 0) === 0 &&
                   (userQuota.experience?.total || 0) === 0 &&
-                  (userQuota.powerblog?.total || 0) === 0;
+                  (userQuota.powerblog?.total || 0) === 0
+                );
                 
                 // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
                 if (isOneMonthPlan && !task.kakaoOnly && !hasExternalLink) {

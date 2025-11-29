@@ -89,45 +89,59 @@ async function createOrder(req: NextRequest, user: any) {
       if (userData.quota) {
         const quota = userData.quota as any;
         
-        // 인스타그램 팔로워/좋아요 통합 쿼터 체크
-        if (taskType === 'follower' || taskType === 'like') {
-          const totalInstagram = (quota.follower?.remaining || 0) + (quota.like?.remaining || 0);
-          if (totalInstagram < countToDeduct) {
-            return NextResponse.json(
-              { error: `인스타그램 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${totalInstagram}개)` },
-              { status: 400 }
-            );
-          }
-        } else {
-          const taskQuota = quota[taskType];
-          
-          if (!taskQuota) {
-            const taskNames: Record<string, string> = {
-              follower: '인스타그램 팔로워',
-              like: '인스타그램 좋아요',
-              hotpost: '인기게시물',
-              momcafe: '맘카페',
-              daangn: '당근마켓',
-            };
-            return NextResponse.json(
-              { error: `${taskNames[taskType] || taskType} 작업이 설정되지 않았습니다.` },
-              { status: 400 }
-            );
-          }
+        // 1개월 플랜 체크: 모든 quota가 0이면 1개월 플랜(기획상품)으로 간주 - quota 체크 우회
+        const isOneMonthPlan = (quota.follower?.total || 0) === 0 &&
+          (quota.like?.total || 0) === 0 &&
+          (quota.hotpost?.total || 0) === 0 &&
+          (quota.momcafe?.total || 0) === 0 &&
+          (quota.blog?.total || 0) === 0 &&
+          (quota.receipt?.total || 0) === 0 &&
+          (quota.daangn?.total || 0) === 0 &&
+          (quota.experience?.total || 0) === 0 &&
+          (quota.powerblog?.total || 0) === 0;
+        
+        // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
+        if (!isOneMonthPlan) {
+          // 인스타그램 팔로워/좋아요 통합 쿼터 체크
+          if (taskType === 'follower' || taskType === 'like') {
+            const totalInstagram = (quota.follower?.remaining || 0) + (quota.like?.remaining || 0);
+            if (totalInstagram < countToDeduct) {
+              return NextResponse.json(
+                { error: `인스타그램 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${totalInstagram}개)` },
+                { status: 400 }
+              );
+            }
+          } else {
+            const taskQuota = quota[taskType];
+            
+            if (!taskQuota) {
+              const taskNames: Record<string, string> = {
+                follower: '인스타그램 팔로워',
+                like: '인스타그램 좋아요',
+                hotpost: '인기게시물',
+                momcafe: '맘카페',
+                daangn: '당근마켓',
+              };
+              return NextResponse.json(
+                { error: `${taskNames[taskType] || taskType} 작업이 설정되지 않았습니다.` },
+                { status: 400 }
+              );
+            }
 
-          // 신청 개수만큼 남은 개수 체크
-          if (taskQuota.remaining < countToDeduct) {
-            const taskNames: Record<string, string> = {
-              follower: '인스타그램 팔로워',
-              like: '인스타그램 좋아요',
-              hotpost: '인기게시물',
-              momcafe: '맘카페',
-              daangn: '당근마켓',
-            };
-            return NextResponse.json(
-              { error: `${taskNames[taskType] || taskType} 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${taskQuota.remaining}개)` },
-              { status: 400 }
-            );
+            // 신청 개수만큼 남은 개수 체크
+            if (taskQuota.remaining < countToDeduct) {
+              const taskNames: Record<string, string> = {
+                follower: '인스타그램 팔로워',
+                like: '인스타그램 좋아요',
+                hotpost: '인기게시물',
+                momcafe: '맘카페',
+                daangn: '당근마켓',
+              };
+              return NextResponse.json(
+                { error: `${taskNames[taskType] || taskType} 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${taskQuota.remaining}개)` },
+                { status: 400 }
+              );
+            }
           }
         }
       } else {
