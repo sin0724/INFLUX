@@ -66,8 +66,8 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
             case '3':
               // 3개월: 블로그 리뷰 30개, 영수증 리뷰 60개, 인기게시물 3개, 맘카페 3개, 당근마켓 3개, 인스타팔로워/좋아요 통합 1000개, 체험단 1회
               return {
-                follower: { total: 1000, remaining: 1000 }, // 통합 1000개 (follower에 할당)
-                like: { total: 0, remaining: 0 }, // 통합 1000개는 follower에서 사용
+                follower: { total: 500, remaining: 500 }, // 통합 1000개 중 500개 (팔로워/좋아요 자유 선택 가능)
+                like: { total: 500, remaining: 500 }, // 통합 1000개 중 500개 (팔로워/좋아요 자유 선택 가능)
                 hotpost: { total: 3, remaining: 3 },
                 momcafe: { total: 3, remaining: 3 },
                 powerblog: { total: 0, remaining: 0 },
@@ -78,13 +78,13 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
                 experience: { total: 1, remaining: 1 },
               };
             case '6':
-              // 6개월: 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2500개, 체험단 2회
+              // 6개월: 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2000개, 파워블로그 2회, 체험단 2회
               return {
-                follower: { total: 2500, remaining: 2500 }, // 통합 2500개 (follower에 할당)
-                like: { total: 0, remaining: 0 }, // 통합 2500개는 follower에서 사용
+                follower: { total: 1000, remaining: 1000 }, // 통합 2000개 중 1000개 (팔로워/좋아요 자유 선택 가능)
+                like: { total: 1000, remaining: 1000 }, // 통합 2000개 중 1000개 (팔로워/좋아요 자유 선택 가능)
                 hotpost: { total: 6, remaining: 6 },
                 momcafe: { total: 6, remaining: 6 },
-                powerblog: { total: 0, remaining: 0 },
+                powerblog: { total: 2, remaining: 2 }, // 6개월 플랜만 파워블로그 2회
                 clip: { total: 0, remaining: 0 },
                 blog: { total: 0, remaining: 0 }, // 6개월은 블로그 리뷰 없음
                 receipt: { total: 120, remaining: 120 },

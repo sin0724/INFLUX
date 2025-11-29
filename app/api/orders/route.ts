@@ -175,10 +175,10 @@ async function createOrder(req: NextRequest, user: any) {
           // 작업별 quota 차감 (새 시스템)
           const quota = { ...currentUser.quota } as any;
           
-          // 인스타그램 팔로워/좋아요 통합 쿼터 차감 (1000개 내에서)
+          // 인스타그램 팔로워/좋아요 통합 쿼터 차감
           if (taskType === 'follower' || taskType === 'like') {
             const totalInstagram = (quota.follower?.remaining || 0) + (quota.like?.remaining || 0);
-            const maxInstagram = Math.min(totalInstagram, 1000);
+            const maxInstagram = totalInstagram;
             
             if (maxInstagram >= countToDeduct) {
               // 실제 taskType에 따라 차감

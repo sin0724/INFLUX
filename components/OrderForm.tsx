@@ -43,6 +43,7 @@ const TASK_TYPES = [
   { id: 'momcafe', name: '맘카페', requiresImage: false },
   { id: 'daangn', name: '당근마켓', requiresImage: true, disabled: false },
   { id: 'experience', name: '체험단 신청', requiresImage: false, disabled: false },
+  { id: 'powerblog', name: '파워블로그', requiresImage: false, disabled: false }, // 6개월 플랜만 표시됨
   { id: 'eventbanner', name: '이벤트배너/블로그스킨', requiresImage: false, externalLink: 'https://pf.kakao.com/_UxoANn' },
 ];
 
@@ -201,7 +202,7 @@ export default function OrderForm({ user }: OrderFormProps) {
           setError('좋아요 갯수는 최소 10개 이상이어야 합니다.');
           return;
         }
-        // 인스타그램 통합 쿼터 체크 (최대 1000개)
+        // 인스타그램 통합 쿼터 체크
         if (userQuota) {
           const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
           if (count > totalInstagram) {
@@ -219,7 +220,7 @@ export default function OrderForm({ user }: OrderFormProps) {
           setError('팔로워 갯수는 최소 50개 이상이어야 합니다.');
           return;
         }
-        // 인스타그램 통합 쿼터 체크 (최대 1000개)
+        // 인스타그램 통합 쿼터 체크
         if (userQuota) {
           const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
           if (count > totalInstagram) {
@@ -429,6 +430,13 @@ export default function OrderForm({ user }: OrderFormProps) {
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {TASK_TYPES.map((task) => {
+                // 파워블로그는 6개월 플랜(파워블로그 할당량이 있는 경우)만 표시
+                if (task.id === 'powerblog') {
+                  if (!userQuota?.powerblog || userQuota.powerblog.total <= 0) {
+                    return null;
+                  }
+                }
+                
                 // 작업별 quota 체크
                 let isDisabled = task.disabled;
                 let remainingCount = 0;
@@ -436,9 +444,9 @@ export default function OrderForm({ user }: OrderFormProps) {
                 
                 if (userQuota && !hasExternalLink) {
                   if (task.id === 'instagram' && task.combinedQuota) {
-                    // 인스타그램 통합 쿼터 (팔로워 + 좋아요, 최대 1000개)
+                    // 인스타그램 통합 쿼터 (팔로워 + 좋아요 합계)
                     const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
-                    remainingCount = Math.min(totalInstagram, 1000);
+                    remainingCount = totalInstagram;
                     if (remainingCount <= 0) {
                       isDisabled = true;
                     }

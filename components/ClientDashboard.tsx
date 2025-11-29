@@ -155,6 +155,15 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                     {currentUser.quota.experience?.remaining || 0}개
                   </div>
                 </div>
+                {/* 파워블로그 (6개월 플랜만) */}
+                {currentUser.quota.powerblog && currentUser.quota.powerblog.total > 0 && (
+                  <div className="bg-teal-50 rounded-lg p-3">
+                    <div className="text-xs text-gray-600">파워블로그</div>
+                    <div className="text-lg font-bold text-teal-700">
+                      {currentUser.quota.powerblog.remaining || 0}개
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-4 bg-primary-50 rounded-lg">
