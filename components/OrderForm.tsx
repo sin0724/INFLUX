@@ -100,7 +100,7 @@ export default function OrderForm({ user }: OrderFormProps) {
     }
     
     if (task?.disabled) {
-      if (task.comingSoon) {
+      if ((task as any).comingSoon) {
         alert('준비중입니다.');
       } else if (task.kakaoOnly) {
         alert('블로그 리뷰와 영수증 리뷰는 관리자가 완료 링크를 입력할 때 자동으로 차감됩니다.\n추가 신청은 단톡방으로 신청 부탁드립니다.');
@@ -406,7 +406,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                     {task.requiresImage && (
                       <div className="text-xs text-gray-500 mt-1">이미지 필요</div>
                     )}
-                    {task.disabled && !task.comingSoon && !task.kakaoOnly && (
+                    {task.disabled && !(task as any).comingSoon && !task.kakaoOnly && (
                       <div className="text-xs text-orange-600 mt-1">
                         카카오톡 신청
                       </div>
@@ -416,7 +416,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                         단톡방 신청
                       </div>
                     )}
-                    {task.comingSoon && (
+                    {(task as any).comingSoon && (
                       <div className="text-xs text-gray-500 mt-1">
                         준비중
                       </div>
