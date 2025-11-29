@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -8,8 +10,12 @@ const nextConfig = {
       },
     ],
   },
-  // 경로 별칭이 제대로 작동하도록 설정
+  // 경로 별칭이 제대로 작동하도록 webpack 설정
   webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname),
+    };
     return config;
   },
 };
