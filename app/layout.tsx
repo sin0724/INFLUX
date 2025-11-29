@@ -4,6 +4,17 @@ import './globals.css';
 export const metadata: Metadata = {
   title: '인플루언서컴퍼니 캠페인 발주 시스템',
   description: '광고주 캠페인 발주 관리 시스템',
+  icons: {
+    icon: [
+      { url: '/smalllogo.ico', sizes: 'any' },
+      { url: '/logo.png', sizes: '32x32', type: 'image/png' },
+      { url: '/logo.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/smalllogo.ico',
+  },
   openGraph: {
     title: '인플루언서컴퍼니 캠페인 발주 시스템',
     description: '광고주 캠페인 발주 관리 시스템',
