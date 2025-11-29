@@ -45,12 +45,14 @@ app.prepare()
     
     const server = createServer(async (req, res) => {
       try {
-        // WHATWG URL API 사용 (url.parse() 대신)
-        const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-        await handle(req, res, {
-          pathname: parsedUrl.pathname,
-          query: Object.fromEntries(parsedUrl.searchParams),
-        });
+        // WHATWG URL API 사용 (url.parse() deprecation 경고 해결)
+        // Next.js가 req.url을 직접 처리하므로 간단하게 전달
+        const url = req.url || '/';
+        const parsedUrl = {
+          pathname: url.split('?')[0],
+          query: url.includes('?') ? Object.fromEntries(new URLSearchParams(url.split('?')[1])) : {},
+        };
+        await handle(req, res, parsedUrl);
       } catch (err) {
         console.error('❌ Error occurred handling', req.url, err);
         res.statusCode = 500;
