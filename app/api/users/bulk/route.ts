@@ -50,40 +50,46 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
         const getQuotaByPlan = (plan: string) => {
           switch (plan) {
             case '1':
-              // 1개월: 인기게시물 3개, 맘카페 3개, 블로그 리뷰 10개, 영수증 리뷰 20개 (팔로워/좋아요 없음)
+              // 1개월: 기획상품 - 자동 입력 없이 모두 수기로 입력
               return {
                 follower: { total: 0, remaining: 0 },
                 like: { total: 0, remaining: 0 },
-                hotpost: { total: 3, remaining: 3 },
-                momcafe: { total: 3, remaining: 3 },
+                hotpost: { total: 0, remaining: 0 },
+                momcafe: { total: 0, remaining: 0 },
                 powerblog: { total: 0, remaining: 0 },
                 clip: { total: 0, remaining: 0 },
-                blog: { total: 10, remaining: 10 },
-                receipt: { total: 20, remaining: 20 },
+                blog: { total: 0, remaining: 0 },
+                receipt: { total: 0, remaining: 0 },
+                daangn: { total: 0, remaining: 0 },
+                experience: { total: 0, remaining: 0 },
               };
             case '3':
-              // 3개월: 인기게시물 3개, 맘카페 3개, 팔로워 1000개, 좋아요 1000개, 블로그 리뷰 30개, 영수증 리뷰 60개
+              // 3개월: 블로그 리뷰 30개, 영수증 리뷰 60개, 인기게시물 3개, 맘카페 3개, 당근마켓 3개, 인스타팔로워/좋아요 통합 1000개, 체험단 1회
               return {
-                follower: { total: 1000, remaining: 1000 },
-                like: { total: 1000, remaining: 1000 },
+                follower: { total: 1000, remaining: 1000 }, // 통합 1000개 (follower에 할당)
+                like: { total: 0, remaining: 0 }, // 통합 1000개는 follower에서 사용
                 hotpost: { total: 3, remaining: 3 },
                 momcafe: { total: 3, remaining: 3 },
                 powerblog: { total: 0, remaining: 0 },
                 clip: { total: 0, remaining: 0 },
                 blog: { total: 30, remaining: 30 },
                 receipt: { total: 60, remaining: 60 },
+                daangn: { total: 3, remaining: 3 },
+                experience: { total: 1, remaining: 1 },
               };
             case '6':
-              // 6개월: 인기게시물 6개, 맘카페 6개, 팔로워 2500개, 좋아요 2500개, 블로그 리뷰 60개, 영수증 리뷰 120개
+              // 6개월: 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2500개, 체험단 2회
               return {
-                follower: { total: 2500, remaining: 2500 },
-                like: { total: 2500, remaining: 2500 },
+                follower: { total: 2500, remaining: 2500 }, // 통합 2500개 (follower에 할당)
+                like: { total: 0, remaining: 0 }, // 통합 2500개는 follower에서 사용
                 hotpost: { total: 6, remaining: 6 },
                 momcafe: { total: 6, remaining: 6 },
                 powerblog: { total: 0, remaining: 0 },
                 clip: { total: 0, remaining: 0 },
-                blog: { total: 60, remaining: 60 },
+                blog: { total: 0, remaining: 0 }, // 6개월은 블로그 리뷰 없음
                 receipt: { total: 120, remaining: 120 },
+                daangn: { total: 6, remaining: 6 },
+                experience: { total: 2, remaining: 2 },
               };
             default:
               return {
@@ -95,14 +101,16 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
                 clip: { total: 0, remaining: 0 },
                 blog: { total: 0, remaining: 0 },
                 receipt: { total: 0, remaining: 0 },
+                daangn: { total: 0, remaining: 0 },
+                experience: { total: 0, remaining: 0 },
               };
           }
         };
 
         const quota = getQuotaByPlan(planType || '1');
         // totalQuota는 모든 작업 타입의 합계 (호환성을 위해)
-        const totalQuota = quota.follower.total + quota.like.total + quota.hotpost.total + quota.momcafe.total + quota.powerblog.total + quota.clip.total + quota.blog.total + quota.receipt.total;
-        const remainingQuota = quota.follower.remaining + quota.like.remaining + quota.hotpost.remaining + quota.momcafe.remaining + quota.powerblog.remaining + quota.clip.remaining + quota.blog.remaining + quota.receipt.remaining;
+        const totalQuota = quota.follower.total + quota.like.total + quota.hotpost.total + quota.momcafe.total + quota.powerblog.total + quota.clip.total + quota.blog.total + quota.receipt.total + (quota.daangn?.total || 0) + (quota.experience?.total || 0);
+        const remainingQuota = quota.follower.remaining + quota.like.remaining + quota.hotpost.remaining + quota.momcafe.remaining + quota.powerblog.remaining + quota.clip.remaining + quota.blog.remaining + quota.receipt.remaining + (quota.daangn?.remaining || 0) + (quota.experience?.remaining || 0);
 
         // 계약 종료일 계산
         let startDate: Date;
