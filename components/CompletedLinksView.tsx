@@ -27,6 +27,7 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   clip: '클립',
   blog: '블로그 리뷰',
   receipt: '영수증 리뷰',
+  daangn: '당근마켓',
 };
 
 export default function CompletedLinksView() {
