@@ -121,11 +121,33 @@ async function createUser(req: NextRequest, user: any) {
 
     const hashedPassword = await hashPassword(password);
 
-    // 총 quota 계산 (하위 호환성을 위해)
-    const totalQuota = role === 'client' && quota 
-      ? (quota.follower?.total || 0) + (quota.like?.total || 0) + (quota.hotpost?.total || 0) + (quota.momcafe?.total || 0)
-      : null;
-    const remainingQuota = totalQuota;
+    // 총 quota 계산 (하위 호환성을 위해) - 모든 작업 타입 포함
+    let totalQuota: number | null = null;
+    let remainingQuota: number | null = null;
+    
+    if (role === 'client' && quota) {
+      totalQuota = (quota.follower?.total || 0) + 
+                    (quota.like?.total || 0) + 
+                    (quota.hotpost?.total || 0) + 
+                    (quota.momcafe?.total || 0) +
+                    (quota.powerblog?.total || 0) +
+                    (quota.clip?.total || 0) +
+                    (quota.blog?.total || 0) +
+                    (quota.receipt?.total || 0) +
+                    (quota.daangn?.total || 0) +
+                    (quota.experience?.total || 0);
+      
+      remainingQuota = (quota.follower?.remaining || 0) + 
+                       (quota.like?.remaining || 0) + 
+                       (quota.hotpost?.remaining || 0) + 
+                       (quota.momcafe?.remaining || 0) +
+                       (quota.powerblog?.remaining || 0) +
+                       (quota.clip?.remaining || 0) +
+                       (quota.blog?.remaining || 0) +
+                       (quota.receipt?.remaining || 0) +
+                       (quota.daangn?.remaining || 0) +
+                       (quota.experience?.remaining || 0);
+    }
 
     // Insert data - 컬럼이 없을 경우를 대비해 조건부로 추가
     const insertData: any = {
