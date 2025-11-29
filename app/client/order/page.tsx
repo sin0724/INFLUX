@@ -10,26 +10,29 @@ export default async function OrderPage() {
   }
 
   // 1개월 플랜 체크 먼저 수행 (가장 우선)
-  // 1개월 플랜 = quota가 없거나 모든 quota의 total이 0인 경우
-  // 또는 totalQuota와 remainingQuota가 모두 0인 경우도 1개월 플랜으로 간주
+  // 1개월 플랜 = 모든 quota의 total이 0이고, totalQuota와 remainingQuota도 모두 0인 경우
   const quota = session.user.quota;
-  const isOneMonthPlan = (
-    // 조건 1: quota가 없거나 모든 quota의 total이 0
-    (!quota || (
-      (quota.follower?.total || 0) === 0 &&
-      (quota.like?.total || 0) === 0 &&
-      (quota.hotpost?.total || 0) === 0 &&
-      (quota.momcafe?.total || 0) === 0 &&
-      (quota.blog?.total || 0) === 0 &&
-      (quota.receipt?.total || 0) === 0 &&
-      (quota.daangn?.total || 0) === 0 &&
-      (quota.experience?.total || 0) === 0 &&
-      (quota.powerblog?.total || 0) === 0
-    ))
-    // 조건 2: totalQuota와 remainingQuota가 모두 0 (하위 호환성)
-    || ((session.user.totalQuota === 0 || !session.user.totalQuota) && 
-        (session.user.remainingQuota === 0 || !session.user.remainingQuota))
+  
+  // 1개월 플랜 조건: 모든 작업 갯수가 0인 경우
+  // 조건 1: quota가 없거나 모든 quota의 total이 0
+  const allQuotaZero = !quota || (
+    (quota.follower?.total || 0) === 0 &&
+    (quota.like?.total || 0) === 0 &&
+    (quota.hotpost?.total || 0) === 0 &&
+    (quota.momcafe?.total || 0) === 0 &&
+    (quota.blog?.total || 0) === 0 &&
+    (quota.receipt?.total || 0) === 0 &&
+    (quota.daangn?.total || 0) === 0 &&
+    (quota.experience?.total || 0) === 0 &&
+    (quota.powerblog?.total || 0) === 0
   );
+  
+  // 조건 2: totalQuota와 remainingQuota가 모두 0 (작업 갯수가 0개)
+  const allCountsZero = (session.user.totalQuota === 0 || !session.user.totalQuota) && 
+                        (session.user.remainingQuota === 0 || !session.user.remainingQuota);
+  
+  // 두 조건 중 하나라도 만족하면 1개월 플랜으로 간주 (작업 갯수가 0개면 접근 허용)
+  const isOneMonthPlan = allQuotaZero || allCountsZero;
   
   // 1개월 플랜은 모든 체크를 우회하고 바로 접근 허용 (수기 입력이므로)
   if (isOneMonthPlan) {
