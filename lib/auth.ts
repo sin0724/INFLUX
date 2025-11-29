@@ -14,6 +14,7 @@ export interface Quota {
   clip?: { total: number; remaining: number };
   blog?: { total: number; remaining: number };
   receipt?: { total: number; remaining: number };
+  daangn?: { total: number; remaining: number };
 }
 
 export interface User {

@@ -15,6 +15,7 @@ interface Quota {
   clip?: { total: number; remaining: number };
   blog?: { total: number; remaining: number };
   receipt?: { total: number; remaining: number };
+  daangn?: { total: number; remaining: number };
 }
 
 interface User {
@@ -117,11 +118,11 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                     {currentUser.quota.receipt?.remaining || 0}개
                   </div>
                 </div>
-                {/* 인스타 팔로워+좋아요 합계 */}
+                {/* 인스타 팔로워+좋아요 합계 (최대 1000개) */}
                 <div className="bg-green-50 rounded-lg p-3">
                   <div className="text-xs text-gray-600">인스타그램</div>
                   <div className="text-lg font-bold text-green-700">
-                    {(currentUser.quota.follower?.remaining || 0) + (currentUser.quota.like?.remaining || 0)}개
+                    {Math.min((currentUser.quota.follower?.remaining || 0) + (currentUser.quota.like?.remaining || 0), 1000)}개
                   </div>
                   <div className="text-xs text-gray-500 mt-1">팔로워+좋아요</div>
                 </div>
@@ -137,6 +138,13 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                   <div className="text-xs text-gray-600">맘카페</div>
                   <div className="text-lg font-bold text-purple-700">
                     {currentUser.quota.momcafe?.remaining || 0}개
+                  </div>
+                </div>
+                {/* 당근마켓 */}
+                <div className="bg-yellow-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600">당근마켓</div>
+                  <div className="text-lg font-bold text-yellow-700">
+                    {currentUser.quota.daangn?.remaining || 0}개
                   </div>
                 </div>
               </div>

@@ -88,33 +88,47 @@ async function createOrder(req: NextRequest, user: any) {
       // 작업별 quota 체크 (새 시스템)
       if (userData.quota) {
         const quota = userData.quota as any;
-        const taskQuota = quota[taskType];
         
-        if (!taskQuota) {
-          const taskNames: Record<string, string> = {
-            follower: '인스타그램 팔로워',
-            like: '인스타그램 좋아요',
-            hotpost: '인기게시물',
-            momcafe: '맘카페',
-          };
-          return NextResponse.json(
-            { error: `${taskNames[taskType] || taskType} 작업이 설정되지 않았습니다.` },
-            { status: 400 }
-          );
-        }
+        // 인스타그램 팔로워/좋아요 통합 쿼터 체크
+        if (taskType === 'follower' || taskType === 'like') {
+          const totalInstagram = (quota.follower?.remaining || 0) + (quota.like?.remaining || 0);
+          if (totalInstagram < countToDeduct) {
+            return NextResponse.json(
+              { error: `인스타그램 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${Math.min(totalInstagram, 1000)}개)` },
+              { status: 400 }
+            );
+          }
+        } else {
+          const taskQuota = quota[taskType];
+          
+          if (!taskQuota) {
+            const taskNames: Record<string, string> = {
+              follower: '인스타그램 팔로워',
+              like: '인스타그램 좋아요',
+              hotpost: '인기게시물',
+              momcafe: '맘카페',
+              daangn: '당근마켓',
+            };
+            return NextResponse.json(
+              { error: `${taskNames[taskType] || taskType} 작업이 설정되지 않았습니다.` },
+              { status: 400 }
+            );
+          }
 
-        // 신청 개수만큼 남은 개수 체크
-        if (taskQuota.remaining < countToDeduct) {
-          const taskNames: Record<string, string> = {
-            follower: '인스타그램 팔로워',
-            like: '인스타그램 좋아요',
-            hotpost: '인기게시물',
-            momcafe: '맘카페',
-          };
-          return NextResponse.json(
-            { error: `${taskNames[taskType] || taskType} 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${taskQuota.remaining}개)` },
-            { status: 400 }
-          );
+          // 신청 개수만큼 남은 개수 체크
+          if (taskQuota.remaining < countToDeduct) {
+            const taskNames: Record<string, string> = {
+              follower: '인스타그램 팔로워',
+              like: '인스타그램 좋아요',
+              hotpost: '인기게시물',
+              momcafe: '맘카페',
+              daangn: '당근마켓',
+            };
+            return NextResponse.json(
+              { error: `${taskNames[taskType] || taskType} 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${taskQuota.remaining}개)` },
+              { status: 400 }
+            );
+          }
         }
       } else {
         // 기존 시스템 (하위 호환성)
@@ -160,33 +174,70 @@ async function createOrder(req: NextRequest, user: any) {
         if (currentUser.quota) {
           // 작업별 quota 차감 (새 시스템)
           const quota = { ...currentUser.quota } as any;
-          if (quota[taskType] && quota[taskType].remaining >= countToDeduct) {
+          
+          // 인스타그램 팔로워/좋아요 통합 쿼터 차감 (1000개 내에서)
+          if (taskType === 'follower' || taskType === 'like') {
+            const totalInstagram = (quota.follower?.remaining || 0) + (quota.like?.remaining || 0);
+            const maxInstagram = Math.min(totalInstagram, 1000);
+            
+            if (maxInstagram >= countToDeduct) {
+              // 실제 taskType에 따라 차감
+              if (!quota[taskType]) {
+                quota[taskType] = { total: 0, remaining: 0 };
+              }
+              
+              // 먼저 자신의 쿼터에서 차감 시도
+              if (quota[taskType].remaining >= countToDeduct) {
+                quota[taskType].remaining -= countToDeduct;
+              } else {
+                // 부족한 만큼 다른 쪽에서 빌려오기
+                const otherType = taskType === 'follower' ? 'like' : 'follower';
+                const needBorrow = countToDeduct - (quota[taskType].remaining || 0);
+                const availableFromOther = quota[otherType]?.remaining || 0;
+                
+                quota[taskType].remaining = 0;
+                quota[otherType] = quota[otherType] || { total: 0, remaining: 0 };
+                quota[otherType].remaining = Math.max(0, availableFromOther - needBorrow);
+              }
+            } else {
+              console.error(`Insufficient Instagram quota: requested ${countToDeduct}, available ${maxInstagram}`);
+              return NextResponse.json(
+                { error: `인스타그램 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${maxInstagram}개)` },
+                { status: 400 }
+              );
+            }
+          } else if (quota[taskType] && quota[taskType].remaining >= countToDeduct) {
             // 신청 개수만큼 차감
             quota[taskType].remaining -= countToDeduct;
-            
-            // 총 remainingQuota 계산 (하위 호환성)
-            const totalRemaining = (quota.follower?.remaining || 0) + 
-                                   (quota.like?.remaining || 0) + 
-                                   (quota.hotpost?.remaining || 0) + 
-                                   (quota.momcafe?.remaining || 0) +
-                                   (quota.powerblog?.remaining || 0) +
-                                   (quota.clip?.remaining || 0) +
-                                   (quota.blog?.remaining || 0) +
-                                   (quota.receipt?.remaining || 0);
-            
-            const { error: updateError } = await supabase
-              .from('users')
-              .update({ 
-                quota,
-                remainingQuota: totalRemaining
-              })
-              .eq('id', user.id);
-
-            if (updateError) {
-              console.error('Failed to update quota:', updateError);
-            }
           } else {
             console.error(`Insufficient quota for ${taskType}: requested ${countToDeduct}, available ${quota[taskType]?.remaining || 0}`);
+            return NextResponse.json(
+              { error: '쿼터 차감 중 오류가 발생했습니다.' },
+              { status: 500 }
+            );
+          }
+          
+          // 총 remainingQuota 계산 (하위 호환성)
+          const totalRemaining = (quota.follower?.remaining || 0) + 
+                                 (quota.like?.remaining || 0) + 
+                                 (quota.hotpost?.remaining || 0) + 
+                                 (quota.momcafe?.remaining || 0) +
+                                 (quota.powerblog?.remaining || 0) +
+                                 (quota.clip?.remaining || 0) +
+                                 (quota.blog?.remaining || 0) +
+                                 (quota.receipt?.remaining || 0) +
+                                 (quota.daangn?.remaining || 0);
+          
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ 
+              quota,
+              remainingQuota: totalRemaining
+            })
+            .eq('id', user.id);
+
+          if (updateError) {
+            console.error('Failed to update quota:', updateError);
           }
         } else {
           // 기존 시스템 (하위 호환성)

@@ -13,6 +13,7 @@ interface Quota {
   clip?: { total: number; remaining: number };
   blog?: { total: number; remaining: number };
   receipt?: { total: number; remaining: number };
+  daangn?: { total: number; remaining: number };
 }
 
 interface User {
@@ -27,26 +28,20 @@ interface OrderFormProps {
 }
 
 const TASK_TYPES = [
+  { id: 'blog', name: '블로그 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
+  { id: 'receipt', name: '영수증 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
   { 
-    id: 'follower', 
-    name: '인스타그램 팔로워', 
-    requiresImage: false,
-    minCount: 50,
-    description: '최소 50개부터 작업 가능'
-  },
-  { 
-    id: 'like', 
-    name: '인스타그램 좋아요', 
+    id: 'instagram', 
+    name: '인스타그램 (팔로워/좋아요)', 
     requiresImage: false,
     minCount: 10,
-    description: '최소 10개부터 작업 가능'
+    description: '팔로워 또는 좋아요 선택 가능',
+    combinedQuota: true
   },
   { id: 'hotpost', name: '인스타그램 인기게시물', requiresImage: true },
   { id: 'momcafe', name: '맘카페', requiresImage: false },
+  { id: 'daangn', name: '당근마켓', requiresImage: true, disabled: false },
   { id: 'eventbanner', name: '이벤트배너/블로그스킨', requiresImage: false, externalLink: 'https://pf.kakao.com/_UxoANn' },
-  { id: 'daangn', name: '당근마켓', requiresImage: false, disabled: true, comingSoon: true },
-  { id: 'blog', name: '블로그 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
-  { id: 'receipt', name: '영수증 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
 ];
 
 export default function OrderForm({ user }: OrderFormProps) {
@@ -76,6 +71,7 @@ export default function OrderForm({ user }: OrderFormProps) {
   const [likeCount, setLikeCount] = useState(''); // 좋아요: 좋아요 갯수
   const [instagramNickname, setInstagramNickname] = useState(''); // 팔로워: 인스타 닉네임
   const [followerCount, setFollowerCount] = useState(''); // 팔로워: 팔로워 갯수
+  const [instagramType, setInstagramType] = useState<'follower' | 'like'>('follower'); // 인스타그램 타입
   // 인기게시물 필드
   const [hotpostNickname, setHotpostNickname] = useState(''); // 인기게시물: 인스타 닉네임
   const [mainHashtag, setMainHashtag] = useState(''); // 인기게시물: 메인해시태그
@@ -85,6 +81,8 @@ export default function OrderForm({ user }: OrderFormProps) {
   const [momcafeCafeName, setMomcafeCafeName] = useState(''); // 맘카페: 카페이름 or 주소
   const [momcafePostGuideline, setMomcafePostGuideline] = useState(''); // 맘카페: 게시글 가이드라인
   const [momcafeCommentGuideline, setMomcafeCommentGuideline] = useState(''); // 맘카페: 댓글 가이드라인
+  // 당근마켓 필드
+  const [daangnBusinessProfile, setDaangnBusinessProfile] = useState(''); // 당근마켓: 비지니스 프로필 주소
   // 파워블로그/클립 필드
   const [customTaskCaption, setCustomTaskCaption] = useState(''); // 파워블로그/클립: 작업 내용
 
@@ -114,10 +112,19 @@ export default function OrderForm({ user }: OrderFormProps) {
     
     // 작업별 quota 체크
     if (userQuota) {
-      const taskQuota = userQuota[type as keyof Quota];
-      if (!taskQuota || taskQuota.remaining <= 0) {
-        alert('이 작업의 남은 개수가 없습니다.');
-        return;
+      if (type === 'instagram') {
+        // 인스타그램 통합 쿼터 체크 (팔로워 + 좋아요 합계)
+        const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
+        if (totalInstagram <= 0) {
+          alert('인스타그램 작업의 남은 개수가 없습니다.');
+          return;
+        }
+      } else {
+        const taskQuota = userQuota[type as keyof Quota];
+        if (!taskQuota || taskQuota.remaining <= 0) {
+          alert('이 작업의 남은 개수가 없습니다.');
+          return;
+        }
       }
     } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0) {
       alert('남은 작업 가능 갯수가 없습니다.');
@@ -131,6 +138,7 @@ export default function OrderForm({ user }: OrderFormProps) {
     setLikeCount('');
     setInstagramNickname('');
     setFollowerCount('');
+    setInstagramType('follower');
     setHotpostNickname('');
     setMainHashtag('');
     setBusinessName('');
@@ -138,6 +146,7 @@ export default function OrderForm({ user }: OrderFormProps) {
     setMomcafeCafeName('');
     setMomcafePostGuideline('');
     setMomcafeCommentGuideline('');
+    setDaangnBusinessProfile('');
     setCaption('');
     setCustomTaskCaption('');
     setImages([]);
@@ -161,26 +170,54 @@ export default function OrderForm({ user }: OrderFormProps) {
     }
 
     // 작업별 유효성 검사
-    if (taskType === 'like') {
-      if (!postLink.trim()) {
-        setError('게시글 링크를 입력해주세요.');
-        return;
-      }
-      const count = parseInt(likeCount);
-      if (!likeCount || isNaN(count) || count < 10) {
-        setError('좋아요 갯수는 최소 10개 이상이어야 합니다.');
-        return;
+    if (taskType === 'instagram') {
+      // 인스타그램 통합 처리
+      if (instagramType === 'like') {
+        if (!postLink.trim()) {
+          setError('게시글 링크를 입력해주세요.');
+          return;
+        }
+        const count = parseInt(likeCount);
+        if (!likeCount || isNaN(count) || count < 10) {
+          setError('좋아요 갯수는 최소 10개 이상이어야 합니다.');
+          return;
+        }
+        // 인스타그램 통합 쿼터 체크 (최대 1000개)
+        if (userQuota) {
+          const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
+          if (count > totalInstagram) {
+            setError(`인스타그램 작업의 남은 개수가 부족합니다. (남은 개수: ${totalInstagram}개)`);
+            return;
+          }
+        }
+      } else {
+        if (!instagramNickname.trim()) {
+          setError('인스타그램 닉네임을 입력해주세요.');
+          return;
+        }
+        const count = parseInt(followerCount);
+        if (!followerCount || isNaN(count) || count < 50) {
+          setError('팔로워 갯수는 최소 50개 이상이어야 합니다.');
+          return;
+        }
+        // 인스타그램 통합 쿼터 체크 (최대 1000개)
+        if (userQuota) {
+          const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
+          if (count > totalInstagram) {
+            setError(`인스타그램 작업의 남은 개수가 부족합니다. (남은 개수: ${totalInstagram}개)`);
+            return;
+          }
+        }
       }
     }
 
-    if (taskType === 'follower') {
-      if (!instagramNickname.trim()) {
-        setError('인스타그램 닉네임을 입력해주세요.');
+    if (taskType === 'daangn') {
+      if (!daangnBusinessProfile.trim()) {
+        setError('당근 비지니스 프로필 주소를 입력해주세요.');
         return;
       }
-      const count = parseInt(followerCount);
-      if (!followerCount || isNaN(count) || count < 50) {
-        setError('팔로워 갯수는 최소 50개 이상이어야 합니다.');
+      if (images.length !== 1) {
+        setError('사진 1장을 업로드해주세요.');
         return;
       }
     }
@@ -212,10 +249,19 @@ export default function OrderForm({ user }: OrderFormProps) {
 
     // caption에 구조화된 데이터 저장
     let orderCaption = '';
-    if (taskType === 'like') {
-      orderCaption = `게시글 링크: ${postLink}\n좋아요 갯수: ${likeCount}`;
-    } else if (taskType === 'follower') {
-      orderCaption = `작업할 인스타 닉네임: ${instagramNickname}\n팔로워 갯수: ${followerCount}`;
+    let finalTaskType = taskType;
+    
+    if (taskType === 'instagram') {
+      // 인스타그램 통합 처리 - 실제 taskType을 결정
+      if (instagramType === 'like') {
+        finalTaskType = 'like';
+        orderCaption = `게시글 링크: ${postLink}\n좋아요 갯수: ${likeCount}`;
+      } else {
+        finalTaskType = 'follower';
+        orderCaption = `작업할 인스타 닉네임: ${instagramNickname}\n팔로워 갯수: ${followerCount}`;
+      }
+    } else if (taskType === 'daangn') {
+      orderCaption = `당근 비지니스 프로필 주소: ${daangnBusinessProfile}`;
     } else if (taskType === 'hotpost') {
       orderCaption = `인스타그램 닉네임: ${hotpostNickname}\n메인해시태그: ${mainHashtag}\n상호명: ${businessName}`;
     } else if (taskType === 'momcafe') {
@@ -236,10 +282,12 @@ export default function OrderForm({ user }: OrderFormProps) {
     try {
       // 신청 개수 추출 (follower, like의 경우)
       let requestCount = 1; // 기본값: hotpost, momcafe는 1개
-      if (taskType === 'like') {
-        requestCount = parseInt(likeCount) || 1;
-      } else if (taskType === 'follower') {
-        requestCount = parseInt(followerCount) || 1;
+      if (taskType === 'instagram') {
+        if (instagramType === 'like') {
+          requestCount = parseInt(likeCount) || 1;
+        } else {
+          requestCount = parseInt(followerCount) || 1;
+        }
       }
 
       const response = await fetch('/api/orders', {
@@ -248,7 +296,7 @@ export default function OrderForm({ user }: OrderFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          taskType,
+          taskType: finalTaskType,
           caption: orderCaption || null,
           imageUrls: images,
           requestCount, // 신청 개수 전달
@@ -304,15 +352,24 @@ export default function OrderForm({ user }: OrderFormProps) {
                 const hasExternalLink = !!task.externalLink;
                 
                 if (userQuota && !hasExternalLink) {
-                  const taskQuota = userQuota[task.id as keyof Quota];
-                  if (taskQuota) {
-                    remainingCount = taskQuota.remaining || 0;
+                  if (task.id === 'instagram' && task.combinedQuota) {
+                    // 인스타그램 통합 쿼터 (팔로워 + 좋아요, 최대 1000개)
+                    const totalInstagram = (userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0);
+                    remainingCount = Math.min(totalInstagram, 1000);
+                    if (remainingCount <= 0) {
+                      isDisabled = true;
+                    }
+                  } else {
+                    const taskQuota = userQuota[task.id as keyof Quota];
+                    if (taskQuota) {
+                      remainingCount = taskQuota.remaining || 0;
+                    }
+                    // 블로그/영수증 리뷰는 항상 비활성화 (남은 개수는 표시)
+                    if (!task.kakaoOnly && (!taskQuota || taskQuota.remaining <= 0)) {
+                      isDisabled = true;
+                    }
                   }
-                  // 블로그/영수증 리뷰는 항상 비활성화 (남은 개수는 표시)
-                  if (!task.kakaoOnly && (!taskQuota || taskQuota.remaining <= 0)) {
-                    isDisabled = true;
-                  }
-                } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0 && !hasExternalLink && !task.disabled && !task.kakaoOnly) {
+                } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0 && !hasExternalLink && !task.disabled && !task.kakaoOnly && task.id !== 'instagram') {
                   isDisabled = true;
                 }
                 
@@ -333,9 +390,12 @@ export default function OrderForm({ user }: OrderFormProps) {
                     }`}
                   >
                     <div className="font-medium text-gray-900">{task.name}</div>
-                    {!hasExternalLink && userQuota && (remainingCount > 0 || task.kakaoOnly) && (
+                    {!hasExternalLink && userQuota && (remainingCount > 0 || task.kakaoOnly || (task.id === 'instagram' && remainingCount === 0 && task.combinedQuota)) && (
                       <div className={`text-xs mt-1 font-medium ${task.kakaoOnly ? 'text-gray-600' : 'text-primary-600'}`}>
-                        남은 개수: {remainingCount}개
+                        {task.id === 'instagram' && task.combinedQuota 
+                          ? `남은 개수: ${remainingCount}개 (팔로워+좋아요 합계)`
+                          : `남은 개수: ${remainingCount}개`
+                        }
                       </div>
                     )}
                     {task.minCount && (
@@ -379,7 +439,133 @@ export default function OrderForm({ user }: OrderFormProps) {
 
           {/* 양식 섹션 (스크롤 타겟) */}
           <div ref={formSectionRef}>
-          {/* 인스타그램 좋아요 입력 필드 */}
+          {/* 인스타그램 통합 입력 필드 */}
+          {taskType === 'instagram' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  작업 종류 선택 <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setInstagramType('follower')}
+                    className={`flex-1 px-4 py-3 border-2 rounded-lg transition ${
+                      instagramType === 'follower'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 bg-white hover:border-primary-300'
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900">팔로워</div>
+                    <div className="text-xs text-gray-600 mt-1">최소 50개부터</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInstagramType('like')}
+                    className={`flex-1 px-4 py-3 border-2 rounded-lg transition ${
+                      instagramType === 'like'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 bg-white hover:border-primary-300'
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900">좋아요</div>
+                    <div className="text-xs text-gray-600 mt-1">최소 10개부터</div>
+                  </button>
+                </div>
+                {userQuota && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    남은 개수: {Math.min((userQuota.follower?.remaining || 0) + (userQuota.like?.remaining || 0), 1000)}개 (팔로워+좋아요 합계)
+                  </div>
+                )}
+              </div>
+
+              {/* 팔로워 입력 */}
+              {instagramType === 'follower' && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="instagramNickname"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      작업할 인스타 닉네임 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="instagramNickname"
+                      type="text"
+                      value={instagramNickname}
+                      onChange={(e) => setInstagramNickname(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                      placeholder="예: incom_seoul"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="followerCount"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      팔로워 갯수 <span className="text-red-500">*</span>
+                      <span className="text-sm text-gray-500 ml-2">(최소 50개 이상)</span>
+                    </label>
+                    <input
+                      id="followerCount"
+                      type="number"
+                      value={followerCount}
+                      onChange={(e) => setFollowerCount(e.target.value)}
+                      min="50"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                      placeholder="50"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* 좋아요 입력 */}
+              {instagramType === 'like' && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="postLink"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      게시글 링크 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="postLink"
+                      type="url"
+                      value={postLink}
+                      onChange={(e) => setPostLink(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                      placeholder="https://www.instagram.com/p/..."
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="likeCount"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      좋아요 갯수 <span className="text-red-500">*</span>
+                      <span className="text-sm text-gray-500 ml-2">(최소 10개 이상)</span>
+                    </label>
+                    <input
+                      id="likeCount"
+                      type="number"
+                      value={likeCount}
+                      onChange={(e) => setLikeCount(e.target.value)}
+                      min="10"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                      placeholder="10"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* 인스타그램 좋아요 입력 필드 (기존, 호환성 유지) */}
           {taskType === 'like' && (
             <div className="space-y-4">
               <div>
@@ -601,6 +787,52 @@ export default function OrderForm({ user }: OrderFormProps) {
           )}
 
 
+          {/* 당근마켓 입력 필드 */}
+          {taskType === 'daangn' && (
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="daangnBusinessProfile"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  당근 비지니스 프로필 주소 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="daangnBusinessProfile"
+                  type="url"
+                  value={daangnBusinessProfile}
+                  onChange={(e) => setDaangnBusinessProfile(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="https://www.daangn.com/..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  사진 <span className="text-red-500">*</span>
+                </label>
+                <ImageUpload 
+                  images={images} 
+                  onImagesChange={setImages}
+                  maxImages={1}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 당근마켓 유의사항 */}
+          {taskType === 'daangn' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-yellow-800 mb-2">
+                ⚠️ 유의사항
+              </h3>
+              <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">
+                <li>당근 비지니스 프로필 주소를 정확히 입력해주세요.</li>
+                <li>사진 1장을 업로드해주세요.</li>
+              </ul>
+            </div>
+          )}
+
           {/* Image Upload - hotpost는 필수, momcafe는 선택 */}
           {(taskType === 'hotpost' || taskType === 'momcafe') && (
             <ImageUpload 
@@ -662,7 +894,22 @@ export default function OrderForm({ user }: OrderFormProps) {
             </div>
           )}
 
-          {/* 공통 유의사항 (좋아요/팔로워) */}
+          {/* 인스타그램 통합 유의사항 */}
+          {taskType === 'instagram' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-yellow-800 mb-2">
+                ⚠️ 공통 유의사항
+              </h3>
+              <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">
+                <li>좋아요/팔로워 작업은 이탈 현상이 발생할 수 있습니다.</li>
+                <li>최초 1회 AS 작업 가능하며, 이탈 현상 발생 시 카카오톡방으로 말씀주시면 1회 재작업 드리도록 하겠습니다.</li>
+                <li>팔로워와 좋아요는 통합 쿼터로 관리되며, 합계 1000개 내에서 사용 가능합니다.</li>
+                <li>이점 참고하시어 작업 신청 부탁드립니다.</li>
+              </ul>
+            </div>
+          )}
+
+          {/* 공통 유의사항 (좋아요/팔로워 - 기존, 호환성 유지) */}
           {(taskType === 'like' || taskType === 'follower') && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <h3 className="text-sm font-semibold text-yellow-800 mb-2">
