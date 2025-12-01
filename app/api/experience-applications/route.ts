@@ -22,6 +22,7 @@ async function createExperienceApplication(req: NextRequest, user: any) {
       keywords,
       blogMissionRequired,
       additionalNotes,
+      imageUrls,
     } = body;
 
     // 필수 필드 검증
@@ -79,6 +80,7 @@ async function createExperienceApplication(req: NextRequest, user: any) {
         keywords: keywords.trim(),
         blogMissionRequired: blogMissionRequired === true || blogMissionRequired === 'true' || blogMissionRequired === '예',
         additionalNotes: additionalNotes?.trim() || null,
+        imageUrls: imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls : null,
         status: 'pending',
       })
       .select()

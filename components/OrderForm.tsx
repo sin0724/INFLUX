@@ -362,6 +362,7 @@ export default function OrderForm({ user }: OrderFormProps) {
             keywords: experienceKeywords,
             blogMissionRequired: experienceBlogMissionRequired,
             additionalNotes: experienceAdditionalNotes || null,
+            imageUrls: images.length > 0 ? images : null,
           }),
         });
 
@@ -1102,6 +1103,34 @@ export default function OrderForm({ user }: OrderFormProps) {
                   placeholder="기타 전달사항을 입력하세요 (선택사항)"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  캠페인 대표사진 <span className="text-gray-500 text-xs">(선택사항)</span>
+                </label>
+                <ImageUpload 
+                  images={images} 
+                  onImagesChange={setImages}
+                  maxImages={5}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  캠페인 대표사진 3-5장을 업로드해주세요
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 체험단 유의사항 */}
+          {taskType === 'experience' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-yellow-800 mb-2">
+                ⚠️ 유의사항
+              </h3>
+              <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">
+                <li>캠페인 대표사진 3-5장을 넣어주세요.</li>
+                <li>체험단 신청 후 검토 과정을 거쳐 승인됩니다.</li>
+                <li>승인 후 체험단 모집이 시작됩니다.</li>
+              </ul>
             </div>
           )}
 
