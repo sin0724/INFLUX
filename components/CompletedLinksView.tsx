@@ -9,6 +9,7 @@ interface Order {
   taskType: string;
   caption: string | null;
   completedLink: string | null;
+  completedLink2?: string | null; // 내돈내산 리뷰용 두 번째 링크
   status: string;
   createdAt: string;
   client: {
@@ -385,21 +386,41 @@ export default function CompletedLinksView() {
                               </div>
                             )}
 
-                            <div>
-                              <div className="text-sm font-medium text-gray-700 mb-2">
-                                완료 링크
+                            <div className="space-y-2">
+                              <div>
+                                <div className="text-sm font-medium text-gray-700 mb-2">
+                                  {order.taskType === 'myexpense' ? '완료 링크 1' : '완료 링크'}
+                                </div>
+                                <a
+                                  href={order.completedLink!}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                                >
+                                  <span className="truncate max-w-2xl">{order.completedLink}</span>
+                                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
                               </div>
-                              <a
-                                href={order.completedLink!}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
-                              >
-                                <span className="truncate max-w-2xl">{order.completedLink}</span>
-                                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                              </a>
+                              {order.taskType === 'myexpense' && (order as any).completedLink2 && (
+                                <div>
+                                  <div className="text-sm font-medium text-gray-700 mb-2">
+                                    완료 링크 2
+                                  </div>
+                                  <a
+                                    href={(order as any).completedLink2!}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                                  >
+                                    <span className="truncate max-w-2xl">{(order as any).completedLink2}</span>
+                                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                  </a>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}

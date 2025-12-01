@@ -96,6 +96,7 @@ export default function OrdersManagement() {
   // 완료 링크 입력 모달 상태
   const [completingOrder, setCompletingOrder] = useState<Order | null>(null);
   const [completedLink, setCompletedLink] = useState('');
+  const [completedLink2, setCompletedLink2] = useState(''); // 내돈내산 리뷰용 두 번째 링크
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -229,6 +230,7 @@ export default function OrdersManagement() {
     )) {
       setCompletingOrder(order);
       setCompletedLink(order.completedLink || '');
+      setCompletedLink2((order as any).completedLink2 || '');
       return;
     }
     
@@ -289,15 +291,23 @@ export default function OrdersManagement() {
         }
       } else {
         // 일반 주문인 경우
+        // 내돈내산 리뷰는 링크를 |로 구분하여 전송
+        const isMyexpense = order?.taskType === 'myexpense';
+        const linkParts = isMyexpense && link ? link.split('|') : [link];
+        const requestBody: any = { 
+          status: newStatus,
+          completedLink: linkParts[0] || link
+        };
+        if (isMyexpense && linkParts.length > 1) {
+          requestBody.completedLink2 = linkParts[1];
+        }
+        
         const response = await fetch(`/api/orders/${orderId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
-            status: newStatus,
-            completedLink: link 
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (response.ok) {
@@ -308,6 +318,7 @@ export default function OrdersManagement() {
           }
           setCompletingOrder(null);
           setCompletedLink('');
+          setCompletedLink2('');
         } else {
           const data = await response.json();
           alert(data.error || '상태 변경에 실패했습니다.');
@@ -322,9 +333,17 @@ export default function OrdersManagement() {
   const handleCompleteWithLink = () => {
     if (!completingOrder) return;
     
-    if (!completedLink.trim()) {
-      alert('완료 링크를 입력해주세요.');
-      return;
+    // 내돈내산 리뷰는 2개의 링크가 모두 필요
+    if (completingOrder.taskType === 'myexpense') {
+      if (!completedLink.trim() || !completedLink2.trim()) {
+        alert('완료 링크 2개를 모두 입력해주세요.');
+        return;
+      }
+    } else {
+      if (!completedLink.trim()) {
+        alert('완료 링크를 입력해주세요.');
+        return;
+      }
     }
     
     // 체험단인 경우 'done' 상태를 사용 (updateOrderStatus에서 API 상태로 변환됨)
@@ -1021,7 +1040,7 @@ export default function OrdersManagement() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      완료 링크 <span className="text-red-500">*</span>
+                      완료 링크 1 <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="url"
@@ -1034,12 +1053,31 @@ export default function OrdersManagement() {
                       완료된 작업의 링크를 입력해주세요.
                     </p>
                   </div>
+                  
+                  {completingOrder.taskType === 'myexpense' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        완료 링크 2 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="url"
+                        value={completedLink2}
+                        onChange={(e) => setCompletedLink2(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        내돈내산 리뷰는 2개의 링크를 입력해주세요.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex gap-3 pt-4 border-t border-gray-200">
                     <button
                       onClick={() => {
                         setCompletingOrder(null);
                         setCompletedLink('');
+                        setCompletedLink2('');
                       }}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
                     >

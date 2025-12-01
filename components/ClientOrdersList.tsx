@@ -12,6 +12,7 @@ interface Order {
   imageUrls: string[];
   status: 'pending' | 'working' | 'done';
   completedLink?: string | null;
+  completedLink2?: string | null; // 내돈내산 리뷰용 두 번째 링크
   createdAt: string;
 }
 
@@ -211,19 +212,39 @@ export default function ClientOrdersList() {
                   
                   {/* 완료된 링크 표시 */}
                   {selectedOrder.status === 'done' && selectedOrder.completedLink && (
-                    <div>
-                      <div className="text-sm text-gray-600 mb-2">완료 링크</div>
-                      <a
-                        href={selectedOrder.completedLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
-                      >
-                        <span className="truncate max-w-md">{selectedOrder.completedLink}</span>
-                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          {selectedOrder.taskType === 'myexpense' ? '완료 링크 1' : '완료 링크'}
+                        </div>
+                        <a
+                          href={selectedOrder.completedLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                        >
+                          <span className="truncate max-w-md">{selectedOrder.completedLink}</span>
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      </div>
+                      {selectedOrder.taskType === 'myexpense' && (selectedOrder as any).completedLink2 && (
+                        <div>
+                          <div className="text-sm text-gray-600 mb-2">완료 링크 2</div>
+                          <a
+                            href={(selectedOrder as any).completedLink2}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                          >
+                            <span className="truncate max-w-md">{(selectedOrder as any).completedLink2}</span>
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
                   {selectedOrder.caption && (
