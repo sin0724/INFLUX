@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import LogoutButton from './LogoutButton';
 import ContractExpiredModal from './ContractExpiredModal';
@@ -199,13 +200,10 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* 신청하기 버튼 */}
         <div className="mb-6">
-          <button
-            type="button"
-            onClick={async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              
-              console.log('신청하기 버튼 클릭됨');
+          <Link
+            href="/client/order"
+            onClick={(e) => {
+              console.log('신청하기 버튼 클릭됨 (Link)');
               console.log('Current user:', currentUser);
               
               // 1개월 플랜 체크
@@ -221,20 +219,19 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                 (currentUser.quota?.powerblog?.total || 0) === 0
               );
               console.log('1개월 플랜 여부:', isOneMonthPlan);
+              console.log('페이지 이동 시작: /client/order');
               
-              try {
-                const result = await router.push('/client/order');
-                console.log('페이지 이동 결과:', result);
-              } catch (error) {
-                console.error('페이지 이동 오류:', error);
-                alert('페이지 이동 중 오류가 발생했습니다. 다시 시도해주세요.');
+              // 1개월 플랜은 항상 접근 허용
+              if (!isOneMonthPlan) {
+                // 다른 플랜의 경우 추가 체크 (필요시)
+                console.log('다른 플랜 사용자');
               }
             }}
-            className="w-full bg-primary-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition shadow-lg cursor-pointer relative z-10"
-            style={{ pointerEvents: 'auto' }}
+            className="block w-full bg-primary-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition shadow-lg text-center relative z-10"
+            style={{ pointerEvents: 'auto', textDecoration: 'none' }}
           >
             신청하기
-          </button>
+          </Link>
         </div>
 
         {/* Menu */}
