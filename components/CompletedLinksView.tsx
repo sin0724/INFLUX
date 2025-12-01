@@ -82,9 +82,13 @@ export default function CompletedLinksView() {
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       
       // 완료된 주문 모두 표시 (링크가 없어도 표시)
+      // completedLink2도 포함되도록 명시적으로 매핑
       const completedOrders = (ordersData.orders || []).filter(
         (order: Order) => order.status === 'done'
-      );
+      ).map((order: any) => ({
+        ...order,
+        completedLink2: order.completedLink2 || null, // 명시적으로 포함
+      }));
 
       // 체험단(experience_applications) 조회
       const experienceResponse = await fetch('/api/experience-applications');
@@ -403,18 +407,18 @@ export default function CompletedLinksView() {
                                   </svg>
                                 </a>
                               </div>
-                              {order.taskType === 'myexpense' && (order as any).completedLink2 && (
+                              {order.taskType === 'myexpense' && order.completedLink2 && (
                                 <div>
                                   <div className="text-sm font-medium text-gray-700 mb-2">
                                     완료 링크 2
                                   </div>
                                   <a
-                                    href={(order as any).completedLink2!}
+                                    href={order.completedLink2}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
                                   >
-                                    <span className="truncate max-w-2xl">{(order as any).completedLink2}</span>
+                                    <span className="truncate max-w-2xl">{order.completedLink2}</span>
                                     <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
