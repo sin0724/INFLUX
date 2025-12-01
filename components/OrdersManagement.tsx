@@ -33,6 +33,7 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   receipt: '영수증 리뷰',
   daangn: '당근마켓',
   experience: '체험단',
+  myexpense: '내돈내산 리뷰',
 };
 
 const STATUS_NAMES: Record<string, string> = {

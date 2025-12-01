@@ -24,7 +24,8 @@ export default async function OrderPage() {
     (quota.receipt?.total || 0) === 0 &&
     (quota.daangn?.total || 0) === 0 &&
     (quota.experience?.total || 0) === 0 &&
-    (quota.powerblog?.total || 0) === 0
+    (quota.powerblog?.total || 0) === 0 &&
+    (quota.myexpense?.total || 0) === 0
   );
   
   // 조건 2: totalQuota와 remainingQuota가 모두 0 (작업 갯수가 0개)
@@ -57,7 +58,8 @@ export default async function OrderPage() {
                         (quota.momcafe?.remaining || 0) > 0 ||
                         (quota.daangn?.remaining || 0) > 0 ||
                         (quota.experience?.remaining || 0) > 0 ||
-                        (quota.powerblog?.remaining || 0) > 0;
+                        (quota.powerblog?.remaining || 0) > 0 ||
+                        (quota.myexpense?.remaining || 0) > 0;
     if (!hasAnyQuota) {
       redirect('/client');
     }
