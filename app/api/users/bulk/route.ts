@@ -62,6 +62,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
                 receipt: { total: 0, remaining: 0 },
                 daangn: { total: 0, remaining: 0 },
                 experience: { total: 0, remaining: 0 },
+                myexpense: { total: 0, remaining: 0 },
               };
             case '3':
               // 3개월: 블로그 리뷰 30개, 영수증 리뷰 60개, 인기게시물 3개, 맘카페 3개, 당근마켓 3개, 인스타팔로워/좋아요 통합 1000개, 체험단 1회
@@ -76,6 +77,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
                 receipt: { total: 60, remaining: 60 },
                 daangn: { total: 3, remaining: 3 },
                 experience: { total: 1, remaining: 1 },
+                myexpense: { total: 0, remaining: 0 },
               };
             case '6':
               // 6개월: 블로그 리뷰 60개, 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2000개, 파워블로그 2회, 체험단 2회
@@ -90,6 +92,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
                 receipt: { total: 120, remaining: 120 },
                 daangn: { total: 6, remaining: 6 },
                 experience: { total: 2, remaining: 2 },
+                myexpense: { total: 0, remaining: 0 },
               };
             default:
               return {
@@ -103,6 +106,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
                 receipt: { total: 0, remaining: 0 },
                 daangn: { total: 0, remaining: 0 },
                 experience: { total: 0, remaining: 0 },
+                myexpense: { total: 0, remaining: 0 },
               };
           }
         };
