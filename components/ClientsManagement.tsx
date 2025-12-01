@@ -1915,6 +1915,7 @@ export default function ClientsManagement() {
                 businessType: '',
                 optimization: false,
                 reservation: false,
+                reviewing: false,
                 quota: {
                   follower: { total: 0, remaining: 0 },
                   like: { total: 0, remaining: 0 },
@@ -2450,6 +2451,7 @@ export default function ClientsManagement() {
                         businessType: '',
                         optimization: false,
                         reservation: false,
+                        reviewing: false,
                         quota: {
                           follower: { total: 0, remaining: 0 },
                           like: { total: 0, remaining: 0 },
