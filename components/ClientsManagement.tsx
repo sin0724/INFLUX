@@ -22,6 +22,7 @@ interface Client {
   businessType?: string;
   optimization?: boolean;
   reservation?: boolean;
+  reviewing?: boolean;
   createdAt: string;
 }
 
@@ -97,6 +98,7 @@ export default function ClientsManagement() {
     businessType: '',
     optimization: false,
     reservation: false,
+    reviewing: false,
     quota: {
       follower: { total: 0, remaining: 0 },
       like: { total: 0, remaining: 0 },
@@ -1514,8 +1516,8 @@ export default function ClientsManagement() {
                             )}
                           </div>
                           
-                          {/* 최적화/예약 상태 */}
-                          <div className="flex items-center gap-3 min-w-[140px]">
+                          {/* 최적화/예약/검수중 상태 */}
+                          <div className="flex items-center gap-3 min-w-[200px]">
                             <div className="flex items-center gap-1">
                               <span className="text-xs text-gray-600">최적화:</span>
                               <span className={`text-xs font-medium ${client.optimization ? 'text-green-600' : 'text-gray-400'}`}>
@@ -1526,6 +1528,12 @@ export default function ClientsManagement() {
                               <span className="text-xs text-gray-600">예약:</span>
                               <span className={`text-xs font-medium ${client.reservation ? 'text-green-600' : 'text-gray-400'}`}>
                                 {client.reservation ? '완료' : '대기'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-600">검수중:</span>
+                              <span className={`text-xs font-medium ${client.reviewing ? 'text-blue-600' : 'text-gray-400'}`}>
+                                {client.reviewing ? '검수중' : '대기'}
                               </span>
                             </div>
                           </div>
@@ -1647,6 +1655,7 @@ export default function ClientsManagement() {
                                     businessType: client.businessType || '',
                                     optimization: client.optimization || false,
                                     reservation: client.reservation || false,
+                                    reviewing: client.reviewing || false,
                                     quota: {
                                       follower: existingQuota.follower || { total: 0, remaining: 0 },
                                       like: existingQuota.like || { total: 0, remaining: 0 },
@@ -2392,7 +2401,7 @@ export default function ClientsManagement() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
                     />
                   </div>
-                  {/* 최적화/예약 체크박스 */}
+                  {/* 최적화/예약/검수중 체크박스 */}
                   <div className="md:col-span-2 pt-2 border-t border-gray-200">
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       상태 관리
@@ -2415,6 +2424,15 @@ export default function ClientsManagement() {
                           className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                         />
                         <span className="text-sm text-gray-700">예약</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editForm.reviewing}
+                          onChange={(e) => setEditForm({ ...editForm, reviewing: e.target.checked })}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-700">검수중</span>
                       </label>
                     </div>
                   </div>
@@ -2469,6 +2487,7 @@ export default function ClientsManagement() {
                             businessType: editForm.businessType || null,
                             optimization: editForm.optimization,
                             reservation: editForm.reservation,
+                            reviewing: editForm.reviewing,
                           }),
                         });
 

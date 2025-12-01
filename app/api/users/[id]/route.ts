@@ -18,7 +18,7 @@ async function updateUser(
 
   try {
     const body = await req.json();
-    const { isActive, contractEndDate, contractStartDate, quota, username, companyName, notes, naverId, naverPassword, businessType, optimization, reservation } = body;
+    const { isActive, contractEndDate, contractStartDate, quota, username, companyName, notes, naverId, naverPassword, businessType, optimization, reservation, reviewing } = body;
 
     const updateData: any = {};
     
@@ -67,6 +67,9 @@ async function updateUser(
     if (reservation !== undefined) {
       updateData.reservation = reservation;
     }
+    if (reviewing !== undefined) {
+      updateData.reviewing = reviewing;
+    }
     
     if (quota) {
       updateData.quota = quota;
@@ -97,7 +100,7 @@ async function updateUser(
       .from('users')
       .update(updateData)
       .eq('id', userId)
-      .select('id, username, companyName, role, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", optimization, reservation, createdAt')
+      .select('id, username, companyName, role, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", optimization, reservation, reviewing, createdAt')
       .single();
 
     if (error || !data) {
@@ -149,6 +152,10 @@ async function updateUser(
     if (reservation !== undefined) {
       logDetails.reservationChanged = true;
       logDetails.reservation = reservation;
+    }
+    if (reviewing !== undefined) {
+      logDetails.reviewingChanged = true;
+      logDetails.reviewing = reviewing;
     }
     
     await logAdminActivity(
