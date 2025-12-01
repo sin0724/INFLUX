@@ -3,7 +3,7 @@ import { withAuth, requireSuperadmin, requireAdmin } from '@/lib/middleware';
 import { supabaseAdmin } from '@/lib/supabase';
 
 // GET: Get admin activity logs
-// superadmin: 모든 로그 조회 가능
+// superadmin: admin 역할의 로그만 조회 (하위관리자 로그만)
 // admin: 자신의 로그만 조회 가능
 async function getAdminLogs(req: NextRequest, user: any) {
   if (!requireAdmin(user)) {
@@ -31,9 +31,34 @@ async function getAdminLogs(req: NextRequest, user: any) {
     // superadmin이 아니면 자신의 로그만 조회
     if (user.role !== 'superadmin') {
       query = query.eq('adminId', user.id);
-    } else if (adminId) {
-      // superadmin은 특정 관리자의 로그 조회 가능
-      query = query.eq('adminId', adminId);
+    } else {
+      // superadmin은 admin 역할의 로그만 조회 (하위관리자 로그만)
+      // admin_activity_logs 테이블에서 adminId로 users 테이블과 조인하여 role이 'admin'인 것만 필터링
+      const { data: adminUsers } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('role', 'admin');
+      
+      const adminIds = adminUsers?.map((u: any) => u.id) || [];
+      
+      if (adminIds.length > 0) {
+        // 특정 admin의 로그를 조회하는 경우
+        if (adminId) {
+          // adminId가 실제 admin인지 확인
+          if (adminIds.includes(adminId)) {
+            query = query.eq('adminId', adminId);
+          } else {
+            // admin이 아니면 빈 결과
+            query = query.eq('adminId', '00000000-0000-0000-0000-000000000000');
+          }
+        } else {
+          // 모든 admin의 로그 조회
+          query = query.in('adminId', adminIds);
+        }
+      } else {
+        // admin이 없으면 빈 결과 반환
+        query = query.eq('adminId', '00000000-0000-0000-0000-000000000000');
+      }
     }
 
     if (action) {
