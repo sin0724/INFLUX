@@ -238,7 +238,7 @@ export default function OrdersManagement() {
     await updateOrderStatus(orderId, newStatus, null);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null, link2?: string | null) => {
     try {
       const order = orders.find(o => o.id === orderId);
       const isExperience = order?.isExperience || order?.taskType === 'experience';
@@ -291,15 +291,14 @@ export default function OrdersManagement() {
         }
       } else {
         // 일반 주문인 경우
-        // 내돈내산 리뷰는 링크를 |로 구분하여 전송
         const isMyexpense = order?.taskType === 'myexpense';
-        const linkParts = isMyexpense && link ? link.split('|') : [link];
         const requestBody: any = { 
           status: newStatus,
-          completedLink: linkParts[0] || link
+          completedLink: link || null
         };
-        if (isMyexpense && linkParts.length > 1) {
-          requestBody.completedLink2 = linkParts[1];
+        // 내돈내산 리뷰는 completedLink2도 전송
+        if (isMyexpense && link2) {
+          requestBody.completedLink2 = link2;
         }
         
         const response = await fetch(`/api/orders/${orderId}`, {
@@ -348,7 +347,9 @@ export default function OrdersManagement() {
     
     // 체험단인 경우 'done' 상태를 사용 (updateOrderStatus에서 API 상태로 변환됨)
     const status = 'done';
-    updateOrderStatus(completingOrder.id, status, completedLink.trim());
+    const link = completedLink.trim();
+    const link2 = completingOrder.taskType === 'myexpense' ? completedLink2.trim() : null;
+    updateOrderStatus(completingOrder.id, status, link, link2);
   };
 
   const handleEditOrder = (order: Order) => {
