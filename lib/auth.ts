@@ -16,6 +16,7 @@ export interface Quota {
   receipt?: { total: number; remaining: number };
   daangn?: { total: number; remaining: number };
   experience?: { total: number; remaining: number };
+  myexpense?: { total: number; remaining: number };
 }
 
 export interface User {

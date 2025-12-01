@@ -22,6 +22,7 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   momcafe: '맘카페',
   powerblog: '파워블로그',
   clip: '클립',
+  myexpense: '내돈내산 리뷰',
 };
 
 const STATUS_NAMES: Record<string, string> = {

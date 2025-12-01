@@ -217,13 +217,14 @@ export default function OrdersManagement() {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const order = orders.find(o => o.id === orderId);
     
-    // 인기게시물/맘카페/파워블로그/클립/체험단을 완료로 변경할 때는 링크 입력 모달 표시
+    // 인기게시물/맘카페/파워블로그/클립/체험단/내돈내산 리뷰를 완료로 변경할 때는 링크 입력 모달 표시
     if (newStatus === 'done' && order && (
       order.taskType === 'hotpost' || 
       order.taskType === 'momcafe' || 
       order.taskType === 'powerblog' || 
       order.taskType === 'clip' ||
-      order.taskType === 'experience'
+      order.taskType === 'experience' ||
+      order.taskType === 'myexpense'
     )) {
       setCompletingOrder(order);
       setCompletedLink(order.completedLink || '');
@@ -516,6 +517,7 @@ export default function OrdersManagement() {
                 <option value="experience">체험단</option>
                 <option value="powerblog">파워블로그</option>
                 <option value="clip">클립</option>
+                <option value="myexpense">내돈내산 리뷰</option>
               </select>
             </div>
             <div className="relative">

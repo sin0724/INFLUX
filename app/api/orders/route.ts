@@ -98,7 +98,8 @@ async function createOrder(req: NextRequest, user: any) {
           (quota.receipt?.total || 0) === 0 &&
           (quota.daangn?.total || 0) === 0 &&
           (quota.experience?.total || 0) === 0 &&
-          (quota.powerblog?.total || 0) === 0;
+          (quota.powerblog?.total || 0) === 0 &&
+          (quota.myexpense?.total || 0) === 0;
         
         // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
         if (!isOneMonthPlan) {
@@ -121,6 +122,7 @@ async function createOrder(req: NextRequest, user: any) {
                 hotpost: '인기게시물',
                 momcafe: '맘카페',
                 daangn: '당근마켓',
+                myexpense: '내돈내산 리뷰',
               };
               return NextResponse.json(
                 { error: `${taskNames[taskType] || taskType} 작업이 설정되지 않았습니다.` },
@@ -136,6 +138,7 @@ async function createOrder(req: NextRequest, user: any) {
                 hotpost: '인기게시물',
                 momcafe: '맘카페',
                 daangn: '당근마켓',
+                myexpense: '내돈내산 리뷰',
               };
               return NextResponse.json(
                 { error: `${taskNames[taskType] || taskType} 작업의 남은 개수가 부족합니다. (신청: ${countToDeduct}개, 남은: ${taskQuota.remaining}개)` },
@@ -241,7 +244,8 @@ async function createOrder(req: NextRequest, user: any) {
                                  (quota.clip?.remaining || 0) +
                                  (quota.blog?.remaining || 0) +
                                  (quota.receipt?.remaining || 0) +
-                                 (quota.daangn?.remaining || 0);
+                                 (quota.daangn?.remaining || 0) +
+                                 (quota.myexpense?.remaining || 0);
           
           const { error: updateError } = await supabase
             .from('users')

@@ -135,7 +135,8 @@ async function createUser(req: NextRequest, user: any) {
                     (quota.blog?.total || 0) +
                     (quota.receipt?.total || 0) +
                     (quota.daangn?.total || 0) +
-                    (quota.experience?.total || 0);
+                    (quota.experience?.total || 0) +
+                    (quota.myexpense?.total || 0);
       
       remainingQuota = (quota.follower?.remaining || 0) + 
                        (quota.like?.remaining || 0) + 
@@ -146,7 +147,8 @@ async function createUser(req: NextRequest, user: any) {
                        (quota.blog?.remaining || 0) +
                        (quota.receipt?.remaining || 0) +
                        (quota.daangn?.remaining || 0) +
-                       (quota.experience?.remaining || 0);
+                       (quota.experience?.remaining || 0) +
+                       (quota.myexpense?.remaining || 0);
     }
 
     // Insert data - 컬럼이 없을 경우를 대비해 조건부로 추가

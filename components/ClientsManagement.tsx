@@ -82,6 +82,7 @@ export default function ClientsManagement() {
       receipt: { total: 0, remaining: 0 },
       daangn: { total: 0, remaining: 0 },
       experience: { total: 0, remaining: 0 },
+      myexpense: { total: 0, remaining: 0 },
     },
   });
   
@@ -107,6 +108,7 @@ export default function ClientsManagement() {
       receipt: { total: 0, remaining: 0 },
       daangn: { total: 0, remaining: 0 },
       experience: { total: 0, remaining: 0 },
+      myexpense: { total: 0, remaining: 0 },
     },
   });
 
@@ -126,6 +128,7 @@ export default function ClientsManagement() {
           receipt: { total: 0, remaining: 0 },
           daangn: { total: 0, remaining: 0 },
           experience: { total: 0, remaining: 0 },
+          myexpense: { total: 0, remaining: 0 },
         }; // 빈 할당량 - 수기 입력
       case '3':
         // 3개월: 블로그 리뷰 30개, 영수증 리뷰 60개, 인기게시물 3개, 맘카페 3개, 당근마켓 3개, 인스타팔로워/좋아요 통합 1000개, 체험단 1회
@@ -140,6 +143,7 @@ export default function ClientsManagement() {
           receipt: { total: 60, remaining: 60 },
           daangn: { total: 3, remaining: 3 },
           experience: { total: 1, remaining: 1 },
+          myexpense: { total: 0, remaining: 0 },
         };
       case '6':
         // 6개월: 블로그 리뷰 60개, 영수증 리뷰 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타팔로워/좋아요 통합 2000개, 파워블로그 2회, 체험단 2회
@@ -154,6 +158,7 @@ export default function ClientsManagement() {
           receipt: { total: 120, remaining: 120 },
           daangn: { total: 6, remaining: 6 },
           experience: { total: 2, remaining: 2 },
+          myexpense: { total: 0, remaining: 0 },
         };
       default:
         return {
@@ -606,6 +611,10 @@ export default function ClientsManagement() {
       clip: {
         total: (currentQuota.clip?.total || 0) + (newQuota.clip?.total || 0),
         remaining: (currentQuota.clip?.remaining || 0) + (newQuota.clip?.remaining || 0),
+      },
+      myexpense: {
+        total: (currentQuota.myexpense?.total || 0) + (newQuota.myexpense?.total || 0),
+        remaining: (currentQuota.myexpense?.remaining || 0) + (newQuota.myexpense?.remaining || 0),
       },
     };
 
@@ -1358,6 +1367,7 @@ export default function ClientsManagement() {
                         receipt: { total: 0, remaining: 0 },
                         daangn: { total: 0, remaining: 0 },
                         experience: { total: 0, remaining: 0 },
+                        myexpense: { total: 0, remaining: 0 },
                       },
                     });
                     setFormError('');
@@ -1607,6 +1617,12 @@ export default function ClientsManagement() {
                                   <div className="text-xs text-red-600 mb-1">영수증 리뷰</div>
                                   <div className="text-lg font-bold text-gray-900">{client.quota.receipt?.remaining || 0}개</div>
                                 </div>
+                                {client.quota.myexpense && client.quota.myexpense.total > 0 && (
+                                  <div className="bg-white p-3 rounded border">
+                                    <div className="text-xs text-purple-600 mb-1">내돈내산 리뷰</div>
+                                    <div className="text-lg font-bold text-gray-900">{client.quota.myexpense?.remaining || 0}개</div>
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <div className="text-sm text-gray-500">{client.remainingQuota || 0}건</div>
@@ -1641,6 +1657,7 @@ export default function ClientsManagement() {
                                       receipt: existingQuota.receipt || { total: 0, remaining: 0 },
                                       daangn: existingQuota.daangn || { total: 0, remaining: 0 },
                                       experience: existingQuota.experience || { total: 0, remaining: 0 },
+                                      myexpense: existingQuota.myexpense || { total: 0, remaining: 0 },
                                     },
                                   });
                                 }}
@@ -1899,6 +1916,7 @@ export default function ClientsManagement() {
                   receipt: { total: 0, remaining: 0 },
                   daangn: { total: 0, remaining: 0 },
                   experience: { total: 0, remaining: 0 },
+                  myexpense: { total: 0, remaining: 0 },
                 },
               });
             }}
@@ -2248,6 +2266,40 @@ export default function ClientsManagement() {
                         </div>
                       </div>
                       <div>
+                        <label className="block text-xs text-gray-600 mb-1">내돈내산 리뷰 (총/남은)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={editForm.quota.myexpense?.total || 0}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.myexpense = {
+                                ...newQuota.myexpense,
+                                total: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max={editForm.quota.myexpense?.total || 0}
+                            value={editForm.quota.myexpense?.remaining || 0}
+                            onChange={(e) => {
+                              const newQuota = { ...editForm.quota };
+                              newQuota.myexpense = {
+                                ...newQuota.myexpense,
+                                remaining: parseInt(e.target.value) || 0,
+                              };
+                              setEditForm({ ...editForm, quota: newQuota });
+                            }}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
                         <label className="block text-xs text-gray-600 mb-1">체험단 모집 (총/남은)</label>
                         <div className="flex gap-2">
                           <input
@@ -2390,6 +2442,7 @@ export default function ClientsManagement() {
                           receipt: { total: 0, remaining: 0 },
                           daangn: { total: 0, remaining: 0 },
                           experience: { total: 0, remaining: 0 },
+                          myexpense: { total: 0, remaining: 0 },
                         },
                       });
                     }}

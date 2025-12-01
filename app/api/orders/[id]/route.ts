@@ -188,7 +188,8 @@ async function deleteOrder(
                                  (quota.powerblog?.remaining || 0) +
                                  (quota.clip?.remaining || 0) +
                                  (quota.blog?.remaining || 0) +
-                                 (quota.receipt?.remaining || 0);
+                                 (quota.receipt?.remaining || 0) +
+                                 (quota.myexpense?.remaining || 0);
           
           await supabase
             .from('users')

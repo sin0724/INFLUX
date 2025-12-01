@@ -18,6 +18,7 @@ interface Quota {
   receipt?: { total: number; remaining: number };
   daangn?: { total: number; remaining: number };
   experience?: { total: number; remaining: number };
+  myexpense?: { total: number; remaining: number };
 }
 
 interface User {
@@ -179,6 +180,15 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                     </div>
                   </div>
                 )}
+                {/* 내돈내산 리뷰 (관리자가 추가한 경우만) */}
+                {currentUser.quota.myexpense && currentUser.quota.myexpense.total > 0 && (
+                  <div className="bg-purple-50 rounded-lg p-3">
+                    <div className="text-xs text-gray-600">내돈내산 리뷰</div>
+                    <div className="text-lg font-bold text-purple-700">
+                      {currentUser.quota.myexpense.remaining || 0}개
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-4 bg-primary-50 rounded-lg">
@@ -216,7 +226,8 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                 (currentUser.quota?.receipt?.total || 0) === 0 &&
                 (currentUser.quota?.daangn?.total || 0) === 0 &&
                 (currentUser.quota?.experience?.total || 0) === 0 &&
-                (currentUser.quota?.powerblog?.total || 0) === 0
+                (currentUser.quota?.powerblog?.total || 0) === 0 &&
+                (currentUser.quota?.myexpense?.total || 0) === 0
               );
               console.log('1개월 플랜 여부:', isOneMonthPlan);
               console.log('페이지 이동 시작: /client/order');

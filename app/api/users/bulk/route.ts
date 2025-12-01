@@ -109,8 +109,8 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
 
         const quota = getQuotaByPlan(planType || '1');
         // totalQuota는 모든 작업 타입의 합계 (호환성을 위해)
-        const totalQuota = quota.follower.total + quota.like.total + quota.hotpost.total + quota.momcafe.total + quota.powerblog.total + quota.clip.total + quota.blog.total + quota.receipt.total + (quota.daangn?.total || 0) + (quota.experience?.total || 0);
-        const remainingQuota = quota.follower.remaining + quota.like.remaining + quota.hotpost.remaining + quota.momcafe.remaining + quota.powerblog.remaining + quota.clip.remaining + quota.blog.remaining + quota.receipt.remaining + (quota.daangn?.remaining || 0) + (quota.experience?.remaining || 0);
+        const totalQuota = quota.follower.total + quota.like.total + quota.hotpost.total + quota.momcafe.total + quota.powerblog.total + quota.clip.total + quota.blog.total + quota.receipt.total + (quota.daangn?.total || 0) + (quota.experience?.total || 0) + (quota.myexpense?.total || 0);
+        const remainingQuota = quota.follower.remaining + quota.like.remaining + quota.hotpost.remaining + quota.momcafe.remaining + quota.powerblog.remaining + quota.clip.remaining + quota.blog.remaining + quota.receipt.remaining + (quota.daangn?.remaining || 0) + (quota.experience?.remaining || 0) + (quota.myexpense?.remaining || 0);
 
         // 계약 종료일 계산
         let startDate: Date;

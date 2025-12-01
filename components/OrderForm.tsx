@@ -15,6 +15,7 @@ interface Quota {
   receipt?: { total: number; remaining: number };
   daangn?: { total: number; remaining: number };
   experience?: { total: number; remaining: number };
+  myexpense?: { total: number; remaining: number };
 }
 
 interface User {
@@ -44,6 +45,7 @@ const TASK_TYPES = [
   { id: 'daangn', name: '당근마켓', requiresImage: true, disabled: false },
   { id: 'experience', name: '체험단 신청', requiresImage: false, disabled: false },
   { id: 'powerblog', name: '파워블로그', requiresImage: false, disabled: false }, // 6개월 플랜만 표시됨
+  { id: 'myexpense', name: '내돈내산 리뷰', requiresImage: false, disabled: false }, // 관리자가 추가한 경우만 표시됨
   { id: 'eventbanner', name: '이벤트배너/블로그스킨', requiresImage: false, externalLink: 'https://pf.kakao.com/_UxoANn' },
 ];
 
@@ -132,7 +134,8 @@ export default function OrderForm({ user }: OrderFormProps) {
       (userQuota.receipt?.total || 0) === 0 &&
       (userQuota.daangn?.total || 0) === 0 &&
       (userQuota.experience?.total || 0) === 0 &&
-      (userQuota.powerblog?.total || 0) === 0
+      (userQuota.powerblog?.total || 0) === 0 &&
+      (userQuota.myexpense?.total || 0) === 0
     );
     
     // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
@@ -336,8 +339,8 @@ export default function OrderForm({ user }: OrderFormProps) {
         return;
       }
       orderCaption = `상호명: ${momcafeBusinessName}\n원하시는 카페이름 or 주소: ${momcafeCafeName || '(미기재)'}\n게시글 가이드라인: ${momcafePostGuideline || '(미기재)'}\n댓글 가이드라인: ${momcafeCommentGuideline || '(미기재)'}`;
-    } else if (taskType === 'powerblog' || taskType === 'clip') {
-      // 파워블로그/클립은 작업 내용 입력 없이 바로 신청 가능
+    } else if (taskType === 'powerblog' || taskType === 'clip' || taskType === 'myexpense') {
+      // 파워블로그/클립/내돈내산 리뷰는 작업 내용 입력 없이 바로 신청 가능
       orderCaption = '';
     } else {
       orderCaption = caption || '';
@@ -458,6 +461,13 @@ export default function OrderForm({ user }: OrderFormProps) {
                   }
                 }
                 
+                // 내돈내산 리뷰는 할당량이 있는 경우만 표시
+                if (task.id === 'myexpense') {
+                  if (!userQuota?.myexpense || userQuota.myexpense.total <= 0) {
+                    return null;
+                  }
+                }
+                
                 // 작업별 quota 체크
                 let isDisabled = task.disabled;
                 let remainingCount = 0;
@@ -473,7 +483,8 @@ export default function OrderForm({ user }: OrderFormProps) {
                   (userQuota.receipt?.total || 0) === 0 &&
                   (userQuota.daangn?.total || 0) === 0 &&
                   (userQuota.experience?.total || 0) === 0 &&
-                  (userQuota.powerblog?.total || 0) === 0
+                  (userQuota.powerblog?.total || 0) === 0 &&
+                  (userQuota.myexpense?.total || 0) === 0
                 );
                 
                 // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
@@ -1224,8 +1235,8 @@ export default function OrderForm({ user }: OrderFormProps) {
             </div>
           )}
 
-          {/* 파워블로그/클립 유의사항 */}
-          {(taskType === 'powerblog' || taskType === 'clip') && (
+          {/* 파워블로그/클립/내돈내산 리뷰 유의사항 */}
+          {(taskType === 'powerblog' || taskType === 'clip' || taskType === 'myexpense') && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="text-sm font-semibold text-blue-800 mb-2">
                 ℹ️ 안내사항
