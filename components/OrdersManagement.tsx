@@ -95,6 +95,7 @@ export default function OrdersManagement() {
   // 완료 링크 입력 모달 상태
   const [completingOrder, setCompletingOrder] = useState<Order | null>(null);
   const [completedLink, setCompletedLink] = useState('');
+  const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchClients();
@@ -174,7 +175,7 @@ export default function OrdersManagement() {
                 id: exp.id,
                 taskType: 'experience',
                 caption: `상호명: ${exp.companyName || ''}\n플레이스: ${exp.place || ''}\n희망모집인원: ${exp.desiredParticipants || ''}명\n예약 조율 가능한 번호: ${exp.reservationPhone || ''}\n제공내역: ${exp.providedDetails || ''}\n키워드: ${exp.keywords || ''}\n블로그미션 부가유무: ${exp.blogMissionRequired ? '예' : '아니오'}\n기타전달사항: ${exp.additionalNotes || '(없음)'}`,
-                imageUrls: [],
+                imageUrls: exp.imageUrls && Array.isArray(exp.imageUrls) ? exp.imageUrls : [],
                 status: originalStatus, // 실제 상태 유지 (표시할 때만 매핑)
                 completedLink: exp.completedLink || null,
                 createdAt: exp.createdAt,
@@ -266,7 +267,7 @@ export default function OrdersManagement() {
               id: exp.id,
               taskType: 'experience',
               caption: `상호명: ${exp.companyName || ''}\n플레이스: ${exp.place || ''}\n희망모집인원: ${exp.desiredParticipants || ''}명\n예약 조율 가능한 번호: ${exp.reservationPhone || ''}\n제공내역: ${exp.providedDetails || ''}\n키워드: ${exp.keywords || ''}\n블로그미션 부가유무: ${exp.blogMissionRequired ? '예' : '아니오'}\n기타전달사항: ${exp.additionalNotes || '(없음)'}`,
-              imageUrls: [],
+              imageUrls: exp.imageUrls && Array.isArray(exp.imageUrls) ? exp.imageUrls : [],
               status: originalStatus, // 실제 상태 유지
               completedLink: exp.completedLink || null,
               createdAt: exp.createdAt,
@@ -368,6 +369,67 @@ export default function OrdersManagement() {
       console.error('Failed to edit order:', error);
       alert('발주 수정 중 오류가 발생했습니다.');
     }
+  };
+
+  const downloadImage = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Failed to download image:', error);
+      alert('이미지 다운로드에 실패했습니다.');
+    }
+  };
+
+  const handleDownloadAllImages = () => {
+    if (!selectedOrder || !selectedOrder.imageUrls || selectedOrder.imageUrls.length === 0) {
+      return;
+    }
+
+    const taskTypeName = TASK_TYPE_NAMES[selectedOrder.taskType] || selectedOrder.taskType;
+    const clientName = selectedOrder.client?.username || 'unknown';
+    const date = new Date(selectedOrder.createdAt).toISOString().split('T')[0];
+
+    selectedOrder.imageUrls.forEach((url, idx) => {
+      const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
+      const filename = `${taskTypeName}_${clientName}_${date}_${idx + 1}.${extension}`;
+      setTimeout(() => downloadImage(url, filename), idx * 200); // 순차 다운로드
+    });
+  };
+
+  const handleDownloadSelectedImages = () => {
+    if (!selectedOrder || !selectedOrder.imageUrls || selectedImages.size === 0) {
+      return;
+    }
+
+    const taskTypeName = TASK_TYPE_NAMES[selectedOrder.taskType] || selectedOrder.taskType;
+    const clientName = selectedOrder.client?.username || 'unknown';
+    const date = new Date(selectedOrder.createdAt).toISOString().split('T')[0];
+
+    Array.from(selectedImages).forEach((idx, orderIdx) => {
+      const url = selectedOrder.imageUrls[idx];
+      const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
+      const filename = `${taskTypeName}_${clientName}_${date}_${idx + 1}.${extension}`;
+      setTimeout(() => downloadImage(url, filename), orderIdx * 200);
+    });
+  };
+
+  const toggleImageSelection = (idx: number) => {
+    const newSelection = new Set(selectedImages);
+    if (newSelection.has(idx)) {
+      newSelection.delete(idx);
+    } else {
+      newSelection.add(idx);
+    }
+    setSelectedImages(newSelection);
   };
 
   const handleDeleteOrder = async (orderId: string) => {
@@ -713,7 +775,10 @@ export default function OrdersManagement() {
         {selectedOrder && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setSelectedOrder(null)}
+            onClick={() => {
+              setSelectedOrder(null);
+              setSelectedImages(new Set());
+            }}
           >
             <div
               className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
@@ -837,14 +902,36 @@ export default function OrdersManagement() {
                   {selectedOrder.imageUrls &&
                     selectedOrder.imageUrls.length > 0 && (
                       <div>
-                        <div className="text-sm text-gray-600 mb-2">
-                          이미지 ({selectedOrder.imageUrls.length}개)
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm text-gray-600">
+                            이미지 ({selectedOrder.imageUrls.length}개)
+                          </div>
+                          <div className="flex gap-2">
+                            {selectedImages.size > 0 && (
+                              <button
+                                onClick={handleDownloadSelectedImages}
+                                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                              >
+                                선택 다운로드 ({selectedImages.size}개)
+                              </button>
+                            )}
+                            <button
+                              onClick={handleDownloadAllImages}
+                              className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                            >
+                              전체 다운로드
+                            </button>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           {selectedOrder.imageUrls.map((url, idx) => (
                             <div
                               key={idx}
-                              className="aspect-square relative rounded-lg overflow-hidden border border-gray-200"
+                              className="aspect-square relative rounded-lg overflow-hidden border-2 border-gray-200 group cursor-pointer"
+                              style={{
+                                borderColor: selectedImages.has(idx) ? '#3b82f6' : '#e5e7eb',
+                              }}
+                              onClick={() => toggleImageSelection(idx)}
                             >
                               <Image
                                 src={url}
@@ -852,9 +939,38 @@ export default function OrdersManagement() {
                                 fill
                                 className="object-cover"
                               />
+                              <div
+                                className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition ${
+                                  selectedImages.has(idx) ? 'bg-opacity-20' : ''
+                                }`}
+                              >
+                                {selectedImages.has(idx) && (
+                                  <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                                    ✓
+                                  </div>
+                                )}
+                              </div>
+                              <div className="absolute top-2 right-2">
+                                <div
+                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                    selectedImages.has(idx)
+                                      ? 'bg-blue-600 border-blue-600'
+                                      : 'bg-white border-gray-400'
+                                  }`}
+                                >
+                                  {selectedImages.has(idx) && (
+                                    <span className="text-white text-xs">✓</span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
+                        {selectedImages.size > 0 && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            {selectedImages.size}개 이미지 선택됨
+                          </div>
+                        )}
                       </div>
                     )}
                 </div>
