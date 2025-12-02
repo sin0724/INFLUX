@@ -34,7 +34,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
       const rowNumber = i + 2; // 엑셀 행 번호 (헤더 제외, 1-based)
 
       try {
-        const { username, password, companyName, planType, contractStartDate, notes, naverId, naverPassword, businessType, optimization, reservation } = clientData;
+        const { username, password, companyName, planType, contractStartDate, contractEndDate, isActive, notes, naverId, naverPassword, businessType, optimization, reservation, reviewing, quota: customQuota } = clientData;
 
         // 필수 필드 검증
         if (!username || !password) {
@@ -111,7 +111,34 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
           }
         };
 
-        const quota = getQuotaByPlan(planType || '1');
+        // 엑셀에서 제공된 quota가 있으면 사용, 없으면 플랜별 기본값 사용
+        let quota = customQuota && Object.keys(customQuota).length > 0 ? customQuota : getQuotaByPlan(planType || '1');
+        
+        // quota 객체를 완전한 형태로 보장 (모든 필드가 total/remaining 구조를 가지도록)
+        const ensureQuotaStructure = (q: any) => {
+          const defaultQuota = getQuotaByPlan(planType || '1');
+          const result: any = {};
+          
+          // 모든 quota 타입에 대해 처리
+          const quotaTypes = ['follower', 'like', 'hotpost', 'momcafe', 'powerblog', 'clip', 'blog', 'receipt', 'daangn', 'experience', 'myexpense'];
+          quotaTypes.forEach(type => {
+            if (q[type] && typeof q[type] === 'object' && q[type].total !== undefined) {
+              result[type] = {
+                total: Number(q[type].total) || 0,
+                remaining: Number(q[type].remaining) !== undefined ? Number(q[type].remaining) : Number(q[type].total) || 0,
+              };
+            } else if (defaultQuota[type]) {
+              result[type] = defaultQuota[type];
+            } else {
+              result[type] = { total: 0, remaining: 0 };
+            }
+          });
+          
+          return result;
+        };
+        
+        quota = ensureQuotaStructure(quota);
+        
         // totalQuota는 모든 작업 타입의 합계 (호환성을 위해)
         const totalQuota = quota.follower.total + quota.like.total + quota.hotpost.total + quota.momcafe.total + quota.powerblog.total + quota.clip.total + quota.blog.total + quota.receipt.total + (quota.daangn?.total || 0) + (quota.experience?.total || 0) + (quota.myexpense?.total || 0);
         const remainingQuota = quota.follower.remaining + quota.like.remaining + quota.hotpost.remaining + quota.momcafe.remaining + quota.powerblog.remaining + quota.clip.remaining + quota.blog.remaining + quota.receipt.remaining + (quota.daangn?.remaining || 0) + (quota.experience?.remaining || 0) + (quota.myexpense?.remaining || 0);
@@ -133,29 +160,44 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
           startDate = new Date();
         }
 
-        // 계약 종료일 계산 - 안전한 방법
-        const months = parseInt(String(planType || '1'), 10);
-        if (isNaN(months) || months < 1 || months > 12) {
-          results.failed.push({
-            row: rowNumber,
-            username,
-            error: '이용기간은 1-12 사이의 숫자여야 합니다.',
-          });
-          continue;
-        }
-        
-        // 안전한 날짜 계산
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + months);
-        
-        // 유효한 날짜인지 확인
-        if (isNaN(endDate.getTime())) {
-          results.failed.push({
-            row: rowNumber,
-            username,
-            error: '계약 종료일 계산에 실패했습니다.',
-          });
-          continue;
+        // 계약 종료일 처리: 엑셀에서 제공된 값이 있으면 사용, 없으면 자동 계산
+        let endDate: Date;
+        if (contractEndDate) {
+          const parsedEndDate = new Date(contractEndDate);
+          if (isNaN(parsedEndDate.getTime())) {
+            results.failed.push({
+              row: rowNumber,
+              username,
+              error: '계약종료일 형식이 올바르지 않습니다. (YYYY-MM-DD 형식)',
+            });
+            continue;
+          }
+          endDate = parsedEndDate;
+        } else {
+          // 계약 종료일 계산 - 안전한 방법
+          const months = parseInt(String(planType || '1'), 10);
+          if (isNaN(months) || months < 1 || months > 12) {
+            results.failed.push({
+              row: rowNumber,
+              username,
+              error: '이용기간은 1-12 사이의 숫자여야 합니다.',
+            });
+            continue;
+          }
+          
+          // 안전한 날짜 계산
+          endDate = new Date(startDate);
+          endDate.setMonth(endDate.getMonth() + months);
+          
+          // 유효한 날짜인지 확인
+          if (isNaN(endDate.getTime())) {
+            results.failed.push({
+              row: rowNumber,
+              username,
+              error: '계약 종료일 계산에 실패했습니다.',
+            });
+            continue;
+          }
         }
 
         const hashedPassword = await hashPassword(password);
@@ -177,7 +219,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
           quota,
           contractStartDate: formatDate(startDate),
           contractEndDate: formatDate(endDate),
-          isActive: true,
+          isActive: isActive !== undefined ? Boolean(isActive) : true,
         };
 
         if (companyName) {
@@ -201,6 +243,9 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
         }
         if (reservation !== undefined) {
           insertData.reservation = Boolean(reservation);
+        }
+        if (reviewing !== undefined) {
+          insertData.reviewing = Boolean(reviewing);
         }
 
         const { data, error } = await supabase

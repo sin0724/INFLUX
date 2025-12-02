@@ -202,12 +202,26 @@ export default function ClientsManagement() {
         '상호명': '예시 회사',
         '이용기간(개월)*': '1',
         '계약시작일': '2024-01-01',
+        '계약종료일': '',
+        '활성화여부(예/아니오)': '예',
         '비고': '특이사항',
         '네이버 아이디': 'naver_id',
         '네이버 비밀번호': 'naver_pw',
         '업종': '네일',
         '최적화(예/아니오)': '아니오',
         '예약(예/아니오)': '아니오',
+        '검수중(예/아니오)': '아니오',
+        '인스타팔로워(개)': '',
+        '인스타좋아요(개)': '',
+        '인기게시물(개)': '',
+        '맘카페(개)': '',
+        '파워블로그(개)': '',
+        '클립(개)': '',
+        '블로그리뷰(개)': '',
+        '영수증리뷰(개)': '',
+        '당근마켓(개)': '',
+        '체험단(개)': '',
+        '내지출(개)': '',
       },
     ];
 
@@ -222,12 +236,26 @@ export default function ClientsManagement() {
       { wch: 20 }, // 상호명
       { wch: 12 }, // 이용기간
       { wch: 12 }, // 계약시작일
+      { wch: 12 }, // 계약종료일
+      { wch: 15 }, // 활성화여부
       { wch: 20 }, // 비고
       { wch: 15 }, // 네이버 아이디
       { wch: 15 }, // 네이버 비밀번호
       { wch: 15 }, // 업종
       { wch: 15 }, // 최적화
       { wch: 15 }, // 예약
+      { wch: 15 }, // 검수중
+      { wch: 15 }, // 인스타팔로워
+      { wch: 15 }, // 인스타좋아요
+      { wch: 15 }, // 인기게시물
+      { wch: 15 }, // 맘카페
+      { wch: 15 }, // 파워블로그
+      { wch: 15 }, // 클립
+      { wch: 15 }, // 블로그리뷰
+      { wch: 15 }, // 영수증리뷰
+      { wch: 15 }, // 당근마켓
+      { wch: 15 }, // 체험단
+      { wch: 15 }, // 내지출
     ];
 
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -292,12 +320,13 @@ export default function ClientsManagement() {
       const clients = jsonData.map((row: any) => {
         // 날짜 처리
         const contractStartDate = excelDateToDateString(row['계약시작일']);
+        const contractEndDate = row['계약종료일'] ? excelDateToDateString(row['계약종료일']) : null;
 
         // 이용기간 처리 (숫자 또는 문자열)
         let planType = row['이용기간(개월)*'] || row['이용기간(개월)'] || row['이용기간'] || '1';
         planType = String(planType);
 
-        // 최적화/예약 처리 (예/아니오, Y/N, true/false, 1/0 등 다양한 형식 지원)
+        // 최적화/예약/검수중/활성화 처리 (예/아니오, Y/N, true/false, 1/0 등 다양한 형식 지원)
         const parseBoolean = (value: any): boolean => {
           if (value === null || value === undefined || value === '') return false;
           const str = String(value).toLowerCase().trim();
@@ -306,6 +335,41 @@ export default function ClientsManagement() {
 
         const optimization = parseBoolean(row['최적화(예/아니오)'] || row['최적화'] || row['최적화 완료']);
         const reservation = parseBoolean(row['예약(예/아니오)'] || row['예약'] || row['예약 완료']);
+        const reviewing = parseBoolean(row['검수중(예/아니오)'] || row['검수중'] || row['검수']);
+        const isActive = parseBoolean(row['활성화여부(예/아니오)'] || row['활성화여부'] || row['활성화'] || '예');
+
+        // Quota 필드 처리 (숫자로 변환, 빈 값은 null)
+        const parseNumber = (value: any): number | null => {
+          if (value === null || value === undefined || value === '') return null;
+          const num = Number(value);
+          return isNaN(num) ? null : num;
+        };
+
+        const follower = parseNumber(row['인스타팔로워(개)'] || row['인스타팔로워'] || row['팔로워']);
+        const like = parseNumber(row['인스타좋아요(개)'] || row['인스타좋아요'] || row['좋아요']);
+        const hotpost = parseNumber(row['인기게시물(개)'] || row['인기게시물']);
+        const momcafe = parseNumber(row['맘카페(개)'] || row['맘카페']);
+        const powerblog = parseNumber(row['파워블로그(개)'] || row['파워블로그']);
+        const clip = parseNumber(row['클립(개)'] || row['클립']);
+        const blog = parseNumber(row['블로그리뷰(개)'] || row['블로그리뷰'] || row['블로그']);
+        const receipt = parseNumber(row['영수증리뷰(개)'] || row['영수증리뷰'] || row['영수증']);
+        const daangn = parseNumber(row['당근마켓(개)'] || row['당근마켓'] || row['당근']);
+        const experience = parseNumber(row['체험단(개)'] || row['체험단']);
+        const myexpense = parseNumber(row['내지출(개)'] || row['내지출']);
+
+        // Quota 객체 생성 (값이 있는 것만 포함)
+        const quota: any = {};
+        if (follower !== null) quota.follower = { total: follower, remaining: follower };
+        if (like !== null) quota.like = { total: like, remaining: like };
+        if (hotpost !== null) quota.hotpost = { total: hotpost, remaining: hotpost };
+        if (momcafe !== null) quota.momcafe = { total: momcafe, remaining: momcafe };
+        if (powerblog !== null) quota.powerblog = { total: powerblog, remaining: powerblog };
+        if (clip !== null) quota.clip = { total: clip, remaining: clip };
+        if (blog !== null) quota.blog = { total: blog, remaining: blog };
+        if (receipt !== null) quota.receipt = { total: receipt, remaining: receipt };
+        if (daangn !== null) quota.daangn = { total: daangn, remaining: daangn };
+        if (experience !== null) quota.experience = { total: experience, remaining: experience };
+        if (myexpense !== null) quota.myexpense = { total: myexpense, remaining: myexpense };
 
         return {
           username: String(row['아이디*'] || row['아이디'] || '').trim(),
@@ -313,12 +377,16 @@ export default function ClientsManagement() {
           companyName: String(row['상호명'] || '').trim(),
           planType: planType,
           contractStartDate: contractStartDate,
+          contractEndDate: contractEndDate,
+          isActive: isActive,
           notes: String(row['비고'] || '').trim(),
           naverId: String(row['네이버 아이디'] || '').trim(),
           naverPassword: String(row['네이버 비밀번호'] || '').trim(),
           businessType: String(row['업종'] || '').trim(),
           optimization: optimization,
           reservation: reservation,
+          reviewing: reviewing,
+          quota: Object.keys(quota).length > 0 ? quota : undefined,
         };
       });
 
