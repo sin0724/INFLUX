@@ -120,7 +120,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
           const result: any = {};
           
           // 모든 quota 타입에 대해 처리
-          const quotaTypes = ['follower', 'like', 'hotpost', 'momcafe', 'powerblog', 'clip', 'blog', 'receipt', 'daangn', 'experience', 'myexpense'];
+          const quotaTypes: Array<keyof typeof defaultQuota> = ['follower', 'like', 'hotpost', 'momcafe', 'powerblog', 'clip', 'blog', 'receipt', 'daangn', 'experience', 'myexpense'];
           quotaTypes.forEach(type => {
             if (q[type] && typeof q[type] === 'object' && q[type].total !== undefined) {
               result[type] = {
