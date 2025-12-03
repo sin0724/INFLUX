@@ -51,11 +51,13 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
   }, []);
 
   useEffect(() => {
-    // 계약 만료 체크
+    // 계약 만료 체크 (타임존 문제 해결)
     if (currentUser.contractEndDate) {
-      const endDate = new Date(currentUser.contractEndDate);
-      const now = new Date();
-      if (endDate < now || !currentUser.isActive) {
+      const today = new Date();
+      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const [year, month, day] = currentUser.contractEndDate.split('-').map(Number);
+      const endDate = new Date(year, month - 1, day);
+      if (endDate < todayDate || !currentUser.isActive) {
         setShowExpiredModal(true);
       }
     }

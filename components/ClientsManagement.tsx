@@ -290,9 +290,15 @@ export default function ClientsManagement() {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      // 엑셀 날짜를 YYYY-MM-DD 형식으로 변환하는 함수
+      // 엑셀 날짜를 YYYY-MM-DD 형식으로 변환하는 함수 (타임존 문제 해결)
       const excelDateToDateString = (excelDate: any): string => {
-        if (!excelDate) return new Date().toISOString().split('T')[0];
+        if (!excelDate) {
+          const today = new Date();
+          const year = today.getFullYear();
+          const month = String(today.getMonth() + 1).padStart(2, '0');
+          const day = String(today.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        }
         
         // 이미 문자열이고 YYYY-MM-DD 형식인 경우
         if (typeof excelDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(excelDate)) {
@@ -302,8 +308,11 @@ export default function ClientsManagement() {
         // 숫자인 경우 (엑셀 시리얼 날짜)
         if (typeof excelDate === 'number') {
           // 엑셀 날짜는 1900-01-01부터의 일수 (단, 1900년을 윤년으로 잘못 계산해서 1일 더해짐)
+          // 타임존 문제를 피하기 위해 로컬 날짜로 직접 계산
           const excelEpoch = new Date(1900, 0, 1);
-          const date = new Date(excelEpoch.getTime() + (excelDate - 2) * 24 * 60 * 60 * 1000);
+          const days = excelDate - 2; // 엑셀의 1900년 윤년 버그 보정
+          const date = new Date(excelEpoch);
+          date.setDate(date.getDate() + days);
           
           if (!isNaN(date.getTime())) {
             const year = date.getFullYear();
@@ -313,10 +322,18 @@ export default function ClientsManagement() {
           }
         }
         
-        // 문자열인 경우 Date 객체로 파싱 시도
+        // 문자열인 경우 - 타임존 문제를 피하기 위해 직접 파싱
         if (typeof excelDate === 'string') {
+          // YYYY-MM-DD 형식인지 확인
+          const dateMatch = excelDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (dateMatch) {
+            return `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+          }
+          
+          // 다른 형식의 날짜 문자열인 경우 로컬 타임존으로 파싱
           const parsed = new Date(excelDate);
           if (!isNaN(parsed.getTime())) {
+            // 로컬 타임존의 날짜를 사용 (시간은 무시)
             const year = parsed.getFullYear();
             const month = String(parsed.getMonth() + 1).padStart(2, '0');
             const day = String(parsed.getDate()).padStart(2, '0');
@@ -325,7 +342,11 @@ export default function ClientsManagement() {
         }
         
         // 기본값: 오늘 날짜
-        return new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       };
 
       // 필드명 매핑 및 데이터 정규화
@@ -548,15 +569,21 @@ export default function ClientsManagement() {
     // 계약 만료 필터
     if (contractFilter === 'all') return true;
 
-    const now = new Date();
-    const endDate = client.contractEndDate ? new Date(client.contractEndDate) : null;
+    // 타임존 문제를 피하기 위해 날짜 문자열을 직접 파싱
+    const today = new Date();
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const endDate = client.contractEndDate ? (() => {
+      const [year, month, day] = client.contractEndDate.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    })() : null;
     
     if (!endDate) {
       // 계약 종료일이 없으면 'expired'가 아닌 경우만 표시
       return contractFilter !== 'expired';
     }
 
-    const diffTime = endDate.getTime() - now.getTime();
+    const diffTime = endDate.getTime() - todayDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     switch (contractFilter) {
@@ -1711,11 +1738,25 @@ export default function ClientsManagement() {
             <div className="divide-y divide-gray-200">
               {filteredClients.map((client) => {
                 const isExpanded = expandedClients.has(client.id);
-                const now = new Date();
-                const endDate = client.contractEndDate ? new Date(client.contractEndDate) : null;
-                const isExpired = endDate && endDate < now;
+                // 타임존 문제를 피하기 위해 날짜 문자열을 직접 비교
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                
+                // 계약 종료일을 날짜 객체로 변환 (로컬 타임존, 시간은 00:00:00)
+                const endDate = client.contractEndDate ? (() => {
+                  const [year, month, day] = client.contractEndDate.split('-').map(Number);
+                  return new Date(year, month - 1, day);
+                })() : null;
+                
+                // 오늘 날짜를 로컬 타임존으로 변환 (시간은 00:00:00)
+                const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                
+                // 만료 여부 확인 (날짜만 비교, 시간 무시)
+                const isExpired = endDate && endDate < todayDate;
                 const isActive = client.isActive !== false && !isExpired;
-                const daysLeft = endDate ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                
+                // 남은 일수 계산
+                const daysLeft = endDate ? Math.ceil((endDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
                 
                 return (
                   <div key={client.id} className="hover:bg-gray-50 transition-colors">

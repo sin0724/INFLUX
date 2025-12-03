@@ -143,11 +143,25 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
         const totalQuota = quota.follower.total + quota.like.total + quota.hotpost.total + quota.momcafe.total + quota.powerblog.total + quota.clip.total + quota.blog.total + quota.receipt.total + (quota.daangn?.total || 0) + (quota.experience?.total || 0) + (quota.myexpense?.total || 0);
         const remainingQuota = quota.follower.remaining + quota.like.remaining + quota.hotpost.remaining + quota.momcafe.remaining + quota.powerblog.remaining + quota.clip.remaining + quota.blog.remaining + quota.receipt.remaining + (quota.daangn?.remaining || 0) + (quota.experience?.remaining || 0) + (quota.myexpense?.remaining || 0);
 
-        // 계약 종료일 계산
+        // 계약 종료일 계산 (타임존 문제 해결)
         let startDate: Date;
         if (contractStartDate) {
-          const parsedDate = new Date(contractStartDate);
-          if (isNaN(parsedDate.getTime())) {
+          // YYYY-MM-DD 형식을 로컬 타임존으로 직접 파싱 (타임존 변환 방지)
+          const dateMatch = String(contractStartDate).match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (dateMatch) {
+            const year = parseInt(dateMatch[1], 10);
+            const month = parseInt(dateMatch[2], 10) - 1; // 월은 0부터 시작
+            const day = parseInt(dateMatch[3], 10);
+            startDate = new Date(year, month, day);
+            if (isNaN(startDate.getTime())) {
+              results.failed.push({
+                row: rowNumber,
+                username,
+                error: '계약시작일 형식이 올바르지 않습니다. (YYYY-MM-DD 형식)',
+              });
+              continue;
+            }
+          } else {
             results.failed.push({
               row: rowNumber,
               username,
@@ -155,16 +169,30 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
             });
             continue;
           }
-          startDate = parsedDate;
         } else {
-          startDate = new Date();
+          const today = new Date();
+          startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         }
 
         // 계약 종료일 처리: 엑셀에서 제공된 값이 있으면 사용, 없으면 자동 계산
         let endDate: Date;
         if (contractEndDate) {
-          const parsedEndDate = new Date(contractEndDate);
-          if (isNaN(parsedEndDate.getTime())) {
+          // YYYY-MM-DD 형식을 로컬 타임존으로 직접 파싱 (타임존 변환 방지)
+          const dateMatch = String(contractEndDate).match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (dateMatch) {
+            const year = parseInt(dateMatch[1], 10);
+            const month = parseInt(dateMatch[2], 10) - 1; // 월은 0부터 시작
+            const day = parseInt(dateMatch[3], 10);
+            endDate = new Date(year, month, day);
+            if (isNaN(endDate.getTime())) {
+              results.failed.push({
+                row: rowNumber,
+                username,
+                error: '계약종료일 형식이 올바르지 않습니다. (YYYY-MM-DD 형식)',
+              });
+              continue;
+            }
+          } else {
             results.failed.push({
               row: rowNumber,
               username,
@@ -172,7 +200,6 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
             });
             continue;
           }
-          endDate = parsedEndDate;
         } else {
           // 계약 종료일 계산 - 안전한 방법
           const months = parseInt(String(planType || '1'), 10);
@@ -185,7 +212,7 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
             continue;
           }
           
-          // 안전한 날짜 계산
+          // 안전한 날짜 계산 (로컬 타임존 사용)
           endDate = new Date(startDate);
           endDate.setMonth(endDate.getMonth() + months);
           

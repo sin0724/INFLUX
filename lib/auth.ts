@@ -99,10 +99,14 @@ export async function getSession(): Promise<Session | null> {
     return null;
   }
 
-  // 계약 만료 체크
-  const now = new Date();
-  const contractEndDate = data.contractEndDate ? new Date(data.contractEndDate) : null;
-  const isExpired = contractEndDate && contractEndDate < now;
+  // 계약 만료 체크 (타임존 문제 해결)
+  const today = new Date();
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const contractEndDate = data.contractEndDate ? (() => {
+    const [year, month, day] = data.contractEndDate.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  })() : null;
+  const isExpired = contractEndDate && contractEndDate < todayDate;
   const isActive = data.isActive !== false && !isExpired;
 
   return {
@@ -143,10 +147,14 @@ export async function login(
     return { success: false, error: '아이디 또는 비밀번호가 올바르지 않습니다.' };
   }
 
-  // 계약 만료 체크 (클라이언트만)
-  const now = new Date();
-  const contractEndDate = data.contractEndDate ? new Date(data.contractEndDate) : null;
-  const isExpired = contractEndDate && contractEndDate < now;
+  // 계약 만료 체크 (클라이언트만, 타임존 문제 해결)
+  const today = new Date();
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const contractEndDate = data.contractEndDate ? (() => {
+    const [year, month, day] = data.contractEndDate.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  })() : null;
+  const isExpired = contractEndDate && contractEndDate < todayDate;
   const isActive = data.isActive !== false && !isExpired;
   
   if (data.role === 'client' && (!isActive || isExpired)) {
