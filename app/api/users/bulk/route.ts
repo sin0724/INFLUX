@@ -321,5 +321,195 @@ async function bulkCreateUsers(req: NextRequest, user: any) {
   }
 }
 
+// PATCH: 일괄 수정
+async function bulkUpdateUsers(req: NextRequest, user: any) {
+  if (!requireAdmin(user)) {
+    return NextResponse.json(
+      { error: '권한이 없습니다.' },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const body = await req.json();
+    const { ids, data: updateData } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { error: '수정할 광고주 ID가 없습니다.' },
+        { status: 400 }
+      );
+    }
+
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: '수정할 데이터가 없습니다.' },
+        { status: 400 }
+      );
+    }
+
+    const results = {
+      success: [] as string[],
+      failed: [] as Array<{ id: string; error: string }>,
+    };
+
+    // 업데이트할 데이터 준비
+    const updatePayload: any = {};
+    if (updateData.businessType !== undefined) {
+      updatePayload.businessType = updateData.businessType || null;
+    }
+    if (updateData.optimization !== undefined) {
+      updatePayload.optimization = Boolean(updateData.optimization);
+    }
+    if (updateData.reservation !== undefined) {
+      updatePayload.reservation = Boolean(updateData.reservation);
+    }
+    if (updateData.reviewing !== undefined) {
+      updatePayload.reviewing = Boolean(updateData.reviewing);
+    }
+    if (updateData.isActive !== undefined) {
+      updatePayload.isActive = Boolean(updateData.isActive);
+    }
+
+    // 일괄 업데이트 실행
+    const { data: updatedUsers, error } = await supabase
+      .from('users')
+      .update(updatePayload)
+      .in('id', ids)
+      .select('id, username, role');
+
+    if (error) {
+      return NextResponse.json(
+        { error: `일괄 수정에 실패했습니다: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    // 성공한 항목들 기록
+    if (updatedUsers) {
+      results.success = updatedUsers.map(u => u.id);
+    }
+
+    // 활동 로그 기록
+    for (const updatedUser of updatedUsers || []) {
+      await logAdminActivity(
+        user.id,
+        user.username,
+        AdminActions.UPDATE_USER,
+        updatedUser.role === 'admin' ? 'admin' : 'client',
+        updatedUser.id,
+        {
+          updatedUsername: updatedUser.username,
+          updateData: updatePayload,
+          bulkUpdate: true,
+        },
+        req
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      results: {
+        total: ids.length,
+        successCount: results.success.length,
+        failedCount: results.failed.length,
+        success: results.success,
+        failed: results.failed,
+      },
+    });
+  } catch (error: any) {
+    console.error('Bulk update users error:', error);
+    return NextResponse.json(
+      { error: `일괄 수정 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}` },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: 일괄 삭제
+async function bulkDeleteUsers(req: NextRequest, user: any) {
+  if (!requireAdmin(user)) {
+    return NextResponse.json(
+      { error: '권한이 없습니다.' },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const body = await req.json();
+    const { ids } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { error: '삭제할 광고주 ID가 없습니다.' },
+        { status: 400 }
+      );
+    }
+
+    // 삭제 전 사용자 정보 가져오기 (로그용)
+    const { data: usersToDelete, error: fetchError } = await supabase
+      .from('users')
+      .select('id, username, role')
+      .in('id', ids);
+
+    if (fetchError) {
+      return NextResponse.json(
+        { error: `사용자 정보 조회에 실패했습니다: ${fetchError.message}` },
+        { status: 500 }
+      );
+    }
+
+    // 일괄 삭제 실행
+    const { error: deleteError } = await supabase
+      .from('users')
+      .delete()
+      .in('id', ids);
+
+    if (deleteError) {
+      return NextResponse.json(
+        { error: `일괄 삭제에 실패했습니다: ${deleteError.message}` },
+        { status: 500 }
+      );
+    }
+
+    // 활동 로그 기록
+    for (const deletedUser of usersToDelete || []) {
+      const targetType = deletedUser.role === 'admin' ? 'admin' : deletedUser.role === 'client' ? 'client' : 'user';
+      const logAction = deletedUser.role === 'admin' ? AdminActions.DELETE_ADMIN : AdminActions.DELETE_USER;
+      
+      await logAdminActivity(
+        user.id,
+        user.username,
+        logAction,
+        targetType,
+        deletedUser.id,
+        {
+          deletedUsername: deletedUser.username,
+          deletedRole: deletedUser.role,
+          bulkDelete: true,
+        },
+        req
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      results: {
+        total: ids.length,
+        successCount: usersToDelete?.length || 0,
+        failedCount: 0,
+      },
+    });
+  } catch (error: any) {
+    console.error('Bulk delete users error:', error);
+    return NextResponse.json(
+      { error: `일괄 삭제 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}` },
+      { status: 500 }
+    );
+  }
+}
+
 export const POST = withAuth(bulkCreateUsers, ['superadmin', 'admin']);
+export const PATCH = withAuth(bulkUpdateUsers, ['superadmin', 'admin']);
+export const DELETE = withAuth(bulkDeleteUsers, ['superadmin', 'admin']);
 

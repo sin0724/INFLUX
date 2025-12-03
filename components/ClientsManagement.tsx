@@ -61,6 +61,18 @@ export default function ClientsManagement() {
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkUploadResult, setBulkUploadResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 일괄 수정/삭제 관련 state
+  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({
+    businessType: '',
+    optimization: null as boolean | null,
+    reservation: null as boolean | null,
+    reviewing: null as boolean | null,
+    isActive: null as boolean | null,
+  });
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const [formData, setFormData] = useState({
     username: '',
@@ -611,6 +623,139 @@ export default function ClientsManagement() {
     } catch (error) {
       console.error('Failed to delete client:', error);
       alert('광고주 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 일괄 선택/해제 함수
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredClients.map(client => client.id));
+      setSelectedClients(allIds);
+    } else {
+      setSelectedClients(new Set());
+    }
+  };
+
+  const handleSelectClient = (clientId: string, checked: boolean) => {
+    const newSelected = new Set(selectedClients);
+    if (checked) {
+      newSelected.add(clientId);
+    } else {
+      newSelected.delete(clientId);
+    }
+    setSelectedClients(newSelected);
+  };
+
+  // 일괄 수정
+  const handleBulkUpdate = async () => {
+    if (selectedClients.size === 0) {
+      alert('수정할 광고주를 선택해주세요.');
+      return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const updateData: any = {};
+      if (bulkEditForm.businessType !== '') {
+        updateData.businessType = bulkEditForm.businessType;
+      }
+      if (bulkEditForm.optimization !== null) {
+        updateData.optimization = bulkEditForm.optimization;
+      }
+      if (bulkEditForm.reservation !== null) {
+        updateData.reservation = bulkEditForm.reservation;
+      }
+      if (bulkEditForm.reviewing !== null) {
+        updateData.reviewing = bulkEditForm.reviewing;
+      }
+      if (bulkEditForm.isActive !== null) {
+        updateData.isActive = bulkEditForm.isActive;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        alert('수정할 항목을 선택해주세요.');
+        setBulkProcessing(false);
+        return;
+      }
+
+      const response = await fetch('/api/users/bulk', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedClients),
+          data: updateData,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        fetchClients();
+        setSelectedClients(new Set());
+        setShowBulkEditModal(false);
+        setBulkEditForm({
+          businessType: '',
+          optimization: null,
+          reservation: null,
+          reviewing: null,
+          isActive: null,
+        });
+        alert(`성공적으로 ${result.successCount || selectedClients.size}개 광고주를 수정했습니다.`);
+      } else {
+        const data = await response.json();
+        alert(data.error || '일괄 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to bulk update:', error);
+      alert('일괄 수정 중 오류가 발생했습니다.');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  // 일괄 삭제
+  const handleBulkDelete = async () => {
+    if (selectedClients.size === 0) {
+      alert('삭제할 광고주를 선택해주세요.');
+      return;
+    }
+
+    const selectedNames = filteredClients
+      .filter(client => selectedClients.has(client.id))
+      .map(client => client.username)
+      .join(', ');
+
+    if (!confirm(`정말로 선택한 ${selectedClients.size}개 광고주를 삭제하시겠습니까?\n\n선택된 광고주: ${selectedNames}\n\n이 작업은 되돌릴 수 없으며, 해당 광고주의 모든 데이터가 삭제됩니다.`)) {
+      return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const response = await fetch('/api/users/bulk', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedClients),
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        fetchClients();
+        setSelectedClients(new Set());
+        alert(`성공적으로 ${result.successCount || selectedClients.size}개 광고주를 삭제했습니다.`);
+      } else {
+        const data = await response.json();
+        alert(data.error || '일괄 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to bulk delete:', error);
+      alert('일괄 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setBulkProcessing(false);
     }
   };
 
@@ -1515,6 +1660,45 @@ export default function ClientsManagement() {
           )}
         </div>
 
+        {/* 일괄 작업 버튼 */}
+        {filteredClients.length > 0 && (
+          <div className="mb-4 flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedClients.size > 0 && selectedClients.size === filteredClients.length}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  전체 선택 ({selectedClients.size}/{filteredClients.length})
+                </span>
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedClients.size > 0 && (
+                <>
+                  <button
+                    onClick={() => setShowBulkEditModal(true)}
+                    disabled={bulkProcessing}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm font-medium"
+                  >
+                    일괄 수정 ({selectedClients.size})
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={bulkProcessing}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 text-sm font-medium"
+                  >
+                    일괄 삭제 ({selectedClients.size})
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Clients List */}
         {loading ? (
           <div className="text-center py-12 text-gray-600">로딩 중...</div>
@@ -1550,6 +1734,21 @@ export default function ClientsManagement() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1 min-w-0">
+                          {/* 체크박스 */}
+                          <div 
+                            className="flex items-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedClients.has(client.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleSelectClient(client.id, e.target.checked);
+                              }}
+                              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                            />
+                          </div>
                           {/* 아이디 */}
                           <div className="font-medium text-gray-900 min-w-[120px]">
                             {client.username}
@@ -1961,6 +2160,153 @@ export default function ClientsManagement() {
                     className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                   >
                     재계약 완료
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 일괄 수정 모달 */}
+        {showBulkEditModal && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setShowBulkEditModal(false);
+              setBulkEditForm({
+                businessType: '',
+                optimization: null,
+                reservation: null,
+                reviewing: null,
+                isActive: null,
+              });
+            }}
+          >
+            <div
+              className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                일괄 수정 ({selectedClients.size}개 광고주)
+              </h2>
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-gray-700">
+                <p>변경할 항목만 선택하세요. 선택하지 않은 항목은 변경되지 않습니다.</p>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    업종
+                  </label>
+                  <select
+                    value={bulkEditForm.businessType}
+                    onChange={(e) => setBulkEditForm({ ...bulkEditForm, businessType: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">변경 안 함</option>
+                    {BUSINESS_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      최적화 상태
+                    </label>
+                    <select
+                      value={bulkEditForm.optimization === null ? '' : bulkEditForm.optimization ? 'true' : 'false'}
+                      onChange={(e) => setBulkEditForm({ 
+                        ...bulkEditForm, 
+                        optimization: e.target.value === '' ? null : e.target.value === 'true' 
+                      })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    >
+                      <option value="">변경 안 함</option>
+                      <option value="true">완료</option>
+                      <option value="false">대기</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      예약 상태
+                    </label>
+                    <select
+                      value={bulkEditForm.reservation === null ? '' : bulkEditForm.reservation ? 'true' : 'false'}
+                      onChange={(e) => setBulkEditForm({ 
+                        ...bulkEditForm, 
+                        reservation: e.target.value === '' ? null : e.target.value === 'true' 
+                      })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    >
+                      <option value="">변경 안 함</option>
+                      <option value="true">완료</option>
+                      <option value="false">대기</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      검수중 상태
+                    </label>
+                    <select
+                      value={bulkEditForm.reviewing === null ? '' : bulkEditForm.reviewing ? 'true' : 'false'}
+                      onChange={(e) => setBulkEditForm({ 
+                        ...bulkEditForm, 
+                        reviewing: e.target.value === '' ? null : e.target.value === 'true' 
+                      })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    >
+                      <option value="">변경 안 함</option>
+                      <option value="true">검수중</option>
+                      <option value="false">대기</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      활성화 상태
+                    </label>
+                    <select
+                      value={bulkEditForm.isActive === null ? '' : bulkEditForm.isActive ? 'true' : 'false'}
+                      onChange={(e) => setBulkEditForm({ 
+                        ...bulkEditForm, 
+                        isActive: e.target.value === '' ? null : e.target.value === 'true' 
+                      })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    >
+                      <option value="">변경 안 함</option>
+                      <option value="true">활성화</option>
+                      <option value="false">비활성화</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setShowBulkEditModal(false);
+                      setBulkEditForm({
+                        businessType: '',
+                        optimization: null,
+                        reservation: null,
+                        reviewing: null,
+                        isActive: null,
+                      });
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleBulkUpdate}
+                    disabled={bulkProcessing}
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50"
+                  >
+                    {bulkProcessing ? '수정 중...' : '수정하기'}
                   </button>
                 </div>
               </div>
