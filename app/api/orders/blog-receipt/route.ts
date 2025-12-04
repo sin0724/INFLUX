@@ -12,7 +12,19 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
   }
 
   try {
-    const { clientId, blogLink, receiptLink } = await req.json();
+    const { clientId, blogLinks, receiptLinks } = await req.json();
+
+    // 하위 호환성을 위해 단일 링크도 배열로 변환
+    const blogLinksArray = blogLinks 
+      ? (Array.isArray(blogLinks) ? blogLinks : [blogLinks])
+      : [];
+    const receiptLinksArray = receiptLinks 
+      ? (Array.isArray(receiptLinks) ? receiptLinks : [receiptLinks])
+      : [];
+
+    // 빈 링크 제거
+    const validBlogLinks = blogLinksArray.filter((link: string) => link?.trim());
+    const validReceiptLinks = receiptLinksArray.filter((link: string) => link?.trim());
 
     if (!clientId) {
       return NextResponse.json(
@@ -21,7 +33,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       );
     }
 
-    if (!blogLink?.trim() && !receiptLink?.trim()) {
+    if (validBlogLinks.length === 0 && validReceiptLinks.length === 0) {
       return NextResponse.json(
         { error: '블로그 리뷰 또는 영수증 리뷰 링크 중 하나는 입력해주세요.' },
         { status: 400 }
@@ -45,89 +57,105 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
     const quota = { ...(clientData.quota || {}) } as any;
 
     // 블로그 리뷰 처리
-    if (blogLink?.trim()) {
-      if (!quota.blog || quota.blog.remaining <= 0) {
+    const blogResults = {
+      success: [] as string[],
+      failed: [] as Array<{ link: string; error: string }>,
+    };
+
+    if (validBlogLinks.length > 0) {
+      // Quota 확인
+      if (!quota.blog || quota.blog.remaining < validBlogLinks.length) {
         return NextResponse.json(
-          { error: '블로그 리뷰 남은 개수가 없습니다.' },
+          { error: `블로그 리뷰 남은 개수가 부족합니다. (필요: ${validBlogLinks.length}개, 남은 개수: ${quota.blog?.remaining || 0}개)` },
           { status: 400 }
         );
       }
 
-      // 주문 생성
-      const { data: blogOrder, error: blogOrderError } = await supabaseAdmin
-        .from('orders')
-        .insert({
-          clientId,
-          taskType: 'blog',
-          caption: '블로그 리뷰',
-          imageUrls: [],
-          status: 'done',
-          completedLink: blogLink.trim(),
-        })
-        .select()
-        .single();
+      // 각 링크마다 주문 생성
+      for (const blogLink of validBlogLinks) {
+        try {
+          const { data: blogOrder, error: blogOrderError } = await supabaseAdmin
+            .from('orders')
+            .insert({
+              clientId,
+              taskType: 'blog',
+              caption: '블로그 리뷰',
+              imageUrls: [],
+              status: 'done',
+              completedLink: blogLink.trim(),
+            })
+            .select()
+            .single();
 
-      if (blogOrderError || !blogOrder) {
-        console.error('Failed to create blog order:', blogOrderError);
-        // 더 자세한 오류 메시지 반환
-        const errorMessage = blogOrderError?.message || '알 수 없는 오류';
-        const errorCode = blogOrderError?.code || '';
-        return NextResponse.json(
-          { 
-            error: '블로그 리뷰 주문 생성에 실패했습니다.',
-            details: errorMessage,
-            code: errorCode,
-            hint: errorCode === '23514' ? 'orders 테이블의 taskType CHECK 제약조건에 "blog"가 포함되어 있지 않습니다. 데이터베이스 마이그레이션을 실행해주세요.' : undefined
-          },
-          { status: 500 }
-        );
+          if (blogOrderError || !blogOrder) {
+            console.error('Failed to create blog order:', blogOrderError);
+            blogResults.failed.push({
+              link: blogLink,
+              error: blogOrderError?.message || '주문 생성 실패',
+            });
+          } else {
+            blogResults.success.push(blogLink);
+            // Quota 차감
+            quota.blog.remaining -= 1;
+          }
+        } catch (error: any) {
+          blogResults.failed.push({
+            link: blogLink,
+            error: error.message || '알 수 없는 오류',
+          });
+        }
       }
-
-      // Quota 차감
-      quota.blog.remaining -= 1;
     }
 
     // 영수증 리뷰 처리
-    if (receiptLink?.trim()) {
-      if (!quota.receipt || quota.receipt.remaining <= 0) {
+    const receiptResults = {
+      success: [] as string[],
+      failed: [] as Array<{ link: string; error: string }>,
+    };
+
+    if (validReceiptLinks.length > 0) {
+      // Quota 확인
+      if (!quota.receipt || quota.receipt.remaining < validReceiptLinks.length) {
         return NextResponse.json(
-          { error: '영수증 리뷰 남은 개수가 없습니다.' },
+          { error: `영수증 리뷰 남은 개수가 부족합니다. (필요: ${validReceiptLinks.length}개, 남은 개수: ${quota.receipt?.remaining || 0}개)` },
           { status: 400 }
         );
       }
 
-      // 주문 생성
-      const { data: receiptOrder, error: receiptOrderError } = await supabaseAdmin
-        .from('orders')
-        .insert({
-          clientId,
-          taskType: 'receipt',
-          caption: '영수증 리뷰',
-          imageUrls: [],
-          status: 'done',
-          completedLink: receiptLink.trim(),
-        })
-        .select()
-        .single();
+      // 각 링크마다 주문 생성
+      for (const receiptLink of validReceiptLinks) {
+        try {
+          const { data: receiptOrder, error: receiptOrderError } = await supabaseAdmin
+            .from('orders')
+            .insert({
+              clientId,
+              taskType: 'receipt',
+              caption: '영수증 리뷰',
+              imageUrls: [],
+              status: 'done',
+              completedLink: receiptLink.trim(),
+            })
+            .select()
+            .single();
 
-      if (receiptOrderError || !receiptOrder) {
-        console.error('Failed to create receipt order:', receiptOrderError);
-        // 더 자세한 오류 메시지 반환
-        const errorMessage = receiptOrderError?.message || '알 수 없는 오류';
-        const errorCode = receiptOrderError?.code || '';
-        return NextResponse.json(
-          { 
-            error: '영수증 리뷰 주문 생성에 실패했습니다.',
-            details: errorMessage,
-            code: errorCode,
-            hint: errorCode === '23514' ? 'orders 테이블의 taskType CHECK 제약조건에 "receipt"가 포함되어 있지 않습니다. 데이터베이스 마이그레이션을 실행해주세요.' : undefined
-          },
-          { status: 500 }
-        );
+          if (receiptOrderError || !receiptOrder) {
+            console.error('Failed to create receipt order:', receiptOrderError);
+            receiptResults.failed.push({
+              link: receiptLink,
+              error: receiptOrderError?.message || '주문 생성 실패',
+            });
+          } else {
+            receiptResults.success.push(receiptLink);
+            // Quota 차감
+            quota.receipt.remaining -= 1;
+          }
+        } catch (error: any) {
+          receiptResults.failed.push({
+            link: receiptLink,
+            error: error.message || '알 수 없는 오류',
+          });
+        }
       }
-
-      // Quota 차감
-      quota.receipt.remaining -= 1;
     }
 
     // 총 remainingQuota 계산 (모든 작업 타입 포함)
@@ -160,6 +188,14 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
     return NextResponse.json({
       success: true,
       message: '링크가 성공적으로 추가되었습니다.',
+      results: {
+        blogSuccessCount: blogResults.success.length,
+        blogFailedCount: blogResults.failed.length,
+        blogResults: blogResults,
+        receiptSuccessCount: receiptResults.success.length,
+        receiptFailedCount: receiptResults.failed.length,
+        receiptResults: receiptResults,
+      },
     });
   } catch (error) {
     console.error('Create blog/receipt link error:', error);

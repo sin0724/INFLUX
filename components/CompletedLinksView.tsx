@@ -44,8 +44,8 @@ export default function CompletedLinksView() {
   // 블로그/영수증 리뷰 링크 추가 모달 상태
   const [showBlogReceiptModal, setShowBlogReceiptModal] = useState(false);
   const [selectedClientForLink, setSelectedClientForLink] = useState<any>(null);
-  const [blogLink, setBlogLink] = useState('');
-  const [receiptLink, setReceiptLink] = useState('');
+  const [blogLinks, setBlogLinks] = useState<string[]>(['']);
+  const [receiptLinks, setReceiptLinks] = useState<string[]>(['']);
   const [submitting, setSubmitting] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
@@ -130,7 +130,11 @@ export default function CompletedLinksView() {
   const handleAddBlogReceiptLink = async () => {
     if (!selectedClientForLink) return;
     
-    if (!blogLink.trim() && !receiptLink.trim()) {
+    // 빈 링크 제거
+    const validBlogLinks = blogLinks.filter(link => link.trim());
+    const validReceiptLinks = receiptLinks.filter(link => link.trim());
+    
+    if (validBlogLinks.length === 0 && validReceiptLinks.length === 0) {
       alert('블로그 리뷰 또는 영수증 리뷰 링크 중 하나는 입력해주세요.');
       return;
     }
@@ -144,8 +148,8 @@ export default function CompletedLinksView() {
         },
         body: JSON.stringify({
           clientId: selectedClientForLink.id,
-          blogLink: blogLink.trim() || null,
-          receiptLink: receiptLink.trim() || null,
+          blogLinks: validBlogLinks.length > 0 ? validBlogLinks : null,
+          receiptLinks: validReceiptLinks.length > 0 ? validReceiptLinks : null,
         }),
       });
 
@@ -165,11 +169,21 @@ export default function CompletedLinksView() {
         return;
       }
 
-      alert('링크가 성공적으로 추가되었습니다.');
+      const successCount = (data.results?.blogSuccessCount || 0) + (data.results?.receiptSuccessCount || 0);
+      const failedCount = (data.results?.blogFailedCount || 0) + (data.results?.receiptFailedCount || 0);
+      
+      let message = `총 ${successCount}개의 링크가 성공적으로 추가되었습니다.`;
+      if (failedCount > 0) {
+        message += `\n${failedCount}개의 링크 추가에 실패했습니다.`;
+      }
+      alert(message);
+      
       setShowBlogReceiptModal(false);
       setSelectedClientForLink(null);
-      setBlogLink('');
-      setReceiptLink('');
+      setBlogLinks(['']);
+      setReceiptLinks(['']);
+      setClientSearchTerm('');
+      setShowClientDropdown(false);
       fetchCompletedOrders();
     } catch (error) {
       console.error('Failed to add blog/receipt link:', error);
@@ -177,6 +191,48 @@ export default function CompletedLinksView() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // 블로그 링크 추가
+  const addBlogLink = () => {
+    setBlogLinks([...blogLinks, '']);
+  };
+
+  // 블로그 링크 삭제
+  const removeBlogLink = (index: number) => {
+    if (blogLinks.length > 1) {
+      setBlogLinks(blogLinks.filter((_, i) => i !== index));
+    } else {
+      setBlogLinks(['']);
+    }
+  };
+
+  // 블로그 링크 업데이트
+  const updateBlogLink = (index: number, value: string) => {
+    const newLinks = [...blogLinks];
+    newLinks[index] = value;
+    setBlogLinks(newLinks);
+  };
+
+  // 영수증 링크 추가
+  const addReceiptLink = () => {
+    setReceiptLinks([...receiptLinks, '']);
+  };
+
+  // 영수증 링크 삭제
+  const removeReceiptLink = (index: number) => {
+    if (receiptLinks.length > 1) {
+      setReceiptLinks(receiptLinks.filter((_, i) => i !== index));
+    } else {
+      setReceiptLinks(['']);
+    }
+  };
+
+  // 영수증 링크 업데이트
+  const updateReceiptLink = (index: number, value: string) => {
+    const newLinks = [...receiptLinks];
+    newLinks[index] = value;
+    setReceiptLinks(newLinks);
   };
 
   // 검색어로 필터링
@@ -250,8 +306,8 @@ export default function CompletedLinksView() {
             onClick={() => {
               setShowBlogReceiptModal(true);
               setSelectedClientForLink(null);
-              setBlogLink('');
-              setReceiptLink('');
+              setBlogLinks(['']);
+              setReceiptLinks(['']);
               setClientSearchTerm('');
               setShowClientDropdown(false);
             }}
@@ -441,7 +497,7 @@ export default function CompletedLinksView() {
       {/* 블로그/영수증 리뷰 링크 추가 모달 */}
       {showBlogReceiptModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               블로그/영수증 리뷰 링크 추가
             </h2>
@@ -548,35 +604,83 @@ export default function CompletedLinksView() {
 
             {/* 블로그 리뷰 링크 */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                블로그 리뷰 링크
-              </label>
-              <input
-                type="url"
-                value={blogLink}
-                onChange={(e) => setBlogLink(e.target.value)}
-                placeholder="https://..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  블로그 리뷰 링크
+                </label>
+                <button
+                  type="button"
+                  onClick={addBlogLink}
+                  className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                >
+                  + 링크 추가
+                </button>
+              </div>
+              <div className="space-y-2">
+                {blogLinks.map((link, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="url"
+                      value={link}
+                      onChange={(e) => updateBlogLink(index, e.target.value)}
+                      placeholder="https://..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                    {blogLinks.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeBlogLink(index)}
+                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
               <p className="text-xs text-gray-500 mt-1">
-                링크 입력 시 블로그 리뷰 quota가 1개 차감됩니다.
+                각 링크 입력 시 블로그 리뷰 quota가 1개씩 차감됩니다. (총 {blogLinks.filter(l => l.trim()).length}개)
               </p>
             </div>
 
             {/* 영수증 리뷰 링크 */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                영수증 리뷰 링크
-              </label>
-              <input
-                type="url"
-                value={receiptLink}
-                onChange={(e) => setReceiptLink(e.target.value)}
-                placeholder="https://..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  영수증 리뷰 링크
+                </label>
+                <button
+                  type="button"
+                  onClick={addReceiptLink}
+                  className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                >
+                  + 링크 추가
+                </button>
+              </div>
+              <div className="space-y-2">
+                {receiptLinks.map((link, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="url"
+                      value={link}
+                      onChange={(e) => updateReceiptLink(index, e.target.value)}
+                      placeholder="https://..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                    {receiptLinks.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeReceiptLink(index)}
+                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
               <p className="text-xs text-gray-500 mt-1">
-                링크 입력 시 영수증 리뷰 quota가 1개 차감됩니다.
+                각 링크 입력 시 영수증 리뷰 quota가 1개씩 차감됩니다. (총 {receiptLinks.filter(l => l.trim()).length}개)
               </p>
             </div>
 
@@ -586,8 +690,8 @@ export default function CompletedLinksView() {
                 onClick={() => {
                   setShowBlogReceiptModal(false);
                   setSelectedClientForLink(null);
-                  setBlogLink('');
-                  setReceiptLink('');
+                  setBlogLinks(['']);
+                  setReceiptLinks(['']);
                   setClientSearchTerm('');
                   setShowClientDropdown(false);
                 }}
@@ -598,7 +702,7 @@ export default function CompletedLinksView() {
               <button
                 type="button"
                 onClick={handleAddBlogReceiptLink}
-                disabled={submitting || !selectedClientForLink || (!blogLink.trim() && !receiptLink.trim())}
+                disabled={submitting || !selectedClientForLink || (blogLinks.filter(l => l.trim()).length === 0 && receiptLinks.filter(l => l.trim()).length === 0)}
                 className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? '추가 중...' : '추가'}
