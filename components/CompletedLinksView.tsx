@@ -400,8 +400,8 @@ export default function CompletedLinksView() {
                     <button
                       onClick={() => {
                         setSelectedClientForLink(group.client);
-                        setBlogLink('');
-                        setReceiptLink('');
+                        setBlogLinks(['']);
+                        setReceiptLinks(['']);
                         setClientSearchTerm('');
                         setShowClientDropdown(false);
                         setShowBlogReceiptModal(true);
