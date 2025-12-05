@@ -52,7 +52,7 @@ async function updateOrder(
 
   try {
     const body = await req.json();
-    const { status, caption, imageUrls, completedLink, completedLink2 } = body;
+    const { status, caption, imageUrls, completedLink, completedLink2, reviewerName } = body;
 
     const updateData: any = {};
     
@@ -74,6 +74,10 @@ async function updateOrder(
     
     if (completedLink2 !== undefined) {
       updateData.completedLink2 = completedLink2 || null;
+    }
+    
+    if (reviewerName !== undefined) {
+      updateData.reviewerName = reviewerName || null;
     }
 
     if (Object.keys(updateData).length === 0) {

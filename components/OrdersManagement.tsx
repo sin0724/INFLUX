@@ -97,6 +97,7 @@ export default function OrdersManagement() {
   const [completingOrder, setCompletingOrder] = useState<Order | null>(null);
   const [completedLink, setCompletedLink] = useState('');
   const [completedLink2, setCompletedLink2] = useState(''); // 내돈내산 리뷰용 두 번째 링크
+  const [reviewerName, setReviewerName] = useState(''); // 내돈내산 리뷰어 이름
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -238,7 +239,7 @@ export default function OrdersManagement() {
     await updateOrderStatus(orderId, newStatus, null);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null, link2?: string | null) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null, link2?: string | null, reviewerName?: string | null) => {
     try {
       const order = orders.find(o => o.id === orderId);
       const isExperience = order?.isExperience || order?.taskType === 'experience';
@@ -296,9 +297,12 @@ export default function OrdersManagement() {
           status: newStatus,
           completedLink: link || null
         };
-        // 내돈내산 리뷰는 completedLink2도 전송
+        // 내돈내산 리뷰는 completedLink2와 reviewerName도 전송
         if (isMyexpense && link2) {
           requestBody.completedLink2 = link2;
+        }
+        if (isMyexpense && reviewerName && reviewerName.trim()) {
+          requestBody.reviewerName = reviewerName.trim();
         }
         
         const response = await fetch(`/api/orders/${orderId}`, {
@@ -318,6 +322,7 @@ export default function OrdersManagement() {
           setCompletingOrder(null);
           setCompletedLink('');
           setCompletedLink2('');
+          setReviewerName('');
         } else {
           const data = await response.json();
           alert(data.error || '상태 변경에 실패했습니다.');
@@ -332,10 +337,14 @@ export default function OrdersManagement() {
   const handleCompleteWithLink = () => {
     if (!completingOrder) return;
     
-    // 내돈내산 리뷰는 2개의 링크가 모두 필요
+    // 내돈내산 리뷰는 2개의 링크와 리뷰어 이름이 모두 필요
     if (completingOrder.taskType === 'myexpense') {
       if (!completedLink.trim() || !completedLink2.trim()) {
         alert('완료 링크 2개를 모두 입력해주세요.');
+        return;
+      }
+      if (!reviewerName.trim()) {
+        alert('리뷰어 이름을 입력해주세요.');
         return;
       }
     } else {
@@ -1041,7 +1050,7 @@ export default function OrdersManagement() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      완료 링크 1 <span className="text-red-500">*</span>
+                      {completingOrder.taskType === 'myexpense' ? '내돈내산 예약자 리뷰' : '완료 링크'} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="url"
@@ -1051,26 +1060,43 @@ export default function OrdersManagement() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      완료된 작업의 링크를 입력해주세요.
+                      {completingOrder.taskType === 'myexpense' ? '내돈내산 예약자 리뷰 링크를 입력해주세요.' : '완료된 작업의 링크를 입력해주세요.'}
                     </p>
                   </div>
                   
                   {completingOrder.taskType === 'myexpense' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        완료 링크 2 <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="url"
-                        value={completedLink2}
-                        onChange={(e) => setCompletedLink2(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        내돈내산 리뷰는 2개의 링크를 입력해주세요.
-                      </p>
-                    </div>
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          내돈내산 블로그 리뷰 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="url"
+                          value={completedLink2}
+                          onChange={(e) => setCompletedLink2(e.target.value)}
+                          placeholder="https://..."
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          내돈내산 블로그 리뷰 링크를 입력해주세요.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          리뷰어 이름 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={reviewerName}
+                          onChange={(e) => setReviewerName(e.target.value)}
+                          placeholder="리뷰어 이름을 입력해주세요"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          완료된 리뷰를 작성한 리뷰어의 이름을 입력해주세요.
+                        </p>
+                      </div>
+                    </>
                   )}
 
                   <div className="flex gap-3 pt-4 border-t border-gray-200">
@@ -1079,6 +1105,7 @@ export default function OrdersManagement() {
                         setCompletingOrder(null);
                         setCompletedLink('');
                         setCompletedLink2('');
+                        setReviewerName('');
                       }}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
                     >

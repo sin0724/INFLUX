@@ -215,7 +215,7 @@ export default function ClientOrdersList() {
                     <div className="space-y-2">
                       <div>
                         <div className="text-sm text-gray-600 mb-2">
-                          {selectedOrder.taskType === 'myexpense' ? '완료 링크 1' : '완료 링크'}
+                          {selectedOrder.taskType === 'myexpense' ? '내돈내산 예약자 리뷰' : '완료 링크'}
                         </div>
                         <a
                           href={selectedOrder.completedLink}
@@ -231,7 +231,7 @@ export default function ClientOrdersList() {
                       </div>
                       {selectedOrder.taskType === 'myexpense' && (selectedOrder as any).completedLink2 && (
                         <div>
-                          <div className="text-sm text-gray-600 mb-2">완료 링크 2</div>
+                          <div className="text-sm text-gray-600 mb-2">내돈내산 블로그 리뷰</div>
                           <a
                             href={(selectedOrder as any).completedLink2}
                             target="_blank"
@@ -243,6 +243,14 @@ export default function ClientOrdersList() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                           </a>
+                        </div>
+                      )}
+                      {selectedOrder.taskType === 'myexpense' && (selectedOrder as any).reviewerName && (
+                        <div>
+                          <div className="text-sm text-gray-600 mb-2">리뷰어 이름</div>
+                          <div className="px-4 py-2 bg-gray-50 text-gray-900 rounded-lg">
+                            {(selectedOrder as any).reviewerName}
+                          </div>
                         </div>
                       )}
                     </div>
