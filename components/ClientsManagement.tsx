@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { formatDate } from '@/lib/utils';
+import { formatDate, parseDate, formatDateSafe } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
@@ -573,10 +573,7 @@ export default function ClientsManagement() {
     const today = new Date();
     const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
-    const endDate = client.contractEndDate ? (() => {
-      const [year, month, day] = client.contractEndDate.split('-').map(Number);
-      return new Date(year, month - 1, day);
-    })() : null;
+    const endDate = parseDate(client.contractEndDate);
     
     if (!endDate) {
       // 계약 종료일이 없으면 'expired'가 아닌 경우만 표시
@@ -862,9 +859,7 @@ export default function ClientsManagement() {
     };
 
     // 계약 종료일 기준으로 연장 (계약 시작일은 유지)
-    const currentEndDate = renewingClient.contractEndDate 
-      ? new Date(renewingClient.contractEndDate) 
-      : new Date();
+    const currentEndDate = parseDate(renewingClient.contractEndDate) || new Date();
     
     // 계약 종료일이 과거인 경우 오늘 날짜부터 시작
     const baseDate = currentEndDate > new Date() ? currentEndDate : new Date();
@@ -1743,10 +1738,7 @@ export default function ClientsManagement() {
                 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                 
                 // 계약 종료일을 날짜 객체로 변환 (로컬 타임존, 시간은 00:00:00)
-                const endDate = client.contractEndDate ? (() => {
-                  const [year, month, day] = client.contractEndDate.split('-').map(Number);
-                  return new Date(year, month - 1, day);
-                })() : null;
+                const endDate = parseDate(client.contractEndDate);
                 
                 // 오늘 날짜를 로컬 타임존으로 변환 (시간은 00:00:00)
                 const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1890,10 +1882,10 @@ export default function ClientsManagement() {
                           </div>
                           
                           {/* 계약 정보 */}
-                          {endDate && (
+                          {client.contractEndDate && (
                             <div>
                               <label className="block text-xs font-medium text-gray-500 mb-1">계약 종료일</label>
-                              <div className="text-sm text-gray-900">{endDate.toLocaleDateString('ko-KR')}</div>
+                              <div className="text-sm text-gray-900">{formatDateSafe(client.contractEndDate)}</div>
                             </div>
                           )}
                           
@@ -2061,18 +2053,7 @@ export default function ClientsManagement() {
                     현재 계약 종료일
                   </label>
                   <div className="text-gray-600">
-                    {extendingClient.contractEndDate ? (() => {
-                      try {
-                        const [year, month, day] = extendingClient.contractEndDate.split('-').map(Number);
-                        const date = new Date(year, month - 1, day);
-                        if (!isNaN(date.getTime())) {
-                          return date.toLocaleDateString('ko-KR');
-                        }
-                        return '날짜 형식 오류';
-                      } catch {
-                        return '날짜 형식 오류';
-                      }
-                    })() : '미설정'}
+                    {formatDateSafe(extendingClient.contractEndDate)}
                   </div>
                 </div>
                 <div>
@@ -2084,21 +2065,12 @@ export default function ClientsManagement() {
                     value={extendDate}
                     onChange={(e) => setExtendDate(e.target.value)}
                     min={(() => {
-                      try {
-                        if (extendingClient.contractEndDate) {
-                          const [year, month, day] = extendingClient.contractEndDate.split('-').map(Number);
-                          const currentEnd = new Date(year, month - 1, day);
-                          const today = new Date();
-                          if (!isNaN(currentEnd.getTime()) && currentEnd > today) {
-                            return currentEnd.toISOString().split('T')[0];
-                          }
-                        }
-                        const today = new Date();
-                        return today.toISOString().split('T')[0];
-                      } catch {
-                        const today = new Date();
-                        return today.toISOString().split('T')[0];
+                      const currentEnd = parseDate(extendingClient.contractEndDate);
+                      const today = new Date();
+                      if (currentEnd && currentEnd > today) {
+                        return currentEnd.toISOString().split('T')[0];
                       }
+                      return today.toISOString().split('T')[0];
                     })()}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
@@ -2199,19 +2171,7 @@ export default function ClientsManagement() {
                       계약 시작일: {new Date().toLocaleDateString('ko-KR')}
                     </div>
                     <div className="text-xs text-blue-700">
-                      계약 종료일: {(() => {
-                        try {
-                          const endDateStr = getContractEndDate(new Date().toISOString().split('T')[0], renewPlanType);
-                          const [year, month, day] = endDateStr.split('-').map(Number);
-                          const date = new Date(year, month - 1, day);
-                          if (!isNaN(date.getTime())) {
-                            return date.toLocaleDateString('ko-KR');
-                          }
-                          return endDateStr;
-                        } catch {
-                          return getContractEndDate(new Date().toISOString().split('T')[0], renewPlanType);
-                        }
-                      })()}
+                      계약 종료일: {formatDateSafe(getContractEndDate(new Date().toISOString().split('T')[0], renewPlanType))}
                     </div>
                   </div>
                 </div>

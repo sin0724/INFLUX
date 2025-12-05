@@ -25,3 +25,63 @@ export function formatDateTime(date: Date | string): string {
   }).format(d);
 }
 
+/**
+ * 안전하게 날짜 문자열을 Date 객체로 파싱합니다.
+ * YYYY-MM-DD 형식 또는 ISO 형식의 문자열을 받아 Date 객체로 변환합니다.
+ * @param dateString 날짜 문자열 (YYYY-MM-DD 형식)
+ * @returns 유효한 Date 객체 또는 null (파싱 실패 시)
+ */
+export function parseDate(dateString: string | null | undefined): Date | null {
+  if (!dateString) return null;
+  
+  try {
+    // YYYY-MM-DD 형식인지 확인
+    const ymdMatch = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (ymdMatch) {
+      const year = parseInt(ymdMatch[1], 10);
+      const month = parseInt(ymdMatch[2], 10) - 1; // 월은 0부터 시작
+      const day = parseInt(ymdMatch[3], 10);
+      const date = new Date(year, month, day);
+      
+      // 유효성 검사: 파싱된 값이 원본과 일치하는지 확인
+      if (date.getFullYear() === year && 
+          date.getMonth() === month && 
+          date.getDate() === day &&
+          !isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    
+    // ISO 형식 시도 (예: 2024-01-01T00:00:00.000Z)
+    const isoDate = new Date(dateString);
+    if (!isNaN(isoDate.getTime())) {
+      return isoDate;
+    }
+    
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 안전하게 날짜를 한국어 형식으로 포맷팅합니다.
+ * @param date Date 객체 또는 날짜 문자열
+ * @returns 포맷된 날짜 문자열 또는 '날짜 형식 오류'
+ */
+export function formatDateSafe(date: Date | string | null | undefined): string {
+  if (!date) return '미설정';
+  
+  const dateObj = typeof date === 'string' ? parseDate(date) : date;
+  
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return '날짜 형식 오류';
+  }
+  
+  try {
+    return dateObj.toLocaleDateString('ko-KR');
+  } catch {
+    return '날짜 형식 오류';
+  }
+}
+

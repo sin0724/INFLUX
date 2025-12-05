@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateSafe } from '@/lib/utils';
+
 interface ContractExpiredModalProps {
   contractEndDate: string;
   onClose: () => void;
@@ -32,7 +34,7 @@ export default function ContractExpiredModal({
             계약이 만료되었습니다
           </h2>
           <p className="text-gray-600 mb-4">
-            계약 종료일: {new Date(contractEndDate).toLocaleDateString('ko-KR')}
+            계약 종료일: {formatDateSafe(contractEndDate)}
           </p>
           <p className="text-sm text-gray-500 mb-6">
             계약 갱신이 필요합니다. 관리자에게 문의해주세요.

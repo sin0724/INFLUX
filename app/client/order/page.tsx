@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
+import { parseDate } from '@/lib/utils';
 import OrderForm from '@/components/OrderForm';
 
 export default async function OrderPage() {
@@ -42,10 +43,12 @@ export default async function OrderPage() {
   
   // 1개월 플랜이 아닌 경우에만 계약 만료 체크
   if (session.user.contractEndDate) {
-    const endDate = new Date(session.user.contractEndDate);
-    const now = new Date();
-    if (endDate < now || session.user.isActive === false) {
-      redirect('/client');
+    const endDate = parseDate(session.user.contractEndDate);
+    if (endDate) {
+      const now = new Date();
+      if (endDate < now || session.user.isActive === false) {
+        redirect('/client');
+      }
     }
   }
   

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { parseDate } from '@/lib/utils';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -51,12 +52,14 @@ export default function LoginPage() {
       // 계약 만료 체크
       if (data.user.role === 'client') {
         if (data.user.contractEndDate) {
-          const endDate = new Date(data.user.contractEndDate);
-          const now = new Date();
-          if (endDate < now || data.user.isActive === false) {
-            setError('계약이 만료되었거나 계정이 차단되었습니다. 관리자에게 문의해주세요.');
-            setLoading(false);
-            return;
+          const endDate = parseDate(data.user.contractEndDate);
+          if (endDate) {
+            const now = new Date();
+            if (endDate < now || data.user.isActive === false) {
+              setError('계약이 만료되었거나 계정이 차단되었습니다. 관리자에게 문의해주세요.');
+              setLoading(false);
+              return;
+            }
           }
         }
       }
