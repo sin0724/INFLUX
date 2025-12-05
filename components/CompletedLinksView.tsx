@@ -50,6 +50,7 @@ export default function CompletedLinksView() {
   const [submitting, setSubmitting] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -235,6 +236,39 @@ export default function CompletedLinksView() {
     const newLinks = [...receiptLinks];
     newLinks[index] = value;
     setReceiptLinks(newLinks);
+  };
+
+  // 완료된 링크 삭제 (체험단은 제외)
+  const handleDeleteOrder = async (orderId: string, taskType: string) => {
+    // 체험단은 삭제하지 않음
+    if (taskType === 'experience') {
+      alert('체험단은 삭제할 수 없습니다.');
+      return;
+    }
+
+    if (!confirm('이 완료된 링크를 삭제하시겠습니까?\n삭제 시 광고주의 할당량이 복구됩니다.')) {
+      return;
+    }
+
+    setDeletingOrderId(orderId);
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert('완료된 링크가 삭제되었고, 광고주의 할당량이 복구되었습니다.');
+        fetchCompletedOrders();
+      } else {
+        const data = await response.json();
+        alert(data.error || '삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to delete order:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingOrderId(null);
+    }
   };
 
   // 검색어로 필터링
@@ -436,6 +470,15 @@ export default function CompletedLinksView() {
                               <p className="text-xs text-gray-500">
                                 {formatDateTime(order.createdAt)}
                               </p>
+                              {order.taskType !== 'experience' && (
+                                <button
+                                  onClick={() => handleDeleteOrder(order.id, order.taskType)}
+                                  disabled={deletingOrderId === order.id}
+                                  className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {deletingOrderId === order.id ? '삭제 중...' : '삭제'}
+                                </button>
+                              )}
                             </div>
 
                             {order.caption && (

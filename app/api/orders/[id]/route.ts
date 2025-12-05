@@ -155,8 +155,8 @@ async function deleteOrder(
       );
     }
 
-    // pending 상태였던 경우만 quota 복구
-    if (orderData.status === 'pending') {
+    // pending 또는 done 상태일 때 quota 복구 (완료된 링크 삭제 시에도 복구)
+    if (orderData.status === 'pending' || orderData.status === 'done') {
       const { data: userData } = await supabase
         .from('users')
         .select('quota')
