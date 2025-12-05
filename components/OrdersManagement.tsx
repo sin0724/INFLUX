@@ -232,6 +232,7 @@ export default function OrdersManagement() {
       setCompletingOrder(order);
       setCompletedLink(order.completedLink || '');
       setCompletedLink2((order as any).completedLink2 || '');
+      setReviewerName((order as any).reviewerName || '');
       return;
     }
     
@@ -358,7 +359,8 @@ export default function OrdersManagement() {
     const status = 'done';
     const link = completedLink.trim();
     const link2 = completingOrder.taskType === 'myexpense' ? completedLink2.trim() : null;
-    updateOrderStatus(completingOrder.id, status, link, link2);
+    const reviewer = completingOrder.taskType === 'myexpense' ? reviewerName.trim() : null;
+    updateOrderStatus(completingOrder.id, status, link, link2, reviewer);
   };
 
   const handleEditOrder = (order: Order) => {
