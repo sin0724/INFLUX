@@ -51,6 +51,13 @@ export default function CompletedLinksView() {
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20; // 페이지당 표시할 광고주 그룹 수
+  
+  // 드롭다운 상태 (펼쳐진 광고주 목록)
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchClients();
@@ -320,7 +327,21 @@ export default function CompletedLinksView() {
     }, {} as Record<string, { client: Order['client']; taskTypes: Record<string, Order[]> }>);
   }, [filteredOrders]);
 
-  const groupedOrders = Object.values(groupedByClientAndTaskType);
+  const allGroupedOrders = Object.values(groupedByClientAndTaskType);
+  
+  // 페이지네이션: 전체 광고주 필터일 때만 적용
+  const shouldPaginate = !selectedClientId && !searchQuery.trim();
+  const totalPages = shouldPaginate ? Math.ceil(allGroupedOrders.length / itemsPerPage) : 1;
+  
+  // 현재 페이지에 표시할 데이터
+  const groupedOrders = useMemo(() => {
+    if (!shouldPaginate) {
+      return allGroupedOrders;
+    }
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return allGroupedOrders.slice(startIndex, endIndex);
+  }, [allGroupedOrders, currentPage, shouldPaginate, itemsPerPage]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -361,7 +382,10 @@ export default function CompletedLinksView() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1); // 검색 시 첫 페이지로
+                }}
                 placeholder="광고주명, 회사명, 작업종류, 링크 등으로 검색..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
@@ -374,7 +398,10 @@ export default function CompletedLinksView() {
               </label>
               <select
                 value={selectedClientId}
-                onChange={(e) => setSelectedClientId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedClientId(e.target.value);
+                  setCurrentPage(1); // 필터 변경 시 첫 페이지로
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
                 <option value="">전체 광고주</option>
@@ -387,12 +414,19 @@ export default function CompletedLinksView() {
             </div>
           </div>
           
-          {/* 검색 결과 개수 표시 */}
-          {searchQuery && (
-            <div className="text-sm text-gray-600 mb-4">
-              검색 결과: {filteredOrders.length}개
-            </div>
-          )}
+          {/* 검색 결과 개수 및 페이지 정보 표시 */}
+          <div className="flex items-center justify-between mb-4">
+            {searchQuery && (
+              <div className="text-sm text-gray-600">
+                검색 결과: {filteredOrders.length}개
+              </div>
+            )}
+            {shouldPaginate && allGroupedOrders.length > 0 && (
+              <div className="text-sm text-gray-600">
+                전체 {allGroupedOrders.length}개 중 {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, allGroupedOrders.length)}번째 표시 (페이지 {currentPage} / {totalPages})
+              </div>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -412,44 +446,77 @@ export default function CompletedLinksView() {
             )}
           </div>
         ) : (
-          <div className="space-y-6">
-            {groupedOrders.map((group) => (
-              <div
-                key={group.client.id}
-                className="bg-white rounded-lg border border-gray-200 p-6"
-              >
-                <div className="mb-4 pb-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg font-bold text-gray-900">
-                        {group.client.username}
-                        {group.client.companyName && (
-                          <span className="text-gray-600 ml-2">
-                            ({group.client.companyName})
-                          </span>
-                        )}
-                      </h2>
-                      <p className="text-sm text-gray-500 mt-1">
-                        완료된 작업: {Object.values(group.taskTypes).reduce((sum, orders) => sum + orders.length, 0)}개
-                      </p>
+          <div className="space-y-4">
+            {groupedOrders.map((group) => {
+              const isExpanded = expandedClients.has(group.client.id);
+              const totalOrders = Object.values(group.taskTypes).reduce((sum, orders) => sum + orders.length, 0);
+              
+              return (
+                <div
+                  key={group.client.id}
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                >
+                  {/* 드롭다운 헤더 */}
+                  <div
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      const newExpanded = new Set(expandedClients);
+                      if (newExpanded.has(group.client.id)) {
+                        newExpanded.delete(group.client.id);
+                      } else {
+                        newExpanded.add(group.client.id);
+                      }
+                      setExpandedClients(newExpanded);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        {/* 펼침/접기 아이콘 */}
+                        <svg
+                          className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'transform rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        
+                        <div className="flex-1">
+                          <h2 className="text-lg font-bold text-gray-900">
+                            {group.client.username}
+                            {group.client.companyName && (
+                              <span className="text-gray-600 ml-2">
+                                ({group.client.companyName})
+                              </span>
+                            )}
+                          </h2>
+                          <p className="text-sm text-gray-500 mt-1">
+                            완료된 작업: {totalOrders}개
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // 헤더 클릭 이벤트와 분리
+                          setSelectedClientForLink(group.client);
+                          setBlogLinks(['']);
+                          setReceiptLinks(['']);
+                          setClientSearchTerm('');
+                          setShowClientDropdown(false);
+                          setShowBlogReceiptModal(true);
+                        }}
+                        className="text-sm px-3 py-1.5 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition"
+                      >
+                        블로그/영수증 링크 추가
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setSelectedClientForLink(group.client);
-                        setBlogLinks(['']);
-                        setReceiptLinks(['']);
-                        setClientSearchTerm('');
-                        setShowClientDropdown(false);
-                        setShowBlogReceiptModal(true);
-                      }}
-                      className="text-sm px-3 py-1 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition"
-                    >
-                      블로그/영수증 링크 추가
-                    </button>
                   </div>
-                </div>
 
-                <div className="space-y-6">
+                  {/* 드롭다운 내용 */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-200 p-6">
+                      <div className="space-y-6">
                   {Object.entries(group.taskTypes).map(([taskType, orders]) => (
                     <div key={taskType} className="space-y-3">
                       <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
@@ -542,9 +609,62 @@ export default function CompletedLinksView() {
                       </div>
                     </div>
                   ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        )}
+
+        {/* 페이지네이션 */}
+        {shouldPaginate && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-8 mb-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              이전
+            </button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-2 border rounded-lg transition ${
+                      currentPage === pageNum
+                        ? 'bg-primary-600 text-white border-primary-600'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              다음
+            </button>
           </div>
         )}
       </div>
