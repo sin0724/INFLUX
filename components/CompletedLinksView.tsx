@@ -50,6 +50,16 @@ export default function CompletedLinksView() {
   const [submitting, setSubmitting] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
+  
+  // 내돈내산 리뷰 링크 추가 모달 상태
+  const [showMyexpenseModal, setShowMyexpenseModal] = useState(false);
+  const [selectedClientForMyexpense, setSelectedClientForMyexpense] = useState<any>(null);
+  const [myexpenseCompletedLink, setMyexpenseCompletedLink] = useState('');
+  const [myexpenseCompletedLink2, setMyexpenseCompletedLink2] = useState('');
+  const [myexpenseReviewerName, setMyexpenseReviewerName] = useState('');
+  const [myexpenseClientSearchTerm, setMyexpenseClientSearchTerm] = useState('');
+  const [showMyexpenseClientDropdown, setShowMyexpenseClientDropdown] = useState(false);
+  const [submittingMyexpense, setSubmittingMyexpense] = useState(false);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   
   // 페이지네이션 상태
@@ -245,6 +255,65 @@ export default function CompletedLinksView() {
     setReceiptLinks(newLinks);
   };
 
+  // 내돈내산 리뷰 링크 추가
+  const handleAddMyexpenseLink = async () => {
+    if (!selectedClientForMyexpense) return;
+    
+    if (!myexpenseCompletedLink.trim() || !myexpenseCompletedLink2.trim()) {
+      alert('내돈내산 예약자 리뷰 링크와 블로그 리뷰 링크를 모두 입력해주세요.');
+      return;
+    }
+
+    if (!myexpenseReviewerName.trim()) {
+      alert('리뷰어 이름을 입력해주세요.');
+      return;
+    }
+
+    setSubmittingMyexpense(true);
+    try {
+      const response = await fetch('/api/orders/myexpense', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: selectedClientForMyexpense.id,
+          completedLink: myexpenseCompletedLink.trim(),
+          completedLink2: myexpenseCompletedLink2.trim(),
+          reviewerName: myexpenseReviewerName.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        let errorMessage = data.error || '링크 추가에 실패했습니다.';
+        if (data.hint) {
+          errorMessage += `\n\n${data.hint}`;
+        }
+        alert(errorMessage);
+        setSubmittingMyexpense(false);
+        return;
+      }
+
+      alert('내돈내산 리뷰 링크가 성공적으로 추가되었습니다.');
+      
+      setShowMyexpenseModal(false);
+      setSelectedClientForMyexpense(null);
+      setMyexpenseCompletedLink('');
+      setMyexpenseCompletedLink2('');
+      setMyexpenseReviewerName('');
+      setMyexpenseClientSearchTerm('');
+      setShowMyexpenseClientDropdown(false);
+      fetchCompletedOrders();
+    } catch (error) {
+      console.error('Failed to add myexpense link:', error);
+      alert('링크 추가 중 오류가 발생했습니다.');
+    } finally {
+      setSubmittingMyexpense(false);
+    }
+  };
+
   // 완료된 링크 삭제 (체험단은 제외)
   const handleDeleteOrder = async (orderId: string, taskType: string) => {
     // 체험단은 삭제하지 않음
@@ -359,19 +428,35 @@ export default function CompletedLinksView() {
             </button>
             <h1 className="text-2xl font-bold text-gray-900">완료된 링크 모아보기</h1>
           </div>
-          <button
-            onClick={() => {
-              setShowBlogReceiptModal(true);
-              setSelectedClientForLink(null);
-              setBlogLinks(['']);
-              setReceiptLinks(['']);
-              setClientSearchTerm('');
-              setShowClientDropdown(false);
-            }}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-          >
-            블로그/영수증 리뷰 링크 추가
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShowBlogReceiptModal(true);
+                setSelectedClientForLink(null);
+                setBlogLinks(['']);
+                setReceiptLinks(['']);
+                setClientSearchTerm('');
+                setShowClientDropdown(false);
+              }}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+            >
+              블로그/영수증 리뷰 링크 추가
+            </button>
+            <button
+              onClick={() => {
+                setShowMyexpenseModal(true);
+                setSelectedClientForMyexpense(null);
+                setMyexpenseCompletedLink('');
+                setMyexpenseCompletedLink2('');
+                setMyexpenseReviewerName('');
+                setMyexpenseClientSearchTerm('');
+                setShowMyexpenseClientDropdown(false);
+              }}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            >
+              내돈내산 리뷰 링크 추가
+            </button>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 mt-4">
             {/* 검색 필드 */}
@@ -881,6 +966,188 @@ export default function CompletedLinksView() {
                 className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? '추가 중...' : '추가'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 내돈내산 리뷰 링크 추가 모달 */}
+      {showMyexpenseModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              내돈내산 리뷰 링크 추가
+            </h2>
+
+            {/* 광고주 선택 - 검색 가능 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                광고주 선택 <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={selectedClientForMyexpense ? `${selectedClientForMyexpense.username}${selectedClientForMyexpense.companyName ? ` (${selectedClientForMyexpense.companyName})` : ''}` : myexpenseClientSearchTerm}
+                  onChange={(e) => {
+                    setMyexpenseClientSearchTerm(e.target.value);
+                    setShowMyexpenseClientDropdown(true);
+                    if (!e.target.value) {
+                      setSelectedClientForMyexpense(null);
+                    }
+                  }}
+                  onFocus={() => setShowMyexpenseClientDropdown(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowMyexpenseClientDropdown(false), 200);
+                  }}
+                  placeholder="광고주를 검색하세요..."
+                  disabled={!!selectedClientForMyexpense && !myexpenseClientSearchTerm}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none pr-10"
+                />
+                {(selectedClientForMyexpense || myexpenseClientSearchTerm) && !selectedClientForMyexpense && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMyexpenseClientSearchTerm('');
+                      setShowMyexpenseClientDropdown(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xl leading-none"
+                  >
+                    ×
+                  </button>
+                )}
+                {selectedClientForMyexpense && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedClientForMyexpense(null);
+                      setMyexpenseClientSearchTerm('');
+                      setShowMyexpenseClientDropdown(true);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                  >
+                    변경
+                  </button>
+                )}
+                
+                {/* 검색 드롭다운 */}
+                {showMyexpenseClientDropdown && !selectedClientForMyexpense && (
+                  <div 
+                    className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    {clients
+                      .filter((client) => {
+                        const searchLower = myexpenseClientSearchTerm.toLowerCase();
+                        return (
+                          client.username.toLowerCase().includes(searchLower) ||
+                          (client.companyName && client.companyName.toLowerCase().includes(searchLower))
+                        );
+                      })
+                      .map((client) => (
+                        <button
+                          key={client.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedClientForMyexpense(client);
+                            setMyexpenseClientSearchTerm('');
+                            setShowMyexpenseClientDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-100 transition"
+                        >
+                          <div className="font-medium">{client.username}</div>
+                          {client.companyName && (
+                            <div className="text-xs text-gray-500">{client.companyName}</div>
+                          )}
+                        </button>
+                      ))}
+                    {clients.filter((client) => {
+                      const searchLower = myexpenseClientSearchTerm.toLowerCase();
+                      return (
+                        client.username.toLowerCase().includes(searchLower) ||
+                        (client.companyName && client.companyName.toLowerCase().includes(searchLower))
+                      );
+                    }).length === 0 && myexpenseClientSearchTerm && (
+                      <div className="px-3 py-2 text-gray-500 text-sm text-center">
+                        검색 결과가 없습니다
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 내돈내산 예약자 리뷰 링크 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                내돈내산 예약자 리뷰 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="url"
+                value={myexpenseCompletedLink}
+                onChange={(e) => setMyexpenseCompletedLink(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* 내돈내산 블로그 리뷰 링크 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                내돈내산 블로그 리뷰 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="url"
+                value={myexpenseCompletedLink2}
+                onChange={(e) => setMyexpenseCompletedLink2(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* 리뷰어 이름 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                리뷰어 이름 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={myexpenseReviewerName}
+                onChange={(e) => setMyexpenseReviewerName(e.target.value)}
+                placeholder="리뷰어 이름을 입력해주세요"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <p className="text-xs text-gray-500 mb-4">
+              내돈내산 리뷰 quota가 1개 차감됩니다.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMyexpenseModal(false);
+                  setSelectedClientForMyexpense(null);
+                  setMyexpenseCompletedLink('');
+                  setMyexpenseCompletedLink2('');
+                  setMyexpenseReviewerName('');
+                  setMyexpenseClientSearchTerm('');
+                  setShowMyexpenseClientDropdown(false);
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleAddMyexpenseLink}
+                disabled={submittingMyexpense || !selectedClientForMyexpense || !myexpenseCompletedLink.trim() || !myexpenseCompletedLink2.trim() || !myexpenseReviewerName.trim()}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submittingMyexpense ? '추가 중...' : '추가'}
               </button>
             </div>
           </div>
