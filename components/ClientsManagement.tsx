@@ -133,20 +133,20 @@ export default function ClientsManagement() {
   const getQuotaByPlan = (planType: string) => {
     switch (planType) {
       case '1':
-        // 1개월: 기획상품 - 자동 입력 없이 모두 수기로 입력
+        // 1개월: 블로그 10개, 영수증 10개, 인기게시물 1개, 맘카페 1개
         return {
           follower: { total: 0, remaining: 0 },
           like: { total: 0, remaining: 0 },
-          hotpost: { total: 0, remaining: 0 },
-          momcafe: { total: 0, remaining: 0 },
+          hotpost: { total: 1, remaining: 1 },
+          momcafe: { total: 1, remaining: 1 },
           powerblog: { total: 0, remaining: 0 },
           clip: { total: 0, remaining: 0 },
-          blog: { total: 0, remaining: 0 },
-          receipt: { total: 0, remaining: 0 },
+          blog: { total: 10, remaining: 10 },
+          receipt: { total: 10, remaining: 10 },
           daangn: { total: 0, remaining: 0 },
           experience: { total: 0, remaining: 0 },
           myexpense: { total: 0, remaining: 0 },
-        }; // 빈 할당량 - 수기 입력
+        };
       case '3':
         // 3개월: 블로그 리뷰 30개, 영수증 리뷰 60개, 인기게시물 3개, 맘카페 3개, 당근마켓 3개, 인스타팔로워/좋아요 통합 1000개, 체험단 1회
         return {
@@ -496,7 +496,7 @@ export default function ClientsManagement() {
           password: formData.password,
           companyName: formData.companyName,
           role: 'client',
-          quota: formData.planType === '1' ? formData.quota : getQuotaByPlan(formData.planType),
+          quota: getQuotaByPlan(formData.planType),
           contractStartDate: formData.contractStartDate,
           contractEndDate: getContractEndDate(formData.contractStartDate, formData.planType),
           notes: formData.notes || undefined,
@@ -1101,9 +1101,14 @@ export default function ClientsManagement() {
                   </label>
                   <select
                     value={formData.planType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, planType: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const selectedPlanType = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        planType: selectedPlanType,
+                        quota: getQuotaByPlan(selectedPlanType)
+                      });
+                    }}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   >
@@ -1114,9 +1119,12 @@ export default function ClientsManagement() {
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
                     <div className="font-medium mb-1">포함된 작업:</div>
                     {formData.planType === '1' && (
-                      <div className="text-gray-600">
-                        <p className="font-medium text-primary-600">기획상품 - 할당량을 수기로 입력하세요</p>
-                      </div>
+                      <ul className="list-disc list-inside text-gray-600 space-y-1">
+                        <li>블로그 리뷰: 10개</li>
+                        <li>영수증 리뷰: 10개</li>
+                        <li>인기게시물: 1개</li>
+                        <li>맘카페: 1개</li>
+                      </ul>
                     )}
                     {formData.planType === '3' && (
                       <ul className="list-disc list-inside text-gray-600 space-y-1">
