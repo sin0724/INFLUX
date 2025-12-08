@@ -2990,6 +2990,7 @@ export default function ClientsManagement() {
                             notes: editForm.notes || null,
                             naverId: editForm.naverId || null,
                             naverPassword: editForm.naverPassword || null,
+                            placeLink: editForm.placeLink || null,
                             businessType: editForm.businessType || null,
                             optimization: editForm.optimization,
                             reservation: editForm.reservation,
