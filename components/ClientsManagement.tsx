@@ -126,6 +126,75 @@ export default function ClientsManagement() {
   };
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+  const [extendingClient, setExtendingClient] = useState<Client | null>(null);
+  const [renewingClient, setRenewingClient] = useState<Client | null>(null);
+  const [extendDate, setExtendDate] = useState('');
+  const [renewPlanType, setRenewPlanType] = useState('1');
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkUploadResult, setBulkUploadResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 일괄 수정/삭제 관련 state
+  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({
+    businessType: '',
+    optimization: null as boolean | null,
+    reservation: null as boolean | null,
+    reviewing: null as boolean | null,
+    isActive: null as boolean | null,
+  });
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [contractFilter, setContractFilter] = useState<string>('all');
+  const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('all');
+
+  // formData state
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    companyName: '',
+    planType: '1',
+    contractStartDate: new Date().toISOString().split('T')[0],
+    notes: '',
+    naverId: '',
+    naverPassword: '',
+    placeLink: '',
+    businessType: '',
+    quota: getQuotaByPlan('1'),
+  });
+  
+  // 수정 모달 상태
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editForm, setEditForm] = useState({
+    username: '',
+    companyName: '',
+    notes: '',
+    naverId: '',
+    naverPassword: '',
+    placeLink: '',
+    businessType: '',
+    optimization: false,
+    reservation: false,
+    reviewing: false,
+    quota: {
+      follower: { total: 0, remaining: 0 },
+      like: { total: 0, remaining: 0 },
+      hotpost: { total: 0, remaining: 0 },
+      momcafe: { total: 0, remaining: 0 },
+      powerblog: { total: 0, remaining: 0 },
+      clip: { total: 0, remaining: 0 },
+      blog: { total: 0, remaining: 0 },
+      receipt: { total: 0, remaining: 0 },
+      daangn: { total: 0, remaining: 0 },
+      experience: { total: 0, remaining: 0 },
+      myexpense: { total: 0, remaining: 0 },
+    },
+  });
 
   useEffect(() => {
     fetchClients();
