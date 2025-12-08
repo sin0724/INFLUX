@@ -526,6 +526,7 @@ export default function ClientsManagement() {
         notes: '',
         naverId: '',
         naverPassword: '',
+        placeLink: '',
         businessType: '',
         quota: {
           follower: { total: 0, remaining: 0 },
