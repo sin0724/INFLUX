@@ -189,8 +189,10 @@ export default function OrderForm({ user }: OrderFormProps) {
     setBusinessName('');
     setMomcafeBusinessName('');
     setMomcafeCafeName('');
-    // 맘카페 선택 시 플레이스 링크는 자동 입력되므로 초기화하지 않음 (useEffect에서 처리)
-    if (type !== 'momcafe') {
+    // 맘카페 선택 시 플레이스 링크 자동 입력
+    if (type === 'momcafe' && currentUser?.placeLink) {
+      setMomcafePlaceLink(currentUser.placeLink);
+    } else {
       setMomcafePlaceLink('');
     }
     setMomcafePostGuideline('');
