@@ -1898,6 +1898,25 @@ export default function ClientsManagement() {
                             <div className="text-sm text-gray-900 font-mono">{client.naverPassword || '-'}</div>
                           </div>
                           
+                          {/* 플레이스 링크 */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">플레이스 링크</label>
+                            <div className="text-sm text-gray-900">
+                              {client.placeLink ? (
+                                <a
+                                  href={client.placeLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary-600 hover:text-primary-700 underline break-all"
+                                >
+                                  {client.placeLink}
+                                </a>
+                              ) : (
+                                '-'
+                              )}
+                            </div>
+                          </div>
+                          
                           {/* 생성일 */}
                           <div>
                             <label className="block text-xs font-medium text-gray-500 mb-1">생성일</label>
