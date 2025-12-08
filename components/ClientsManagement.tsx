@@ -189,6 +189,7 @@ export default function ClientsManagement() {
           receipt: { total: 0, remaining: 0 },
           daangn: { total: 0, remaining: 0 },
           experience: { total: 0, remaining: 0 },
+          myexpense: { total: 0, remaining: 0 },
         };
     }
   };
