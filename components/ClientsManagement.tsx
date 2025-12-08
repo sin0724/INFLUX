@@ -110,7 +110,6 @@ export default function ClientsManagement() {
     naverId: '',
     naverPassword: '',
     placeLink: '',
-    placeLink: '',
     businessType: '',
     optimization: false,
     reservation: false,
