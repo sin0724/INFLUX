@@ -532,11 +532,6 @@ export default function ClientsManagement() {
     }
   };
 
-  // 계약 만료 필터 상태
-  const [contractFilter, setContractFilter] = useState<string>('all'); // 'all', 'expired', '7days', '14days', '30days'
-  // 업종 필터 상태
-  const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('all'); // 'all' 또는 특정 업종
-
   const filteredClients = clients.filter((client) => {
     // 검색 필터 (아이디 및 상호명)
     if (searchTerm) {
