@@ -80,6 +80,9 @@ export default function OrderForm({ user }: OrderFormProps) {
   useEffect(() => {
     if (taskType === 'momcafe' && currentUser?.placeLink) {
       setMomcafePlaceLink(currentUser.placeLink);
+    } else if (taskType !== 'momcafe') {
+      // 맘카페가 아닌 경우 플레이스 링크 초기화
+      setMomcafePlaceLink('');
     }
   }, [taskType, currentUser]);
 
@@ -186,7 +189,10 @@ export default function OrderForm({ user }: OrderFormProps) {
     setBusinessName('');
     setMomcafeBusinessName('');
     setMomcafeCafeName('');
-    setMomcafePlaceLink('');
+    // 맘카페 선택 시 플레이스 링크는 자동 입력되므로 초기화하지 않음 (useEffect에서 처리)
+    if (type !== 'momcafe') {
+      setMomcafePlaceLink('');
+    }
     setMomcafePostGuideline('');
     setMomcafeCommentGuideline('');
     setDaangnBusinessProfile('');
@@ -910,9 +916,17 @@ export default function OrderForm({ user }: OrderFormProps) {
                   type="url"
                   value={momcafePlaceLink}
                   onChange={(e) => setMomcafePlaceLink(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
-                  placeholder="플레이스 링크를 입력하세요 (예: https://place.map.kakao.com/...)"
+                  readOnly={!!currentUser?.placeLink}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition ${
+                    currentUser?.placeLink ? 'bg-gray-50 cursor-not-allowed' : ''
+                  }`}
+                  placeholder={currentUser?.placeLink ? '자동으로 입력되었습니다' : '플레이스 링크를 입력하세요 (예: https://place.map.kakao.com/...)'}
                 />
+                {currentUser?.placeLink && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    ✓ 광고주 정보에서 자동으로 불러왔습니다. 필요시 수정 가능합니다.
+                  </p>
+                )}
               </div>
               <div>
                 <label
