@@ -54,6 +54,21 @@ export default function ClientsManagement() {
   // 플랜별 quota 설정 함수 (상단으로 이동)
   const getQuotaByPlan = (planType: string) => {
     switch (planType) {
+      case 'manual':
+        // 수기입력: 할당량 수동 입력 (모두 0으로 시작)
+        return {
+          follower: { total: 0, remaining: 0 },
+          like: { total: 0, remaining: 0 },
+          hotpost: { total: 0, remaining: 0 },
+          momcafe: { total: 0, remaining: 0 },
+          powerblog: { total: 0, remaining: 0 },
+          clip: { total: 0, remaining: 0 },
+          blog: { total: 0, remaining: 0 },
+          receipt: { total: 0, remaining: 0 },
+          daangn: { total: 0, remaining: 0 },
+          experience: { total: 0, remaining: 0 },
+          myexpense: { total: 0, remaining: 0 },
+        };
       case '1':
         // 1개월: 블로그 10개, 영수증 10개, 인기게시물 1개, 맘카페 1개
         return {
@@ -118,6 +133,10 @@ export default function ClientsManagement() {
 
   // 계약 종료일 계산
   const getContractEndDate = (startDate: string, planType: string): string => {
+    if (planType === 'manual') {
+      // 수기입력은 계약 종료일을 계산하지 않음 (수동 입력)
+      return '';
+    }
     const start = new Date(startDate);
     const months = parseInt(planType);
     const end = new Date(start);
@@ -158,14 +177,14 @@ export default function ClientsManagement() {
     username: '',
     password: '',
     companyName: '',
-    planType: '1',
+    planType: 'manual',
     contractStartDate: new Date().toISOString().split('T')[0],
     notes: '',
     naverId: '',
     naverPassword: '',
     placeLink: '',
     businessType: '',
-    quota: getQuotaByPlan('1'),
+    quota: getQuotaByPlan('manual'),
   });
   
   // 수정 모달 상태
@@ -490,7 +509,7 @@ export default function ClientsManagement() {
           role: 'client',
           quota: getQuotaByPlan(formData.planType),
           contractStartDate: formData.contractStartDate,
-          contractEndDate: getContractEndDate(formData.contractStartDate, formData.planType),
+          contractEndDate: getContractEndDate(formData.contractStartDate, formData.planType) || undefined,
           notes: formData.notes || undefined,
           naverId: formData.naverId || undefined,
           naverPassword: formData.naverPassword || undefined,
@@ -513,14 +532,14 @@ export default function ClientsManagement() {
         username: '', 
         password: '',
         companyName: '',
-        planType: '1',
+        planType: 'manual',
         contractStartDate: new Date().toISOString().split('T')[0],
         notes: '',
         naverId: '',
         naverPassword: '',
         placeLink: '',
         businessType: '',
-        quota: getQuotaByPlan('1'), // 1개월 패키지 기본 할당량
+        quota: getQuotaByPlan('manual'), // 수기입력 기본 할당량
       });
       setShowCreateForm(false);
       fetchClients();
@@ -917,12 +936,12 @@ export default function ClientsManagement() {
                 onClick={() => {
                   const newShowForm = !showCreateForm;
                   setShowCreateForm(newShowForm);
-                  // 폼이 열릴 때 1개월 패키지 할당량으로 초기화
+                  // 폼이 열릴 때 수기입력으로 초기화
                   if (newShowForm) {
                     setFormData(prev => ({
                       ...prev,
-                      planType: '1',
-                      quota: getQuotaByPlan('1')
+                      planType: 'manual',
+                      quota: getQuotaByPlan('manual')
                     }));
                   }
                 }}
@@ -1098,54 +1117,68 @@ export default function ClientsManagement() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   >
-                    <option value="1">수기입력 (1개월 - 블로그 10개, 영수증 10개, 인기게시물 1개, 맘카페 1개)</option>
+                    <option value="manual">수기입력</option>
+                    <option value="1">1개월 (블로그 10개, 영수증 10개, 인기게시물 1개, 맘카페 1개)</option>
                     <option value="3">3개월 (블로그 30개, 영수증 60개, 인기게시물 3개, 맘카페 3개, 당근마켓 3개, 인스타그램 통합 1000개, 체험단 1회)</option>
                     <option value="6">6개월 (블로그 60개, 영수증 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타그램 통합 2000개, 파워블로그 2회, 체험단 2회)</option>
                   </select>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
-                    <div className="font-medium mb-1">포함된 작업:</div>
-                    {formData.planType === '1' && (
-                      <ul className="list-disc list-inside text-gray-600 space-y-1">
-                        <li>블로그 리뷰: 10개</li>
-                        <li>영수증 리뷰: 10개</li>
-                        <li>인기게시물: 1개</li>
-                        <li>맘카페: 1개</li>
-                      </ul>
-                    )}
-                    {formData.planType === '3' && (
-                      <ul className="list-disc list-inside text-gray-600 space-y-1">
-                        <li>블로그 리뷰: 30개</li>
-                        <li>영수증 리뷰: 60개</li>
-                        <li>인기게시물: 3개</li>
-                        <li>맘카페: 3개</li>
-                        <li>당근마켓: 3개</li>
-                        <li>인스타그램 (팔로워/좋아요): 통합 1000개</li>
-                        <li>체험단 모집: 1회</li>
-                      </ul>
-                    )}
-                    {formData.planType === '6' && (
-                      <ul className="list-disc list-inside text-gray-600 space-y-1">
-                        <li>블로그 리뷰: 60개</li>
-                        <li>영수증 리뷰: 120개</li>
-                        <li>인기게시물: 6개</li>
-                        <li>맘카페: 6개</li>
-                        <li>당근마켓: 6개</li>
-                        <li>인스타그램 (팔로워/좋아요): 통합 2000개</li>
-                        <li>파워블로그: 2회</li>
-                        <li>체험단 모집: 2회</li>
-                      </ul>
-                    )}
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <div className="text-xs text-gray-500">
-                        계약 종료일: {getContractEndDate(formData.contractStartDate, formData.planType)}
+                    {formData.planType === 'manual' && (
+                      <div className="text-gray-600">
+                        할당량을 수동으로 입력해주세요.
                       </div>
-                    </div>
+                    )}
+                    {formData.planType !== 'manual' && (
+                      <>
+                        <div className="font-medium mb-1">포함된 작업:</div>
+                        {formData.planType === '1' && (
+                          <ul className="list-disc list-inside text-gray-600 space-y-1">
+                            <li>블로그 리뷰: 10개</li>
+                            <li>영수증 리뷰: 10개</li>
+                            <li>인기게시물: 1개</li>
+                            <li>맘카페: 1개</li>
+                          </ul>
+                        )}
+                      </>
+                    )}
+                        {formData.planType === '3' && (
+                          <ul className="list-disc list-inside text-gray-600 space-y-1">
+                            <li>블로그 리뷰: 30개</li>
+                            <li>영수증 리뷰: 60개</li>
+                            <li>인기게시물: 3개</li>
+                            <li>맘카페: 3개</li>
+                            <li>당근마켓: 3개</li>
+                            <li>인스타그램 (팔로워/좋아요): 통합 1000개</li>
+                            <li>체험단 모집: 1회</li>
+                          </ul>
+                        )}
+                        {formData.planType === '6' && (
+                          <ul className="list-disc list-inside text-gray-600 space-y-1">
+                            <li>블로그 리뷰: 60개</li>
+                            <li>영수증 리뷰: 120개</li>
+                            <li>인기게시물: 6개</li>
+                            <li>맘카페: 6개</li>
+                            <li>당근마켓: 6개</li>
+                            <li>인스타그램 (팔로워/좋아요): 통합 2000개</li>
+                            <li>파워블로그: 2회</li>
+                            <li>체험단 모집: 2회</li>
+                          </ul>
+                        )}
+                      </>
+                    )}
+                    {formData.planType !== 'manual' && getContractEndDate(formData.contractStartDate, formData.planType) && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <div className="text-xs text-gray-500">
+                          계약 종료일: {getContractEndDate(formData.contractStartDate, formData.planType)}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
               
-              {/* 1개월 플랜 할당량 수기 입력 필드 */}
-              {formData.planType === '1' && (
+              {/* 수기입력 할당량 수기 입력 필드 */}
+              {formData.planType === 'manual' && (
                 <div className="pt-4 border-t border-gray-200">
                   <h3 className="text-sm font-medium text-gray-700 mb-4">할당량 수기 입력</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -1604,26 +1637,14 @@ export default function ClientsManagement() {
                       username: '', 
                       password: '', 
                       companyName: '',
-                      planType: '1',
+                      planType: 'manual',
                       contractStartDate: new Date().toISOString().split('T')[0],
                       notes: '',
                       naverId: '',
                       naverPassword: '',
                       placeLink: '',
                       businessType: '',
-                      quota: {
-                        follower: { total: 0, remaining: 0 },
-                        like: { total: 0, remaining: 0 },
-                        hotpost: { total: 0, remaining: 0 },
-                        momcafe: { total: 0, remaining: 0 },
-                        powerblog: { total: 0, remaining: 0 },
-                        clip: { total: 0, remaining: 0 },
-                        blog: { total: 0, remaining: 0 },
-                        receipt: { total: 0, remaining: 0 },
-                        daangn: { total: 0, remaining: 0 },
-                        experience: { total: 0, remaining: 0 },
-                        myexpense: { total: 0, remaining: 0 },
-                      },
+                      quota: getQuotaByPlan('manual'),
                     });
                     setFormError('');
                   }}
