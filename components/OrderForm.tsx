@@ -84,6 +84,7 @@ export default function OrderForm({ user }: OrderFormProps) {
   // 맘카페 필드
   const [momcafeBusinessName, setMomcafeBusinessName] = useState(''); // 맘카페: 상호명
   const [momcafeCafeName, setMomcafeCafeName] = useState(''); // 맘카페: 카페이름 or 주소
+  const [momcafePlaceLink, setMomcafePlaceLink] = useState(''); // 맘카페: 플레이스 링크
   const [momcafePostGuideline, setMomcafePostGuideline] = useState(''); // 맘카페: 게시글 가이드라인
   const [momcafeCommentGuideline, setMomcafeCommentGuideline] = useState(''); // 맘카페: 댓글 가이드라인
   // 당근마켓 필드
@@ -173,6 +174,7 @@ export default function OrderForm({ user }: OrderFormProps) {
     setBusinessName('');
     setMomcafeBusinessName('');
     setMomcafeCafeName('');
+    setMomcafePlaceLink('');
     setMomcafePostGuideline('');
     setMomcafeCommentGuideline('');
     setDaangnBusinessProfile('');
@@ -338,7 +340,7 @@ export default function OrderForm({ user }: OrderFormProps) {
         setError('상호명을 입력해주세요.');
         return;
       }
-      orderCaption = `상호명: ${momcafeBusinessName}\n원하시는 카페이름 or 주소: ${momcafeCafeName || '(미기재)'}\n게시글 가이드라인: ${momcafePostGuideline || '(미기재)'}\n댓글 가이드라인: ${momcafeCommentGuideline || '(미기재)'}`;
+      orderCaption = `상호명: ${momcafeBusinessName}\n원하시는 카페이름 or 주소: ${momcafeCafeName || '(미기재)'}\n플레이스 링크: ${momcafePlaceLink || '(미기재)'}\n게시글 가이드라인: ${momcafePostGuideline || '(미기재)'}\n댓글 가이드라인: ${momcafeCommentGuideline || '(미기재)'}`;
     } else if (taskType === 'powerblog' || taskType === 'clip' || taskType === 'myexpense') {
       // 파워블로그/클립/내돈내산 리뷰는 작업 내용 입력 없이 바로 신청 가능
       orderCaption = '';
@@ -883,6 +885,22 @@ export default function OrderForm({ user }: OrderFormProps) {
                 <p className="text-xs text-gray-500 mt-1">
                   미기재 시 추천 카페로 작업됩니다
                 </p>
+              </div>
+              <div>
+                <label
+                  htmlFor="momcafePlaceLink"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  플레이스 링크 <span className="text-gray-500 text-xs">(선택사항)</span>
+                </label>
+                <input
+                  id="momcafePlaceLink"
+                  type="url"
+                  value={momcafePlaceLink}
+                  onChange={(e) => setMomcafePlaceLink(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="플레이스 링크를 입력하세요 (예: https://place.map.kakao.com/...)"
+                />
               </div>
               <div>
                 <label
