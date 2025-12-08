@@ -734,11 +734,37 @@ export default function OrdersManagement() {
                     </div>
                     {order.caption && (
                       <div className="text-gray-700 mb-2">
-                        {order.caption.split('\n').slice(0, 2).map((line, idx) => (
-                          <p key={idx} className={idx === 0 ? 'font-medium' : ''}>
-                            {line}
-                          </p>
-                        ))}
+                        {order.caption.split('\n').slice(0, 2).map((line, idx) => {
+                          if (line.includes('플레이스 링크:')) {
+                            const value = line.split(':').slice(1).join(':').trim();
+                            const isPlaceLink = value && value !== '(미기재)' && (value.startsWith('http://') || value.startsWith('https://'));
+                            return (
+                              <p key={idx} className={idx === 0 ? 'font-medium' : ''}>
+                                {isPlaceLink ? (
+                                  <>
+                                    플레이스 링크:{' '}
+                                    <a
+                                      href={value}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary-600 hover:text-primary-700 underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {value}
+                                    </a>
+                                  </>
+                                ) : (
+                                  line
+                                )}
+                              </p>
+                            );
+                          }
+                          return (
+                            <p key={idx} className={idx === 0 ? 'font-medium' : ''}>
+                              {line}
+                            </p>
+                          );
+                        })}
                       </div>
                     )}
                     <p className="text-xs text-gray-500">
@@ -908,22 +934,37 @@ export default function OrdersManagement() {
                     <div>
                       <div className="text-sm text-gray-600 mb-2">작업 정보</div>
                       <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                        {selectedOrder.caption.split('\n').map((line, idx) => (
-                          <div key={idx} className="text-gray-900">
-                            {line.includes(':') ? (
-                              <>
+                        {selectedOrder.caption.split('\n').map((line, idx) => {
+                          if (line.includes(':')) {
+                            const [key, ...valueParts] = line.split(':');
+                            const value = valueParts.join(':').trim();
+                            const isPlaceLink = key.trim() === '플레이스 링크' && value && value !== '(미기재)' && (value.startsWith('http://') || value.startsWith('https://'));
+                            
+                            return (
+                              <div key={idx} className="text-gray-900">
                                 <span className="font-medium">
-                                  {line.split(':')[0]}:
+                                  {key.trim()}:
                                 </span>
                                 <span className="ml-2">
-                                  {line.split(':').slice(1).join(':')}
+                                  {isPlaceLink ? (
+                                    <a
+                                      href={value}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary-600 hover:text-primary-700 underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {value}
+                                    </a>
+                                  ) : (
+                                    value
+                                  )}
                                 </span>
-                              </>
-                            ) : (
-                              line
-                            )}
-                          </div>
-                        ))}
+                              </div>
+                            );
+                          }
+                          return <div key={idx} className="text-gray-900">{line}</div>;
+                        })}
                       </div>
                     </div>
                   )}

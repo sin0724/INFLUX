@@ -59,17 +59,28 @@ export default function OrderForm({ user }: OrderFormProps) {
   const [userQuota, setUserQuota] = useState<Quota | undefined>(user.quota);
   const formSectionRef = useRef<HTMLDivElement>(null);
 
-  // 사용자 quota 정보 가져오기
+  // 사용자 정보 가져오기 (quota, placeLink 포함)
+  const [currentUser, setCurrentUser] = useState(user);
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => {
-        if (data.user?.quota) {
-          setUserQuota(data.user.quota);
+        if (data.user) {
+          setCurrentUser(data.user);
+          if (data.user?.quota) {
+            setUserQuota(data.user.quota);
+          }
         }
       })
       .catch(console.error);
   }, []);
+
+  // 맘카페 선택 시 플레이스 링크 자동 입력
+  useEffect(() => {
+    if (taskType === 'momcafe' && currentUser?.placeLink) {
+      setMomcafePlaceLink(currentUser.placeLink);
+    }
+  }, [taskType, currentUser]);
 
   // 작업별 입력 필드
   const [postLink, setPostLink] = useState(''); // 좋아요: 게시글 링크

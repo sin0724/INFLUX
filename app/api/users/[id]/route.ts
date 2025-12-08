@@ -18,7 +18,7 @@ async function updateUser(
 
   try {
     const body = await req.json();
-    const { isActive, contractEndDate, contractStartDate, quota, username, companyName, notes, naverId, naverPassword, businessType, optimization, reservation, reviewing } = body;
+    const { isActive, contractEndDate, contractStartDate, quota, username, companyName, notes, naverId, naverPassword, placeLink, businessType, optimization, reservation, reviewing } = body;
 
     const updateData: any = {};
     
@@ -42,7 +42,7 @@ async function updateUser(
       updateData.companyName = companyName;
     }
     
-    // 추가 필드 (비고, 네이버 아이디/비밀번호, 업종)
+    // 추가 필드 (비고, 네이버 아이디/비밀번호, 플레이스 링크, 업종)
     if (notes !== undefined) {
       updateData.notes = notes || null;
     }
@@ -57,6 +57,9 @@ async function updateUser(
       } else {
         updateData.naverPassword = null;
       }
+    }
+    if (placeLink !== undefined) {
+      updateData.placeLink = placeLink || null;
     }
     if (businessType !== undefined) {
       updateData.businessType = businessType || null;
@@ -100,7 +103,7 @@ async function updateUser(
       .from('users')
       .update(updateData)
       .eq('id', userId)
-      .select('id, username, companyName, role, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", optimization, reservation, reviewing, createdAt')
+      .select('id, username, companyName, role, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "placeLink", "businessType", optimization, reservation, reviewing, createdAt')
       .single();
 
     if (error || !data) {

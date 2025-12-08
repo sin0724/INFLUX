@@ -31,6 +31,7 @@ export interface User {
   contractEndDate?: string;
   isActive?: boolean;
   points?: number;
+  placeLink?: string;
 }
 
 export interface Session {
@@ -122,6 +123,7 @@ export async function getSession(): Promise<Session | null> {
       contractEndDate: data.contractEndDate,
       isActive,
       points: data.points || 0,
+      placeLink: data.placeLink || undefined,
     },
     token,
   };
@@ -175,6 +177,7 @@ export async function login(
     contractStartDate: data.contractStartDate,
     contractEndDate: data.contractEndDate,
     isActive,
+    placeLink: data.placeLink || undefined,
   };
 
   const token = generateToken(user);

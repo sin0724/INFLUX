@@ -19,6 +19,7 @@ interface Client {
   notes?: string;
   naverId?: string;
   naverPassword?: string;
+  placeLink?: string;
   businessType?: string;
   optimization?: boolean;
   reservation?: boolean;
@@ -83,6 +84,7 @@ export default function ClientsManagement() {
     notes: '',
     naverId: '',
     naverPassword: '',
+    placeLink: '',
     businessType: '',
     quota: {
       follower: { total: 0, remaining: 0 },
@@ -107,6 +109,8 @@ export default function ClientsManagement() {
     notes: '',
     naverId: '',
     naverPassword: '',
+    placeLink: '',
+    placeLink: '',
     businessType: '',
     optimization: false,
     reservation: false,
@@ -499,6 +503,7 @@ export default function ClientsManagement() {
           notes: formData.notes || undefined,
           naverId: formData.naverId || undefined,
           naverPassword: formData.naverPassword || undefined,
+          placeLink: formData.placeLink || undefined,
           businessType: formData.businessType || undefined,
         }),
       });
@@ -1577,6 +1582,23 @@ export default function ClientsManagement() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      플레이스 링크 <span className="text-gray-500 text-xs">(선택사항)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.placeLink}
+                      onChange={(e) =>
+                        setFormData({ ...formData, placeLink: e.target.value })
+                      }
+                      placeholder="https://place.map.kakao.com/..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      맘카페 신청 시 자동으로 입력됩니다
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="flex gap-3">
@@ -1952,6 +1974,7 @@ export default function ClientsManagement() {
                                     notes: client.notes || '',
                                     naverId: client.naverId || '',
                                     naverPassword: client.naverPassword || '',
+                                    placeLink: client.placeLink || '',
                                     businessType: client.businessType || '',
                                     optimization: client.optimization || false,
                                     reservation: client.reservation || false,
@@ -2833,6 +2856,21 @@ export default function ClientsManagement() {
                       placeholder="네이버 비밀번호 (변경 시에만 입력)"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      플레이스 링크 <span className="text-gray-500 text-xs">(선택사항)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={editForm.placeLink}
+                      onChange={(e) => setEditForm({ ...editForm, placeLink: e.target.value })}
+                      placeholder="https://place.map.kakao.com/..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      맘카페 신청 시 자동으로 입력됩니다
+                    </p>
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">

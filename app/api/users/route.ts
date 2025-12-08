@@ -16,7 +16,7 @@ async function getUsers(req: NextRequest, user: any) {
   // superadmin은 모든 사용자 조회, admin은 client와 admin만 조회
   let query = supabase
     .from('users')
-    .select('id, username, companyName, role, totalQuota, remainingQuota, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "businessType", optimization, reservation, reviewing, createdAt')
+    .select('id, username, companyName, role, totalQuota, remainingQuota, quota, contractStartDate, contractEndDate, isActive, notes, "naverId", "naverPassword", "placeLink", "businessType", optimization, reservation, reviewing, createdAt')
     .order('createdAt', { ascending: false });
 
   if (user.role !== 'superadmin') {
@@ -87,7 +87,7 @@ async function createUser(req: NextRequest, user: any) {
   }
 
   try {
-    const { username, password, role, quota, contractStartDate, contractEndDate, companyName, notes, naverId, naverPassword, businessType } = await req.json();
+    const { username, password, role, quota, contractStartDate, contractEndDate, companyName, notes, naverId, naverPassword, placeLink, businessType } = await req.json();
 
     if (!username || !password || !role) {
       return NextResponse.json(
@@ -181,7 +181,7 @@ async function createUser(req: NextRequest, user: any) {
       insertData.isActive = true;
     }
 
-    // 추가 필드 (비고, 네이버 아이디/비밀번호, 업종)
+    // 추가 필드 (비고, 네이버 아이디/비밀번호, 플레이스 링크, 업종)
     if (notes !== undefined && notes !== '') {
       insertData.notes = notes;
     }
@@ -192,6 +192,9 @@ async function createUser(req: NextRequest, user: any) {
       // 네이버 비밀번호 암호화
       const { encrypt } = await import('@/lib/encryption');
       insertData.naverPassword = encrypt(naverPassword);
+    }
+    if (placeLink !== undefined && placeLink !== '') {
+      insertData.placeLink = placeLink;
     }
     if (businessType !== undefined && businessType !== '') {
       insertData.businessType = businessType;
