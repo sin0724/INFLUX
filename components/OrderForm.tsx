@@ -23,6 +23,7 @@ interface User {
   username: string;
   remainingQuota?: number;
   quota?: Quota;
+  placeLink?: string;
 }
 
 interface OrderFormProps {
