@@ -2932,6 +2932,7 @@ export default function ClientsManagement() {
                         notes: '',
                         naverId: '',
                         naverPassword: '',
+                        placeLink: '',
                         businessType: '',
                         optimization: false,
                         reservation: false,
