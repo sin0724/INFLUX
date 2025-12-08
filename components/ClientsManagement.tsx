@@ -1139,8 +1139,6 @@ export default function ClientsManagement() {
                             <li>맘카페: 1개</li>
                           </ul>
                         )}
-                      </>
-                    )}
                         {formData.planType === '3' && (
                           <ul className="list-disc list-inside text-gray-600 space-y-1">
                             <li>블로그 리뷰: 30개</li>
