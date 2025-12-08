@@ -1098,7 +1098,7 @@ export default function ClientsManagement() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   >
-                    <option value="1">수기입력</option>
+                    <option value="1">수기입력 (1개월 - 블로그 10개, 영수증 10개, 인기게시물 1개, 맘카페 1개)</option>
                     <option value="3">3개월 (블로그 30개, 영수증 60개, 인기게시물 3개, 맘카페 3개, 당근마켓 3개, 인스타그램 통합 1000개, 체험단 1회)</option>
                     <option value="6">6개월 (블로그 60개, 영수증 120개, 인기게시물 6개, 맘카페 6개, 당근마켓 6개, 인스타그램 통합 2000개, 파워블로그 2회, 체험단 2회)</option>
                   </select>
