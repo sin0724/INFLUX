@@ -50,86 +50,8 @@ const BUSINESS_TYPES = [
 
 export default function ClientsManagement() {
   const router = useRouter();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
-  const [extendingClient, setExtendingClient] = useState<Client | null>(null);
-  const [renewingClient, setRenewingClient] = useState<Client | null>(null);
-  const [extendDate, setExtendDate] = useState('');
-  const [renewPlanType, setRenewPlanType] = useState('1');
-  const [bulkUploading, setBulkUploading] = useState(false);
-  const [bulkUploadResult, setBulkUploadResult] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // 일괄 수정/삭제 관련 state
-  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
-  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
-  const [bulkEditForm, setBulkEditForm] = useState({
-    businessType: '',
-    optimization: null as boolean | null,
-    reservation: null as boolean | null,
-    reviewing: null as boolean | null,
-    isActive: null as boolean | null,
-  });
-  const [bulkProcessing, setBulkProcessing] = useState(false);
-
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    companyName: '',
-    planType: '1', // '1', '3', '6' 개월
-    contractStartDate: new Date().toISOString().split('T')[0], // 오늘 날짜
-    notes: '',
-    naverId: '',
-    naverPassword: '',
-    placeLink: '',
-    businessType: '',
-    quota: {
-      follower: { total: 0, remaining: 0 },
-      like: { total: 0, remaining: 0 },
-      hotpost: { total: 0, remaining: 0 },
-      momcafe: { total: 0, remaining: 0 },
-      powerblog: { total: 0, remaining: 0 },
-      clip: { total: 0, remaining: 0 },
-      blog: { total: 0, remaining: 0 },
-      receipt: { total: 0, remaining: 0 },
-      daangn: { total: 0, remaining: 0 },
-      experience: { total: 0, remaining: 0 },
-      myexpense: { total: 0, remaining: 0 },
-    },
-  });
-  
-  // 수정 모달 상태
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [editForm, setEditForm] = useState({
-    username: '',
-    companyName: '',
-    notes: '',
-    naverId: '',
-    naverPassword: '',
-    placeLink: '',
-    businessType: '',
-    optimization: false,
-    reservation: false,
-    reviewing: false,
-    quota: {
-      follower: { total: 0, remaining: 0 },
-      like: { total: 0, remaining: 0 },
-      hotpost: { total: 0, remaining: 0 },
-      momcafe: { total: 0, remaining: 0 },
-      powerblog: { total: 0, remaining: 0 },
-      clip: { total: 0, remaining: 0 },
-      blog: { total: 0, remaining: 0 },
-      receipt: { total: 0, remaining: 0 },
-      daangn: { total: 0, remaining: 0 },
-      experience: { total: 0, remaining: 0 },
-      myexpense: { total: 0, remaining: 0 },
-    },
-  });
-
-  // 플랜별 quota 설정
+  // 플랜별 quota 설정 함수 (상단으로 이동)
   const getQuotaByPlan = (planType: string) => {
     switch (planType) {
       case '1':
@@ -529,19 +451,7 @@ export default function ClientsManagement() {
         naverPassword: '',
         placeLink: '',
         businessType: '',
-        quota: {
-          follower: { total: 0, remaining: 0 },
-          like: { total: 0, remaining: 0 },
-          hotpost: { total: 0, remaining: 0 },
-          momcafe: { total: 0, remaining: 0 },
-          powerblog: { total: 0, remaining: 0 },
-          clip: { total: 0, remaining: 0 },
-          blog: { total: 0, remaining: 0 },
-          receipt: { total: 0, remaining: 0 },
-          daangn: { total: 0, remaining: 0 },
-          experience: { total: 0, remaining: 0 },
-          myexpense: { total: 0, remaining: 0 },
-        },
+        quota: getQuotaByPlan('1'), // 1개월 패키지 기본 할당량
       });
       setShowCreateForm(false);
       fetchClients();
@@ -940,7 +850,18 @@ export default function ClientsManagement() {
                 />
               </label>
               <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
+                onClick={() => {
+                  const newShowForm = !showCreateForm;
+                  setShowCreateForm(newShowForm);
+                  // 폼이 열릴 때 1개월 패키지 할당량으로 초기화
+                  if (newShowForm) {
+                    setFormData(prev => ({
+                      ...prev,
+                      planType: '1',
+                      quota: getQuotaByPlan('1')
+                    }));
+                  }
+                }}
                 className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition"
               >
                 + 광고주 추가
