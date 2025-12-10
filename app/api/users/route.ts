@@ -59,14 +59,45 @@ async function getUsers(req: NextRequest, user: any) {
   // 네이버 비밀번호 복호화 (관리자에게만 표시)
   if (data) {
     const { decrypt } = await import('@/lib/encryption');
-    const decryptedData = data.map((user: any) => {
-      if (user.naverPassword) {
-        return {
-          ...user,
-          naverPassword: decrypt(user.naverPassword),
-        };
+    
+    // 각 클라이언트의 최근 주문 날짜 조회
+    const clientIds = data.filter((u: any) => u.role === 'client').map((u: any) => u.id);
+    
+    let lastOrderDates: Record<string, string | null> = {};
+    
+    if (clientIds.length > 0) {
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('clientId, createdAt')
+        .in('clientId', clientIds)
+        .order('createdAt', { ascending: false });
+
+      if (!ordersError && ordersData) {
+        // 각 클라이언트별 최근 주문 날짜 저장
+        const orderMap = new Map<string, string>();
+        ordersData.forEach((order: any) => {
+          if (!orderMap.has(order.clientId)) {
+            orderMap.set(order.clientId, order.createdAt);
+          }
+        });
+        
+        clientIds.forEach((id: string) => {
+          lastOrderDates[id] = orderMap.get(id) || null;
+        });
       }
-      return user;
+    }
+    
+    const decryptedData = data.map((user: any) => {
+      const userData: any = {
+        ...user,
+        lastOrderDate: lastOrderDates[user.id] || null,
+      };
+      
+      if (user.naverPassword) {
+        userData.naverPassword = decrypt(user.naverPassword);
+      }
+      
+      return userData;
     });
 
     return NextResponse.json({ users: decryptedData });

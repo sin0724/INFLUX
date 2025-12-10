@@ -25,6 +25,7 @@ interface Client {
   reservation?: boolean;
   reviewing?: boolean;
   createdAt: string;
+  lastOrderDate?: string | null;
 }
 
 // 업종 리스트
@@ -171,6 +172,7 @@ export default function ClientsManagement() {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [contractFilter, setContractFilter] = useState<string>('all');
   const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('all');
+  const [inactiveFilter, setInactiveFilter] = useState<boolean>(false);
 
   // formData state
   const [formData, setFormData] = useState({
@@ -563,6 +565,38 @@ export default function ClientsManagement() {
     // 업종 필터
     if (businessTypeFilter !== 'all') {
       if (client.businessType !== businessTypeFilter) return false;
+    }
+
+    // 계약 후 7일 동안 작업 없는 업체 필터
+    if (inactiveFilter) {
+      if (!client.contractStartDate) return false; // 계약 시작일이 없으면 제외
+      
+      const today = new Date();
+      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startDate = parseDate(client.contractStartDate);
+      
+      if (!startDate) return false;
+      
+      // 계약 시작일로부터 경과 일수 계산
+      const diffTime = todayDate.getTime() - startDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      // 7일 이상 경과했어야 함
+      if (diffDays < 7) return false;
+      
+      // 최근 주문이 없어야 함
+      if (client.lastOrderDate) {
+        const lastOrderDate = parseDate(client.lastOrderDate);
+        if (lastOrderDate) {
+          // 최근 주문 날짜가 계약 시작일로부터 7일 이내에 있으면 제외
+          const orderDiffTime = lastOrderDate.getTime() - startDate.getTime();
+          const orderDiffDays = Math.floor(orderDiffTime / (1000 * 60 * 60 * 24));
+          if (orderDiffDays <= 7) return false;
+        }
+      }
+      
+      // 여기까지 오면: 계약 후 7일 이상 경과 + 최근 주문 없음
+      // 다른 필터들도 계속 체크해야 하므로 return 하지 않음
     }
 
     // 계약 만료 필터
@@ -1664,7 +1698,7 @@ export default function ClientsManagement() {
 
         {/* Search and Filters */}
         <div className="mb-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="md:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 광고주 검색
@@ -1710,8 +1744,24 @@ export default function ClientsManagement() {
                 <option value="30days">만료 30일 이내</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                작업 활동 필터
+              </label>
+              <button
+                type="button"
+                onClick={() => setInactiveFilter(!inactiveFilter)}
+                className={`w-full px-4 py-2 border rounded-lg transition-colors ${
+                  inactiveFilter
+                    ? 'bg-red-500 text-white border-red-500 hover:bg-red-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                } focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-medium`}
+              >
+                {inactiveFilter ? '✓ ' : ''}계약 후 7일간 작업 없음
+              </button>
+            </div>
           </div>
-          {(contractFilter !== 'all' || businessTypeFilter !== 'all' || searchTerm) && (
+          {(contractFilter !== 'all' || businessTypeFilter !== 'all' || searchTerm || inactiveFilter) && (
             <div className="text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
               필터링된 결과: <span className="font-semibold">{filteredClients.length}개</span>
             </div>
