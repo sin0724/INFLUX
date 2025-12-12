@@ -24,6 +24,7 @@ const BLOCK_DURATION_MS = 30 * 60 * 1000; // 30분 차단
 export function checkRateLimit(identifier: string): {
   allowed: boolean;
   remainingAttempts: number;
+  failedAttempts?: number; // 실패한 시도 횟수
   resetAt?: number;
   blockedUntil?: number;
 } {
@@ -35,6 +36,7 @@ export function checkRateLimit(identifier: string): {
     return {
       allowed: false,
       remainingAttempts: 0,
+      failedAttempts: MAX_ATTEMPTS,
       blockedUntil: entry.blockedUntil,
     };
   }
@@ -45,6 +47,7 @@ export function checkRateLimit(identifier: string): {
     return {
       allowed: true,
       remainingAttempts: MAX_ATTEMPTS,
+      failedAttempts: 0,
     };
   }
 
@@ -54,6 +57,7 @@ export function checkRateLimit(identifier: string): {
     return {
       allowed: true,
       remainingAttempts: MAX_ATTEMPTS,
+      failedAttempts: 0,
     };
   }
 
@@ -70,13 +74,16 @@ export function checkRateLimit(identifier: string): {
       return {
         allowed: false,
         remainingAttempts: 0,
+        failedAttempts: MAX_ATTEMPTS,
         blockedUntil,
       };
     }
 
+    const failedAttempts = entry.attempts;
     return {
       allowed: true,
       remainingAttempts: MAX_ATTEMPTS - entry.attempts,
+      failedAttempts: failedAttempts,
       resetAt: entry.resetAt,
     };
   }
@@ -85,6 +92,7 @@ export function checkRateLimit(identifier: string): {
   return {
     allowed: true,
     remainingAttempts: MAX_ATTEMPTS,
+    failedAttempts: 0,
   };
 }
 

@@ -43,17 +43,27 @@ export async function POST(request: NextRequest) {
       // 실패한 시도 기록
       recordFailedAttempt(identifier);
       
-      // 남은 시도 횟수 포함
+      // 실패 시도 기록 후 다시 확인 (증가된 attempts 반영)
       const remainingCheck = checkRateLimit(identifier);
       const remainingAttempts = remainingCheck.remainingAttempts;
+      const failedAttempts = remainingCheck.failedAttempts || (10 - remainingAttempts); // 실패 횟수
+      
+      // 항상 보안 안내 메시지 포함
+      let warningMessage = '보안 안내: 로그인 실패가 10회 누적되면 30분간 접근이 제한됩니다.';
+      
+      // 남은 시도 횟수에 따른 추가 경고
+      if (remainingAttempts > 0 && remainingAttempts <= 3) {
+        warningMessage = `경고: 로그인 시도가 ${failedAttempts}회 실패했습니다. ${remainingAttempts}회 더 실패하면 30분간 차단됩니다.`;
+      } else if (remainingAttempts > 3 && failedAttempts > 0) {
+        warningMessage = `보안 안내: 로그인 시도가 ${failedAttempts}회 실패했습니다. 로그인 실패가 10회 누적되면 30분간 접근이 제한됩니다.`;
+      }
       
       return NextResponse.json(
         { 
           error: result.error || '로그인에 실패했습니다.',
           remainingAttempts: remainingAttempts,
-          ...(remainingAttempts <= 3 && remainingAttempts > 0 ? {
-            warning: `로그인 시도가 ${10 - remainingAttempts}회 실패했습니다. ${remainingAttempts}회 더 실패하면 30분간 차단됩니다.`
-          } : {})
+          failedAttempts: failedAttempts,
+          warning: warningMessage
         },
         { status: 401 }
       );
