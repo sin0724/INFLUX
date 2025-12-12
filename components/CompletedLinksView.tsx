@@ -314,6 +314,122 @@ export default function CompletedLinksView() {
     }
   };
 
+  // 완료된 링크를 TXT 파일로 다운로드
+  const downloadCompletedLinksAsTxt = () => {
+    if (filteredOrders.length === 0) {
+      alert('다운로드할 완료된 링크가 없습니다.');
+      return;
+    }
+
+    // 필터링된 주문을 광고주별, 작업 타입별로 그룹화
+    const grouped = filteredOrders.reduce((acc, order) => {
+      const clientId = order.client.id;
+      if (!acc[clientId]) {
+        acc[clientId] = {
+          client: order.client,
+          taskTypes: {} as Record<string, Order[]>,
+        };
+      }
+      if (!acc[clientId].taskTypes[order.taskType]) {
+        acc[clientId].taskTypes[order.taskType] = [];
+      }
+      acc[clientId].taskTypes[order.taskType].push(order);
+      return acc;
+    }, {} as Record<string, { client: Order['client']; taskTypes: Record<string, Order[]> }>);
+
+    // TXT 파일 내용 생성
+    let content = '';
+    content += '='.repeat(80) + '\n';
+    content += '완료된 링크 모아보기\n';
+    content += '='.repeat(80) + '\n';
+    content += `생성일시: ${new Date().toLocaleString('ko-KR')}\n`;
+    if (selectedClientId) {
+      const selectedClient = clients.find(c => c.id === selectedClientId);
+      if (selectedClient) {
+        content += `필터: ${selectedClient.username}${selectedClient.companyName ? ` (${selectedClient.companyName})` : ''}\n`;
+      }
+    }
+    if (searchQuery) {
+      content += `검색어: ${searchQuery}\n`;
+    }
+    content += `총 링크 개수: ${filteredOrders.length}개\n`;
+    content += '='.repeat(80) + '\n\n';
+
+    // 광고주별로 정리
+    Object.values(grouped).forEach((group, clientIndex) => {
+      content += '\n' + '-'.repeat(80) + '\n';
+      content += `[${clientIndex + 1}] 광고주: ${group.client.username}`;
+      if (group.client.companyName) {
+        content += ` (${group.client.companyName})`;
+      }
+      content += '\n';
+      content += '-'.repeat(80) + '\n';
+
+      // 작업 타입별로 정리
+      Object.entries(group.taskTypes).forEach(([taskType, orders]) => {
+        content += `\n  • ${TASK_TYPE_NAMES[taskType] || taskType} (${orders.length}개)\n`;
+        content += '  ' + '-'.repeat(76) + '\n';
+
+        orders.forEach((order, orderIndex) => {
+          content += `\n    [${orderIndex + 1}] ${formatDateTime(order.createdAt)}\n`;
+          
+          if (order.caption) {
+            const captionLines = order.caption.split('\n').slice(0, 2);
+            captionLines.forEach(line => {
+              if (line.trim()) {
+                content += `      ${line}\n`;
+              }
+            });
+          }
+
+          // 내돈내산 리뷰의 경우 특별 처리
+          if (order.taskType === 'myexpense') {
+            if (order.completedLink) {
+              content += `      예약자 리뷰 링크: ${order.completedLink}\n`;
+            }
+            if (order.completedLink2) {
+              content += `      블로그 리뷰 링크: ${order.completedLink2}\n`;
+            }
+            if (order.reviewerName) {
+              content += `      리뷰어 이름: ${order.reviewerName}\n`;
+            }
+          } else {
+            // 일반 링크
+            if (order.completedLink) {
+              content += `      완료 링크: ${order.completedLink}\n`;
+            }
+          }
+          
+          content += '\n';
+        });
+      });
+
+      content += '\n';
+    });
+
+    // 파일명 생성
+    const dateStr = new Date().toISOString().split('T')[0];
+    let fileName = `완료된_링크_${dateStr}`;
+    if (selectedClientId) {
+      const selectedClient = clients.find(c => c.id === selectedClientId);
+      if (selectedClient) {
+        fileName += `_${selectedClient.username}`;
+      }
+    }
+    fileName += '.txt';
+
+    // Blob 생성 및 다운로드
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // 완료된 링크 삭제 (체험단은 제외)
   const handleDeleteOrder = async (orderId: string, taskType: string) => {
     // 체험단은 삭제하지 않음
@@ -456,6 +572,17 @@ export default function CompletedLinksView() {
             >
               내돈내산 리뷰 링크 추가
             </button>
+            {filteredOrders.length > 0 && (
+              <button
+                onClick={downloadCompletedLinksAsTxt}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                완료된 링크 TXT 다운로드 ({filteredOrders.length}개)
+              </button>
+            )}
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 mt-4">
