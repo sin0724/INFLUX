@@ -134,10 +134,13 @@ export async function login(
   username: string,
   password: string
 ): Promise<{ success: boolean; user?: User; token?: string; error?: string }> {
+  // username 앞뒤 공백 제거 (추가 안전장치)
+  const trimmedUsername = username.trim();
+  
   const { data, error } = await supabase
     .from('users')
     .select('*')
-    .eq('username', username)
+    .eq('username', trimmedUsername)
     .single();
 
   if (error || !data) {

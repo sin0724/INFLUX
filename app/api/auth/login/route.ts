@@ -7,7 +7,11 @@ export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
 
-    if (!username || !password) {
+    // username과 password의 앞뒤 공백 제거
+    const trimmedUsername = username?.trim() || '';
+    const trimmedPassword = password?.trim() || '';
+
+    if (!trimmedUsername || !trimmedPassword) {
       return NextResponse.json(
         { error: '아이디와 비밀번호를 입력해주세요.' },
         { status: 400 }
@@ -16,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Rate Limiting 체크
     const clientIp = getClientIp(request);
-    const identifier = username; // 사용자명 기반으로 제한
+    const identifier = trimmedUsername; // 사용자명 기반으로 제한
     const rateLimitCheck = checkRateLimit(identifier);
 
     if (!rateLimitCheck.allowed) {
@@ -33,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await login(username, password);
+    const result = await login(trimmedUsername, trimmedPassword);
 
     if (!result.success) {
       // 실패한 시도 기록
