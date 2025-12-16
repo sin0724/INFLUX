@@ -355,6 +355,9 @@ export default function OrderForm({ user }: OrderFormProps) {
       orderCaption = `당근 비지니스 프로필 주소: ${daangnBusinessProfile}`;
     } else if (taskType === 'hotpost') {
       orderCaption = `인스타그램 닉네임: ${hotpostNickname}\n메인해시태그: ${mainHashtag}\n상호명: ${businessName}`;
+      if (caption.trim()) {
+        orderCaption += `\n내용: ${caption.trim()}`;
+      }
     } else if (taskType === 'momcafe') {
       if (!momcafeBusinessName.trim()) {
         setError('상호명을 입력해주세요.');
@@ -862,6 +865,22 @@ export default function OrderForm({ user }: OrderFormProps) {
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
                   placeholder="예: 인플루언서컴퍼니"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="hotpostContent"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  내용
+                </label>
+                <textarea
+                  id="hotpostContent"
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  placeholder="내용을 입력하세요 (선택사항)"
                 />
               </div>
             </div>
