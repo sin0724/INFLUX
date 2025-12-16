@@ -10,27 +10,10 @@ interface ExcelRow {
 }
 
 // URL 정규화 함수 - 완전히 동일한 URL만 중복으로 판단
+// 최소한의 정규화만 수행 (공백 제거만)
 function normalizeUrl(url: string): string {
-  try {
-    let normalized = url.trim();
-    
-    // URL 파싱
-    const urlObj = new URL(normalized);
-    
-    // 프로토콜, 호스트, 경로, 쿼리 등을 정규화
-    // 소문자로 변환
-    normalized = urlObj.href.toLowerCase();
-    
-    // 끝 슬래시 제거 (경로가 있는 경우만, 루트 경로는 유지)
-    if (normalized.endsWith('/') && urlObj.pathname !== '/') {
-      normalized = normalized.slice(0, -1);
-    }
-    
-    return normalized;
-  } catch {
-    // URL 파싱 실패 시 원본 반환
-    return url.trim().toLowerCase();
-  }
+  // 공백만 제거하고 원본 그대로 비교 (완벽한 매칭만 중복으로 판단)
+  return url.trim();
 }
 
 // POST: 엑셀 파일 데이터를 받아서 일괄 등록
@@ -225,8 +208,12 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
             const trimmedLink = link.trim();
             const normalizedLink = normalizeUrl(trimmedLink);
             
+            // 디버깅 로그
+            console.log(`[DEBUG] 엑셀 링크 체크 - 원본: "${link}", 정규화: "${normalizedLink}", 존재 여부: ${normalizedExistingLinks.has(normalizedLink)}`);
+            
             // 중복 체크: 정규화된 링크로 비교
             if (normalizedExistingLinks.has(normalizedLink)) {
+              console.log(`[DEBUG] 중복 링크 감지: "${normalizedLink}"`);
               failedLinks.push({
                 link,
                 error: '이미 등록된 링크입니다.',

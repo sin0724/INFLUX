@@ -3,30 +3,10 @@ import { withAuth, requireAdmin } from '@/lib/middleware';
 import { supabaseAdmin } from '@/lib/supabase';
 
 // URL 정규화 함수 - 완전히 동일한 URL만 중복으로 판단
+// 최소한의 정규화만 수행 (공백 제거만)
 function normalizeUrl(url: string): string {
-  try {
-    let normalized = url.trim();
-    
-    // URL 파싱
-    const urlObj = new URL(normalized);
-    
-    // 프로토콜, 호스트, 경로, 쿼리 등을 정규화
-    // 소문자로 변환
-    normalized = urlObj.href.toLowerCase();
-    
-    // 끝 슬래시 제거 (경로가 있는 경우만, 루트 경로는 유지)
-    if (normalized.endsWith('/') && urlObj.pathname !== '/') {
-      normalized = normalized.slice(0, -1);
-    }
-    
-    // URL 파라미터 정렬 (선택사항이지만 완벽한 매칭을 위해 제외)
-    // 대신 정확히 동일한 URL만 매칭하도록 함
-    
-    return normalized;
-  } catch {
-    // URL 파싱 실패 시 원본 반환
-    return url.trim().toLowerCase();
-  }
+  // 공백만 제거하고 원본 그대로 비교 (완벽한 매칭만 중복으로 판단)
+  return url.trim();
 }
 
 // POST: Create blog/receipt review completed links and deduct quota
@@ -95,9 +75,15 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
     if (existingOrders) {
       existingOrders.forEach((order: any) => {
         if (order.completedLink) {
-          normalizedExistingLinks.add(normalizeUrl(order.completedLink));
+          const normalized = normalizeUrl(String(order.completedLink));
+          normalizedExistingLinks.add(normalized);
         }
       });
+    }
+    
+    console.log(`[DEBUG] 기존 링크 개수: ${normalizedExistingLinks.size}`);
+    if (validBlogLinks.length > 0 || validReceiptLinks.length > 0) {
+      console.log(`[DEBUG] 확인할 링크들:`, validBlogLinks.length > 0 ? validBlogLinks : validReceiptLinks);
     }
 
     // 블로그 리뷰 처리
@@ -118,14 +104,25 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       // 각 링크마다 주문 생성
       for (const blogLink of validBlogLinks) {
         try {
-          const trimmedLink = blogLink.trim();
+          const trimmedLink = String(blogLink).trim();
           const normalizedLink = normalizeUrl(trimmedLink);
           
-          // 중복 체크: 정규화된 링크로 비교
+          // 디버깅 로그
+          console.log(`[DEBUG] 블로그 링크 체크 - 원본: "${blogLink}", 정규화: "${normalizedLink}", 존재 여부: ${normalizedExistingLinks.has(normalizedLink)}`);
+          
+          // 정확한 비교를 위해 Set의 모든 값 확인
           if (normalizedExistingLinks.has(normalizedLink)) {
+            // 어떤 링크와 매칭되었는지 확인
+            let matchingLink = '';
+            normalizedExistingLinks.forEach(existingLink => {
+              if (existingLink === normalizedLink) {
+                matchingLink = existingLink;
+              }
+            });
+            console.log(`[DEBUG] 중복 링크 감지: "${normalizedLink}" 매칭된 링크: "${matchingLink}"`);
             blogResults.failed.push({
               link: blogLink,
-              error: '이미 등록된 링크입니다.',
+              error: `이미 등록된 링크입니다. (등록된 링크: ${matchingLink})`,
             });
             continue;
           }
