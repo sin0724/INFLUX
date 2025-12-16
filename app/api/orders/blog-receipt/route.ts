@@ -105,10 +105,31 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
             .single();
 
           if (blogOrderError || !blogOrder) {
-            console.error('Failed to create blog order:', blogOrderError);
+            console.error('Failed to create blog order:', {
+              link: trimmedLink,
+              error: blogOrderError,
+              details: blogOrderError?.details,
+              hint: blogOrderError?.hint,
+              code: blogOrderError?.code,
+            });
+            
+            // 더 자세한 오류 메시지 생성
+            let errorMessage = '주문 생성 실패';
+            if (blogOrderError) {
+              if (blogOrderError.message) {
+                errorMessage = blogOrderError.message;
+              }
+              if (blogOrderError.details) {
+                errorMessage += `: ${blogOrderError.details}`;
+              }
+              if (blogOrderError.hint) {
+                errorMessage += ` (${blogOrderError.hint})`;
+              }
+            }
+            
             blogResults.failed.push({
               link: blogLink,
-              error: blogOrderError?.message || '주문 생성 실패',
+              error: errorMessage,
             });
           } else {
             blogResults.success.push(blogLink);
@@ -173,10 +194,31 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
             .single();
 
           if (receiptOrderError || !receiptOrder) {
-            console.error('Failed to create receipt order:', receiptOrderError);
+            console.error('Failed to create receipt order:', {
+              link: trimmedLink,
+              error: receiptOrderError,
+              details: receiptOrderError?.details,
+              hint: receiptOrderError?.hint,
+              code: receiptOrderError?.code,
+            });
+            
+            // 더 자세한 오류 메시지 생성
+            let errorMessage = '주문 생성 실패';
+            if (receiptOrderError) {
+              if (receiptOrderError.message) {
+                errorMessage = receiptOrderError.message;
+              }
+              if (receiptOrderError.details) {
+                errorMessage += `: ${receiptOrderError.details}`;
+              }
+              if (receiptOrderError.hint) {
+                errorMessage += ` (${receiptOrderError.hint})`;
+              }
+            }
+            
             receiptResults.failed.push({
               link: receiptLink,
-              error: receiptOrderError?.message || '주문 생성 실패',
+              error: errorMessage,
             });
           } else {
             receiptResults.success.push(receiptLink);

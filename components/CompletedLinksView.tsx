@@ -206,6 +206,23 @@ export default function CompletedLinksView() {
       let message = `총 ${successCount}개의 링크가 성공적으로 추가되었습니다.`;
       if (failedCount > 0) {
         message += `\n${failedCount}개의 링크 추가에 실패했습니다.`;
+        
+        // 실패한 링크의 상세 오류 메시지 추가
+        const failedBlogs = data.results?.blogResults?.failed || [];
+        const failedReceipts = data.results?.receiptResults?.failed || [];
+        const allFailed = [...failedBlogs, ...failedReceipts];
+        
+        if (allFailed.length > 0) {
+          message += '\n\n실패한 링크:';
+          allFailed.forEach((failed: any, index: number) => {
+            if (index < 5) { // 최대 5개만 표시
+              message += `\n- ${failed.link}: ${failed.error}`;
+            }
+          });
+          if (allFailed.length > 5) {
+            message += `\n...외 ${allFailed.length - 5}개`;
+          }
+        }
       }
       alert(message);
       
