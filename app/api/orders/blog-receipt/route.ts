@@ -63,29 +63,6 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
 
     const quota = { ...(clientData.quota || {}) } as any;
 
-    // 중복 체크를 위해 모든 블로그/영수증 링크를 미리 가져오기
-    const { data: existingOrders } = await supabaseAdmin
-      .from('orders')
-      .select('completedLink')
-      .in('taskType', ['blog', 'receipt'])
-      .not('completedLink', 'is', null);
-
-    // 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
-    const normalizedExistingLinks = new Set<string>();
-    if (existingOrders) {
-      existingOrders.forEach((order: any) => {
-        if (order.completedLink) {
-          const normalized = normalizeUrl(String(order.completedLink));
-          normalizedExistingLinks.add(normalized);
-        }
-      });
-    }
-    
-    console.log(`[DEBUG] 기존 링크 개수: ${normalizedExistingLinks.size}`);
-    if (validBlogLinks.length > 0 || validReceiptLinks.length > 0) {
-      console.log(`[DEBUG] 확인할 링크들:`, validBlogLinks.length > 0 ? validBlogLinks : validReceiptLinks);
-    }
-
     // 블로그 리뷰 처리
     const blogResults = {
       success: [] as string[],
@@ -101,28 +78,36 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
         );
       }
 
+      // 해당 광고주의 블로그 링크만 가져오기 (중복 체크용)
+      const { data: existingBlogOrders } = await supabaseAdmin
+        .from('orders')
+        .select('completedLink')
+        .eq('clientId', clientId)
+        .eq('taskType', 'blog')
+        .not('completedLink', 'is', null);
+
+      // 해당 광고주의 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
+      const normalizedExistingLinks = new Set<string>();
+      if (existingBlogOrders) {
+        existingBlogOrders.forEach((order: any) => {
+          if (order.completedLink) {
+            const normalized = normalizeUrl(String(order.completedLink));
+            normalizedExistingLinks.add(normalized);
+          }
+        });
+      }
+
       // 각 링크마다 주문 생성
       for (const blogLink of validBlogLinks) {
         try {
           const trimmedLink = String(blogLink).trim();
           const normalizedLink = normalizeUrl(trimmedLink);
           
-          // 디버깅 로그
-          console.log(`[DEBUG] 블로그 링크 체크 - 원본: "${blogLink}", 정규화: "${normalizedLink}", 존재 여부: ${normalizedExistingLinks.has(normalizedLink)}`);
-          
-          // 정확한 비교를 위해 Set의 모든 값 확인
+          // 해당 광고주의 기존 링크와 중복 체크
           if (normalizedExistingLinks.has(normalizedLink)) {
-            // 어떤 링크와 매칭되었는지 확인
-            let matchingLink = '';
-            normalizedExistingLinks.forEach(existingLink => {
-              if (existingLink === normalizedLink) {
-                matchingLink = existingLink;
-              }
-            });
-            console.log(`[DEBUG] 중복 링크 감지: "${normalizedLink}" 매칭된 링크: "${matchingLink}"`);
             blogResults.failed.push({
               link: blogLink,
-              error: `이미 등록된 링크입니다. (등록된 링크: ${matchingLink})`,
+              error: '이미 등록된 링크입니다.',
             });
             continue;
           }
@@ -200,14 +185,33 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
         );
       }
 
+      // 해당 광고주의 영수증 링크만 가져오기 (중복 체크용)
+      const { data: existingReceiptOrders } = await supabaseAdmin
+        .from('orders')
+        .select('completedLink')
+        .eq('clientId', clientId)
+        .eq('taskType', 'receipt')
+        .not('completedLink', 'is', null);
+
+      // 해당 광고주의 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
+      const normalizedExistingReceiptLinks = new Set<string>();
+      if (existingReceiptOrders) {
+        existingReceiptOrders.forEach((order: any) => {
+          if (order.completedLink) {
+            const normalized = normalizeUrl(String(order.completedLink));
+            normalizedExistingReceiptLinks.add(normalized);
+          }
+        });
+      }
+
       // 각 링크마다 주문 생성
       for (const receiptLink of validReceiptLinks) {
         try {
-          const trimmedLink = receiptLink.trim();
+          const trimmedLink = String(receiptLink).trim();
           const normalizedLink = normalizeUrl(trimmedLink);
           
-          // 중복 체크: 정규화된 링크로 비교
-          if (normalizedExistingLinks.has(normalizedLink)) {
+          // 해당 광고주의 기존 링크와 중복 체크
+          if (normalizedExistingReceiptLinks.has(normalizedLink)) {
             receiptResults.failed.push({
               link: receiptLink,
               error: '이미 등록된 링크입니다.',
@@ -216,7 +220,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
           }
 
           // 중복이 아니면 Set에 추가하여 같은 배치 내 중복 방지
-          normalizedExistingLinks.add(normalizedLink);
+          normalizedExistingReceiptLinks.add(normalizedLink);
 
           const { data: receiptOrder, error: receiptOrderError } = await supabaseAdmin
             .from('orders')

@@ -144,23 +144,6 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
       clientLinksMap.get(client.id)!.links.push(link);
     }
 
-    // 중복 체크를 위해 모든 블로그/영수증 링크를 미리 가져오기
-    const { data: existingOrders } = await supabaseAdmin
-      .from('orders')
-      .select('completedLink')
-      .in('taskType', ['blog', 'receipt'])
-      .not('completedLink', 'is', null);
-
-    // 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
-    const normalizedExistingLinks = new Set<string>();
-    if (existingOrders) {
-      existingOrders.forEach((order: any) => {
-        if (order.completedLink) {
-          normalizedExistingLinks.add(normalizeUrl(order.completedLink));
-        }
-      });
-    }
-
     // 각 클라이언트별로 링크 등록
     for (const [clientId, { client, links }] of clientLinksMap.entries()) {
       try {
@@ -199,21 +182,36 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
           continue;
         }
 
+        // 해당 광고주의 기존 링크만 가져오기 (중복 체크용)
+        const { data: existingOrders } = await supabaseAdmin
+          .from('orders')
+          .select('completedLink')
+          .eq('clientId', clientId)
+          .eq('taskType', linkType)
+          .not('completedLink', 'is', null);
+
+        // 해당 광고주의 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
+        const normalizedExistingLinks = new Set<string>();
+        if (existingOrders) {
+          existingOrders.forEach((order: any) => {
+            if (order.completedLink) {
+              const normalized = normalizeUrl(String(order.completedLink));
+              normalizedExistingLinks.add(normalized);
+            }
+          });
+        }
+
         // 각 링크마다 주문 생성
         const successLinks: string[] = [];
         const failedLinks: Array<{ link: string; error: string }> = [];
 
         for (const link of links) {
           try {
-            const trimmedLink = link.trim();
+            const trimmedLink = String(link).trim();
             const normalizedLink = normalizeUrl(trimmedLink);
             
-            // 디버깅 로그
-            console.log(`[DEBUG] 엑셀 링크 체크 - 원본: "${link}", 정규화: "${normalizedLink}", 존재 여부: ${normalizedExistingLinks.has(normalizedLink)}`);
-            
-            // 중복 체크: 정규화된 링크로 비교
+            // 해당 광고주의 기존 링크와 중복 체크
             if (normalizedExistingLinks.has(normalizedLink)) {
-              console.log(`[DEBUG] 중복 링크 감지: "${normalizedLink}"`);
               failedLinks.push({
                 link,
                 error: '이미 등록된 링크입니다.',
