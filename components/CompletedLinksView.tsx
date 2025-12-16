@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDateTime } from '@/lib/utils';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 interface Order {
   id: string;
@@ -68,6 +70,15 @@ export default function CompletedLinksView() {
   
   // 드롭다운 상태 (펼쳐진 광고주 목록)
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+  
+  // 엑셀 일괄등록 상태
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [bulkLinkType, setBulkLinkType] = useState<'blog' | 'receipt'>('blog');
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkUploadResult, setBulkUploadResult] = useState<{
+    success: Array<{ row: any; clientId: string; clientName: string }>;
+    failed: Array<{ row: any; error: string }>;
+  } | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -430,6 +441,140 @@ export default function CompletedLinksView() {
     URL.revokeObjectURL(url);
   };
 
+  // 엑셀 템플릿 다운로드
+  const downloadExcelTemplate = () => {
+    const template = [
+      {
+        순번: 1,
+        상호명: '예시 광고주명',
+        링크: 'https://example.com/review-link',
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(template);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '링크 목록');
+    
+    // 컬럼 너비 조정
+    worksheet['!cols'] = [
+      { wch: 8 },  // 순번
+      { wch: 20 }, // 상호명
+      { wch: 50 }, // 링크
+    ];
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, '블로그영수증_링크_일괄등록_템플릿.xlsx');
+  };
+
+  // 엑셀 파일 업로드 및 파싱
+  const handleExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setBulkUploading(true);
+    setBulkUploadResult(null);
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      if (!jsonData || jsonData.length === 0) {
+        alert('엑셀 파일이 비어있습니다.');
+        setBulkUploading(false);
+        return;
+      }
+
+      // 필수 컬럼 확인
+      const firstRow = jsonData[0] as any;
+      if (!firstRow.상호명 && !firstRow['상호명']) {
+        alert('엑셀 파일에 "상호명" 컬럼이 없습니다.');
+        setBulkUploading(false);
+        return;
+      }
+      if (!firstRow.링크 && !firstRow['링크']) {
+        alert('엑셀 파일에 "링크" 컬럼이 없습니다.');
+        setBulkUploading(false);
+        return;
+      }
+
+      // API 호출
+      const response = await fetch('/api/orders/blog-receipt/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rows: jsonData,
+          linkType: bulkLinkType,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        alert(result.error || '일괄 등록에 실패했습니다.');
+        setBulkUploading(false);
+        return;
+      }
+
+      setBulkUploadResult(result.results);
+      
+      const successCount = result.results.success.length;
+      const failedCount = result.results.failed.length;
+      
+      let message = `총 ${successCount}개의 링크가 성공적으로 추가되었습니다.`;
+      if (failedCount > 0) {
+        message += `\n${failedCount}개의 링크 추가에 실패했습니다.\n\n실패한 항목들은 엑셀 파일로 다운로드할 수 있습니다.`;
+      }
+      alert(message);
+      
+      fetchCompletedOrders();
+    } catch (error: any) {
+      console.error('Failed to upload excel:', error);
+      alert('엑셀 파일 처리 중 오류가 발생했습니다: ' + error.message);
+    } finally {
+      setBulkUploading(false);
+      // 파일 input 초기화
+      event.target.value = '';
+    }
+  };
+
+  // 실패한 항목들을 엑셀로 다운로드
+  const downloadFailedItemsAsExcel = () => {
+    if (!bulkUploadResult || bulkUploadResult.failed.length === 0) {
+      alert('다운로드할 실패한 항목이 없습니다.');
+      return;
+    }
+
+    const failedData = bulkUploadResult.failed.map((item) => ({
+      순번: item.row.순번 || '',
+      상호명: item.row.상호명 || '',
+      링크: item.row.링크 || '',
+      오류내용: item.error,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(failedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '실패한 항목');
+    
+    // 컬럼 너비 조정
+    worksheet['!cols'] = [
+      { wch: 8 },  // 순번
+      { wch: 20 }, // 상호명
+      { wch: 50 }, // 링크
+      { wch: 50 }, // 오류내용
+    ];
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const dateStr = new Date().toISOString().split('T')[0];
+    saveAs(blob, `등록실패항목_${dateStr}.xlsx`);
+  };
+
   // 완료된 링크 삭제 (체험단은 제외)
   const handleDeleteOrder = async (orderId: string, taskType: string) => {
     // 체험단은 삭제하지 않음
@@ -557,6 +702,16 @@ export default function CompletedLinksView() {
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
             >
               블로그/영수증 리뷰 링크 추가
+            </button>
+            <button
+              onClick={() => {
+                setShowBulkUploadModal(true);
+                setBulkLinkType('blog');
+                setBulkUploadResult(null);
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              엑셀 일괄등록
             </button>
             <button
               onClick={() => {
@@ -1277,6 +1432,122 @@ export default function CompletedLinksView() {
                 {submittingMyexpense ? '추가 중...' : '추가'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 엑셀 일괄등록 모달 */}
+      {showBulkUploadModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              엑셀 일괄등록
+            </h2>
+
+            {/* 링크 타입 선택 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                링크 타입 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="blog"
+                    checked={bulkLinkType === 'blog'}
+                    onChange={(e) => setBulkLinkType(e.target.value as 'blog' | 'receipt')}
+                    className="mr-2"
+                  />
+                  블로그 리뷰
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="receipt"
+                    checked={bulkLinkType === 'receipt'}
+                    onChange={(e) => setBulkLinkType(e.target.value as 'blog' | 'receipt')}
+                    className="mr-2"
+                  />
+                  영수증 리뷰
+                </label>
+              </div>
+            </div>
+
+            {/* 엑셀 파일 업로드 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                엑셀 파일 업로드 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleExcelUpload}
+                  disabled={bulkUploading}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                엑셀 파일 형식: 순번, 상호명, 링크 (상호명으로 자동 매칭됩니다)
+              </p>
+            </div>
+
+            {/* 템플릿 다운로드 */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={downloadExcelTemplate}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm"
+              >
+                템플릿 다운로드
+              </button>
+            </div>
+
+            {/* 업로드 결과 */}
+            {bulkUploadResult && (
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="mb-2">
+                  <span className="font-medium text-green-600">
+                    성공: {bulkUploadResult.success.length}개
+                  </span>
+                </div>
+                {bulkUploadResult.failed.length > 0 && (
+                  <div className="mb-2">
+                    <span className="font-medium text-red-600">
+                      실패: {bulkUploadResult.failed.length}개
+                    </span>
+                    <button
+                      type="button"
+                      onClick={downloadFailedItemsAsExcel}
+                      className="ml-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-sm"
+                    >
+                      실패한 항목 다운로드
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBulkUploadModal(false);
+                  setBulkUploadResult(null);
+                  setBulkLinkType('blog');
+                }}
+                disabled={bulkUploading}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                닫기
+              </button>
+            </div>
+
+            {bulkUploading && (
+              <div className="mt-4 text-center text-gray-600">
+                처리 중...
+              </div>
+            )}
           </div>
         </div>
       )}
