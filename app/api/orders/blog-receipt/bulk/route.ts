@@ -9,6 +9,30 @@ interface ExcelRow {
   [key: string]: any;
 }
 
+// URL 정규화 함수 - 완전히 동일한 URL만 중복으로 판단
+function normalizeUrl(url: string): string {
+  try {
+    let normalized = url.trim();
+    
+    // URL 파싱
+    const urlObj = new URL(normalized);
+    
+    // 프로토콜, 호스트, 경로, 쿼리 등을 정규화
+    // 소문자로 변환
+    normalized = urlObj.href.toLowerCase();
+    
+    // 끝 슬래시 제거 (경로가 있는 경우만, 루트 경로는 유지)
+    if (normalized.endsWith('/') && urlObj.pathname !== '/') {
+      normalized = normalized.slice(0, -1);
+    }
+    
+    return normalized;
+  } catch {
+    // URL 파싱 실패 시 원본 반환
+    return url.trim().toLowerCase();
+  }
+}
+
 // POST: 엑셀 파일 데이터를 받아서 일괄 등록
 async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
   if (!requireAdmin(user)) {
@@ -137,6 +161,23 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
       clientLinksMap.get(client.id)!.links.push(link);
     }
 
+    // 중복 체크를 위해 모든 블로그/영수증 링크를 미리 가져오기
+    const { data: existingOrders } = await supabaseAdmin
+      .from('orders')
+      .select('completedLink')
+      .in('taskType', ['blog', 'receipt'])
+      .not('completedLink', 'is', null);
+
+    // 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
+    const normalizedExistingLinks = new Set<string>();
+    if (existingOrders) {
+      existingOrders.forEach((order: any) => {
+        if (order.completedLink) {
+          normalizedExistingLinks.add(normalizeUrl(order.completedLink));
+        }
+      });
+    }
+
     // 각 클라이언트별로 링크 등록
     for (const [clientId, { client, links }] of clientLinksMap.entries()) {
       try {
@@ -182,21 +223,19 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
         for (const link of links) {
           try {
             const trimmedLink = link.trim();
+            const normalizedLink = normalizeUrl(trimmedLink);
             
-            // 중복 체크: 이미 등록된 링크인지 확인
-            const { data: existingOrder } = await supabaseAdmin
-              .from('orders')
-              .select('id')
-              .eq('completedLink', trimmedLink)
-              .maybeSingle();
-
-            if (existingOrder) {
+            // 중복 체크: 정규화된 링크로 비교
+            if (normalizedExistingLinks.has(normalizedLink)) {
               failedLinks.push({
                 link,
                 error: '이미 등록된 링크입니다.',
               });
               continue;
             }
+
+            // 중복이 아니면 Set에 추가하여 같은 배치 내 중복 방지
+            normalizedExistingLinks.add(normalizedLink);
 
             const { data: order, error: orderError } = await supabaseAdmin
               .from('orders')

@@ -2,6 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, requireAdmin } from '@/lib/middleware';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// URL 정규화 함수 - 완전히 동일한 URL만 중복으로 판단
+function normalizeUrl(url: string): string {
+  try {
+    let normalized = url.trim();
+    
+    // URL 파싱
+    const urlObj = new URL(normalized);
+    
+    // 프로토콜, 호스트, 경로, 쿼리 등을 정규화
+    // 소문자로 변환
+    normalized = urlObj.href.toLowerCase();
+    
+    // 끝 슬래시 제거 (경로가 있는 경우만, 루트 경로는 유지)
+    if (normalized.endsWith('/') && urlObj.pathname !== '/') {
+      normalized = normalized.slice(0, -1);
+    }
+    
+    // URL 파라미터 정렬 (선택사항이지만 완벽한 매칭을 위해 제외)
+    // 대신 정확히 동일한 URL만 매칭하도록 함
+    
+    return normalized;
+  } catch {
+    // URL 파싱 실패 시 원본 반환
+    return url.trim().toLowerCase();
+  }
+}
+
 // POST: Create blog/receipt review completed links and deduct quota
 async function createBlogReceiptLink(req: NextRequest, user: any) {
   if (!requireAdmin(user)) {
@@ -56,6 +83,23 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
 
     const quota = { ...(clientData.quota || {}) } as any;
 
+    // 중복 체크를 위해 모든 블로그/영수증 링크를 미리 가져오기
+    const { data: existingOrders } = await supabaseAdmin
+      .from('orders')
+      .select('completedLink')
+      .in('taskType', ['blog', 'receipt'])
+      .not('completedLink', 'is', null);
+
+    // 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
+    const normalizedExistingLinks = new Set<string>();
+    if (existingOrders) {
+      existingOrders.forEach((order: any) => {
+        if (order.completedLink) {
+          normalizedExistingLinks.add(normalizeUrl(order.completedLink));
+        }
+      });
+    }
+
     // 블로그 리뷰 처리
     const blogResults = {
       success: [] as string[],
@@ -75,21 +119,19 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       for (const blogLink of validBlogLinks) {
         try {
           const trimmedLink = blogLink.trim();
+          const normalizedLink = normalizeUrl(trimmedLink);
           
-          // 중복 체크: 이미 등록된 링크인지 확인
-          const { data: existingOrder } = await supabaseAdmin
-            .from('orders')
-            .select('id')
-            .eq('completedLink', trimmedLink)
-            .maybeSingle();
-
-          if (existingOrder) {
+          // 중복 체크: 정규화된 링크로 비교
+          if (normalizedExistingLinks.has(normalizedLink)) {
             blogResults.failed.push({
               link: blogLink,
               error: '이미 등록된 링크입니다.',
             });
             continue;
           }
+
+          // 중복이 아니면 Set에 추가하여 같은 배치 내 중복 방지
+          normalizedExistingLinks.add(normalizedLink);
 
           const { data: blogOrder, error: blogOrderError } = await supabaseAdmin
             .from('orders')
@@ -135,6 +177,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
             blogResults.success.push(blogLink);
             // Quota 차감
             quota.blog.remaining -= 1;
+            // 성공한 링크도 Set에 추가하여 같은 배치 내 중복 방지 (이미 추가됨)
           }
         } catch (error: any) {
           blogResults.failed.push({
@@ -164,21 +207,19 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       for (const receiptLink of validReceiptLinks) {
         try {
           const trimmedLink = receiptLink.trim();
+          const normalizedLink = normalizeUrl(trimmedLink);
           
-          // 중복 체크: 이미 등록된 링크인지 확인
-          const { data: existingOrder } = await supabaseAdmin
-            .from('orders')
-            .select('id')
-            .eq('completedLink', trimmedLink)
-            .maybeSingle();
-
-          if (existingOrder) {
+          // 중복 체크: 정규화된 링크로 비교
+          if (normalizedExistingLinks.has(normalizedLink)) {
             receiptResults.failed.push({
               link: receiptLink,
               error: '이미 등록된 링크입니다.',
             });
             continue;
           }
+
+          // 중복이 아니면 Set에 추가하여 같은 배치 내 중복 방지
+          normalizedExistingLinks.add(normalizedLink);
 
           const { data: receiptOrder, error: receiptOrderError } = await supabaseAdmin
             .from('orders')
@@ -224,6 +265,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
             receiptResults.success.push(receiptLink);
             // Quota 차감
             quota.receipt.remaining -= 1;
+            // 성공한 링크도 Set에 추가하여 같은 배치 내 중복 방지 (이미 추가됨)
           }
         } catch (error: any) {
           receiptResults.failed.push({
