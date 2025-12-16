@@ -325,26 +325,38 @@ export default function CompletedLinksView() {
     }
   };
 
-  // 완료된 링크를 TXT 파일로 다운로드
-  const downloadCompletedLinksAsTxt = () => {
-    if (filteredOrders.length === 0) {
+  // 완료된 링크를 TXT 파일로 다운로드 (전체 또는 특정 업체)
+  const downloadCompletedLinksAsTxt = (clientId?: string) => {
+    let ordersToDownload = filteredOrders;
+    let clientName = '';
+
+    // 특정 업체만 다운로드하는 경우
+    if (clientId) {
+      ordersToDownload = filteredOrders.filter(order => order.client.id === clientId);
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        clientName = client.companyName || client.username;
+      }
+    }
+
+    if (ordersToDownload.length === 0) {
       alert('다운로드할 완료된 링크가 없습니다.');
       return;
     }
 
     // 필터링된 주문을 광고주별, 작업 타입별로 그룹화
-    const grouped = filteredOrders.reduce((acc, order) => {
-      const clientId = order.client.id;
-      if (!acc[clientId]) {
-        acc[clientId] = {
+    const grouped = ordersToDownload.reduce((acc, order) => {
+      const orderClientId = order.client.id;
+      if (!acc[orderClientId]) {
+        acc[orderClientId] = {
           client: order.client,
           taskTypes: {} as Record<string, Order[]>,
         };
       }
-      if (!acc[clientId].taskTypes[order.taskType]) {
-        acc[clientId].taskTypes[order.taskType] = [];
+      if (!acc[orderClientId].taskTypes[order.taskType]) {
+        acc[orderClientId].taskTypes[order.taskType] = [];
       }
-      acc[clientId].taskTypes[order.taskType].push(order);
+      acc[orderClientId].taskTypes[order.taskType].push(order);
       return acc;
     }, {} as Record<string, { client: Order['client']; taskTypes: Record<string, Order[]> }>);
 
@@ -354,7 +366,9 @@ export default function CompletedLinksView() {
     content += '완료된 링크 모아보기\n';
     content += '='.repeat(80) + '\n';
     content += `생성일시: ${new Date().toLocaleString('ko-KR')}\n`;
-    if (selectedClientId) {
+    if (clientId) {
+      content += `업체: ${clientName}\n`;
+    } else if (selectedClientId) {
       const selectedClient = clients.find(c => c.id === selectedClientId);
       if (selectedClient) {
         content += `필터: ${selectedClient.username}${selectedClient.companyName ? ` (${selectedClient.companyName})` : ''}\n`;
@@ -363,18 +377,20 @@ export default function CompletedLinksView() {
     if (searchQuery) {
       content += `검색어: ${searchQuery}\n`;
     }
-    content += `총 링크 개수: ${filteredOrders.length}개\n`;
+    content += `총 링크 개수: ${ordersToDownload.length}개\n`;
     content += '='.repeat(80) + '\n\n';
 
     // 광고주별로 정리
     Object.values(grouped).forEach((group, clientIndex) => {
-      content += '\n' + '-'.repeat(80) + '\n';
-      content += `[${clientIndex + 1}] 광고주: ${group.client.username}`;
-      if (group.client.companyName) {
-        content += ` (${group.client.companyName})`;
+      if (!clientId) {
+        content += '\n' + '-'.repeat(80) + '\n';
+        content += `[${clientIndex + 1}] 광고주: ${group.client.username}`;
+        if (group.client.companyName) {
+          content += ` (${group.client.companyName})`;
+        }
+        content += '\n';
+        content += '-'.repeat(80) + '\n';
       }
-      content += '\n';
-      content += '-'.repeat(80) + '\n';
 
       // 작업 타입별로 정리
       Object.entries(group.taskTypes).forEach(([taskType, orders]) => {
@@ -421,7 +437,9 @@ export default function CompletedLinksView() {
     // 파일명 생성
     const dateStr = new Date().toISOString().split('T')[0];
     let fileName = `완료된_링크_${dateStr}`;
-    if (selectedClientId) {
+    if (clientId && clientName) {
+      fileName += `_${clientName}`;
+    } else if (selectedClientId) {
       const selectedClient = clients.find(c => c.id === selectedClientId);
       if (selectedClient) {
         fileName += `_${selectedClient.username}`;
@@ -729,7 +747,7 @@ export default function CompletedLinksView() {
             </button>
             {filteredOrders.length > 0 && (
               <button
-                onClick={downloadCompletedLinksAsTxt}
+                onClick={() => downloadCompletedLinksAsTxt()}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -863,119 +881,111 @@ export default function CompletedLinksView() {
                         </div>
                       </div>
                       
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // 헤더 클릭 이벤트와 분리
-                          setSelectedClientForLink(group.client);
-                          setBlogLinks(['']);
-                          setReceiptLinks(['']);
-                          setClientSearchTerm('');
-                          setShowClientDropdown(false);
-                          setShowBlogReceiptModal(true);
-                        }}
-                        className="text-sm px-3 py-1.5 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition"
-                      >
-                        블로그/영수증 링크 추가
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // 헤더 클릭 이벤트와 분리
+                            setSelectedClientForLink(group.client);
+                            setBlogLinks(['']);
+                            setReceiptLinks(['']);
+                            setClientSearchTerm('');
+                            setShowClientDropdown(false);
+                            setShowBlogReceiptModal(true);
+                          }}
+                          className="text-sm px-3 py-1.5 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition"
+                        >
+                          블로그/영수증 링크 추가
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadCompletedLinksAsTxt(group.client.id);
+                          }}
+                          className="text-sm px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          TXT 다운로드
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* 드롭다운 내용 */}
+                  {/* 드롭다운 내용 - 간단한 리스트 형식 */}
                   {isExpanded && (
-                    <div className="border-t border-gray-200 p-6">
-                      <div className="space-y-6">
-                  {Object.entries(group.taskTypes).map(([taskType, orders]) => (
-                    <div key={taskType} className="space-y-3">
-                      <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                        <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
-                          {TASK_TYPE_NAMES[taskType] || taskType}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {orders.length}개
-                        </span>
-                      </div>
-                      <div className="space-y-3 pl-4">
-                        {orders.map((order) => (
-                          <div
-                            key={order.id}
-                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <p className="text-xs text-gray-500">
-                                {formatDateTime(order.createdAt)}
-                              </p>
-                              {order.taskType !== 'experience' && (
-                                <button
-                                  onClick={() => handleDeleteOrder(order.id, order.taskType)}
-                                  disabled={deletingOrderId === order.id}
-                                  className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  {deletingOrderId === order.id ? '삭제 중...' : '삭제'}
-                                </button>
-                              )}
+                    <div className="border-t border-gray-200">
+                      <div className="divide-y divide-gray-200">
+                        {Object.entries(group.taskTypes).map(([taskType, orders]) => (
+                          <div key={taskType} className="p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+                                {TASK_TYPE_NAMES[taskType] || taskType}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {orders.length}개
+                              </span>
                             </div>
-
-                            {order.caption && (
-                              <div className="text-sm text-gray-700 mb-3">
-                                {order.caption.split('\n').slice(0, 2).map((line, idx) => (
-                                  <p key={idx} className={idx === 0 ? 'font-medium' : ''}>
-                                    {line}
-                                  </p>
-                                ))}
-                              </div>
-                            )}
-
-                            <div className="space-y-2">
-                              <div>
-                                <div className="text-sm font-medium text-gray-700 mb-2">
-                                  {order.taskType === 'myexpense' ? '내돈내산 예약자 리뷰' : '완료 링크'}
-                                </div>
-                                <a
-                                  href={order.completedLink!}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                            <div className="space-y-2 pl-4">
+                              {orders.map((order) => (
+                                <div
+                                  key={order.id}
+                                  className="flex items-center justify-between py-2 hover:bg-gray-50 rounded px-2 -mx-2 group"
                                 >
-                                  <span className="truncate max-w-2xl">{order.completedLink}</span>
-                                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                  </svg>
-                                </a>
-                              </div>
-                              {order.taskType === 'myexpense' && order.completedLink2 && (
-                                <div>
-                                  <div className="text-sm font-medium text-gray-700 mb-2">
-                                    내돈내산 블로그 리뷰
+                                  <div className="flex-1 min-w-0">
+                                    {order.completedLink && (
+                                      <a
+                                        href={order.completedLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-primary-600 hover:text-primary-700 hover:underline break-all"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {order.completedLink}
+                                      </a>
+                                    )}
+                                    {order.taskType === 'myexpense' && order.completedLink2 && (
+                                      <>
+                                        <br />
+                                        <a
+                                          href={order.completedLink2}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-sm text-primary-600 hover:text-primary-700 hover:underline break-all"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {order.completedLink2}
+                                        </a>
+                                      </>
+                                    )}
+                                    {!order.completedLink && !order.completedLink2 && (
+                                      <span className="text-sm text-gray-400">
+                                        링크 없음
+                                      </span>
+                                    )}
                                   </div>
-                                  <a
-                                    href={order.completedLink2}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
-                                  >
-                                    <span className="truncate max-w-2xl">{order.completedLink2}</span>
-                                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                    </svg>
-                                  </a>
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <span className="text-xs text-gray-400 hidden group-hover:inline">
+                                      {formatDateTime(order.createdAt)}
+                                    </span>
+                                    {order.taskType !== 'experience' && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteOrder(order.id, order.taskType);
+                                        }}
+                                        disabled={deletingOrderId === order.id}
+                                        className="text-xs text-red-600 hover:text-red-700 px-2 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {deletingOrderId === order.id ? '삭제 중...' : '삭제'}
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-                              {order.taskType === 'myexpense' && order.reviewerName && (
-                                <div>
-                                  <div className="text-sm font-medium text-gray-700 mb-2">
-                                    리뷰어 이름
-                                  </div>
-                                  <div className="px-4 py-2 bg-gray-50 text-gray-900 rounded-lg">
-                                    {order.reviewerName}
-                                  </div>
-                                </div>
-                              )}
+                              ))}
                             </div>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  ))}
                       </div>
                     </div>
                   )}
