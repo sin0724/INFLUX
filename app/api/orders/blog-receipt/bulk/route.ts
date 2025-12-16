@@ -181,6 +181,23 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
 
         for (const link of links) {
           try {
+            const trimmedLink = link.trim();
+            
+            // 중복 체크: 이미 등록된 링크인지 확인
+            const { data: existingOrder } = await supabaseAdmin
+              .from('orders')
+              .select('id')
+              .eq('completedLink', trimmedLink)
+              .maybeSingle();
+
+            if (existingOrder) {
+              failedLinks.push({
+                link,
+                error: '이미 등록된 링크입니다.',
+              });
+              continue;
+            }
+
             const { data: order, error: orderError } = await supabaseAdmin
               .from('orders')
               .insert({
@@ -189,7 +206,7 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
                 caption: linkType === 'blog' ? '블로그 리뷰' : '영수증 리뷰',
                 imageUrls: [],
                 status: 'done',
-                completedLink: link.trim(),
+                completedLink: trimmedLink,
               })
               .select()
               .single();

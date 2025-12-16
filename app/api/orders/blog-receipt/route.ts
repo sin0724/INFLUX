@@ -74,6 +74,23 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       // 각 링크마다 주문 생성
       for (const blogLink of validBlogLinks) {
         try {
+          const trimmedLink = blogLink.trim();
+          
+          // 중복 체크: 이미 등록된 링크인지 확인
+          const { data: existingOrder } = await supabaseAdmin
+            .from('orders')
+            .select('id')
+            .eq('completedLink', trimmedLink)
+            .maybeSingle();
+
+          if (existingOrder) {
+            blogResults.failed.push({
+              link: blogLink,
+              error: '이미 등록된 링크입니다.',
+            });
+            continue;
+          }
+
           const { data: blogOrder, error: blogOrderError } = await supabaseAdmin
             .from('orders')
             .insert({
@@ -82,7 +99,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
               caption: '블로그 리뷰',
               imageUrls: [],
               status: 'done',
-              completedLink: blogLink.trim(),
+              completedLink: trimmedLink,
             })
             .select()
             .single();
@@ -125,6 +142,23 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       // 각 링크마다 주문 생성
       for (const receiptLink of validReceiptLinks) {
         try {
+          const trimmedLink = receiptLink.trim();
+          
+          // 중복 체크: 이미 등록된 링크인지 확인
+          const { data: existingOrder } = await supabaseAdmin
+            .from('orders')
+            .select('id')
+            .eq('completedLink', trimmedLink)
+            .maybeSingle();
+
+          if (existingOrder) {
+            receiptResults.failed.push({
+              link: receiptLink,
+              error: '이미 등록된 링크입니다.',
+            });
+            continue;
+          }
+
           const { data: receiptOrder, error: receiptOrderError } = await supabaseAdmin
             .from('orders')
             .insert({
@@ -133,7 +167,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
               caption: '영수증 리뷰',
               imageUrls: [],
               status: 'done',
-              completedLink: receiptLink.trim(),
+              completedLink: trimmedLink,
             })
             .select()
             .single();
