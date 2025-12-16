@@ -49,16 +49,27 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
     }
 
     // 클라이언트 매칭을 위한 맵 생성 (상호명 또는 username으로 매칭)
+    // 띄어쓰기를 제거한 버전도 저장하여 유연한 매칭 지원
     const clientMap = new Map<string, typeof allClients[0]>();
     allClients.forEach((client) => {
       // companyName으로 매칭
       if (client.companyName) {
         const normalizedName = client.companyName.trim().toLowerCase();
         clientMap.set(normalizedName, client);
+        // 띄어쓰기 제거한 버전도 추가
+        const nameWithoutSpaces = normalizedName.replace(/\s+/g, '');
+        if (nameWithoutSpaces !== normalizedName) {
+          clientMap.set(nameWithoutSpaces, client);
+        }
       }
       // username으로도 매칭
       const normalizedUsername = client.username.trim().toLowerCase();
       clientMap.set(normalizedUsername, client);
+      // 띄어쓰기 제거한 버전도 추가
+      const usernameWithoutSpaces = normalizedUsername.replace(/\s+/g, '');
+      if (usernameWithoutSpaces !== normalizedUsername) {
+        clientMap.set(usernameWithoutSpaces, client);
+      }
     });
 
     const results = {
@@ -101,9 +112,15 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
         continue;
       }
 
-      // 클라이언트 찾기 (대소문자 무시)
-      const normalizedCompanyName = companyName.toLowerCase();
-      const client = clientMap.get(normalizedCompanyName);
+      // 클라이언트 찾기 (대소문자 무시, 띄어쓰기 제거)
+      const normalizedCompanyName = companyName.trim().toLowerCase();
+      // 먼저 원본으로 검색
+      let client = clientMap.get(normalizedCompanyName);
+      // 없으면 띄어쓰기 제거한 버전으로 검색
+      if (!client) {
+        const nameWithoutSpaces = normalizedCompanyName.replace(/\s+/g, '');
+        client = clientMap.get(nameWithoutSpaces);
+      }
 
       if (!client) {
         results.failed.push({
