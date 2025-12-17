@@ -79,11 +79,13 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       }
 
       // 해당 광고주의 블로그 링크만 가져오기 (중복 체크용)
+      // UI에서 보이는 것(status='done')만 중복으로 판단
       const { data: existingBlogOrders, error: fetchError } = await supabaseAdmin
         .from('orders')
-        .select('id, clientId, taskType, completedLink')
+        .select('id, clientId, taskType, status, completedLink')
         .eq('clientId', clientId)
         .eq('taskType', 'blog')
+        .eq('status', 'done')  // UI와 동일한 조건: status='done'인 것만 체크
         .not('completedLink', 'is', null);
 
       if (fetchError) {
@@ -242,15 +244,15 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       
       if (existingReceiptOrders && existingReceiptOrders.length > 0) {
         console.log(`[DEBUG] 광고주 ${clientId}의 기존 영수증 주문 개수: ${existingReceiptOrders.length}`);
-        existingReceiptOrders.forEach((order: any) => {
-          if (order.completedLink) {
-            const originalLink = String(order.completedLink).trim();
-            const normalized = normalizeUrl(originalLink);
-            normalizedExistingReceiptLinks.add(normalized);
-            existingReceiptLinksMap.set(normalized, originalLink);
-            console.log(`[DEBUG] 기존 링크 추가 - 원본: "${originalLink}", 정규화: "${normalized}"`);
-          }
-        });
+            existingReceiptOrders.forEach((order: any) => {
+              if (order.completedLink) {
+                const originalLink = String(order.completedLink).trim();
+                const normalized = normalizeUrl(originalLink);
+                normalizedExistingReceiptLinks.add(normalized);
+                existingReceiptLinksMap.set(normalized, originalLink);
+                console.log(`[DEBUG] 기존 링크 추가 - 주문ID: ${order.id}, 상태: ${order.status}, 원본: "${originalLink}", 정규화: "${normalized}"`);
+              }
+            });
       } else {
         console.log(`[DEBUG] 광고주 ${clientId}의 기존 영수증 링크 없음`);
       }
