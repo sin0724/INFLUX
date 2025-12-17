@@ -227,11 +227,13 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       }
 
       // 해당 광고주의 영수증 링크만 가져오기 (중복 체크용)
+      // UI에서 보이는 것(status='done')만 중복으로 판단
       const { data: existingReceiptOrders, error: fetchReceiptError } = await supabaseAdmin
         .from('orders')
-        .select('id, clientId, taskType, completedLink')
+        .select('id, clientId, taskType, status, completedLink')
         .eq('clientId', clientId)
         .eq('taskType', 'receipt')
+        .eq('status', 'done')  // UI와 동일한 조건: status='done'인 것만 체크
         .not('completedLink', 'is', null);
 
       if (fetchReceiptError) {
