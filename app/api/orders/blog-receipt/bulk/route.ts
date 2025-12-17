@@ -10,10 +10,10 @@ interface ExcelRow {
 }
 
 // URL 정규화 함수 - 완전히 동일한 URL만 중복으로 판단
-// 최소한의 정규화만 수행 (공백 제거만)
+// 정규화 없이 원본 그대로 비교 (공백 제거만)
 function normalizeUrl(url: string): string {
-  // 공백만 제거하고 원본 그대로 비교 (완벽한 매칭만 중복으로 판단)
-  return url.trim();
+  // 공백만 제거
+  return String(url).trim();
 }
 
 // POST: 엑셀 파일 데이터를 받아서 일괄 등록
@@ -183,22 +183,39 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
         }
 
         // 해당 광고주의 기존 링크만 가져오기 (중복 체크용)
-        const { data: existingOrders } = await supabaseAdmin
+        const { data: existingOrders, error: fetchError } = await supabaseAdmin
           .from('orders')
-          .select('completedLink')
+          .select('id, clientId, taskType, completedLink')
           .eq('clientId', clientId)
           .eq('taskType', linkType)
           .not('completedLink', 'is', null);
 
+        if (fetchError) {
+          console.error(`[ERROR] Failed to fetch existing ${linkType} links for client ${clientId}:`, fetchError);
+        }
+
         // 해당 광고주의 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
         const normalizedExistingLinks = new Set<string>();
-        if (existingOrders) {
+        const existingLinksMap = new Map<string, string>(); // 정규화된 링크 -> 원본 링크 매핑
+        
+        if (existingOrders && existingOrders.length > 0) {
+          console.log(`[DEBUG] 광고주 ${clientId} (${client.companyName || client.username})의 기존 ${linkType} 주문 개수: ${existingOrders.length}`);
           existingOrders.forEach((order: any) => {
             if (order.completedLink) {
-              const normalized = normalizeUrl(String(order.completedLink));
+              const originalLink = String(order.completedLink).trim();
+              const normalized = normalizeUrl(originalLink);
               normalizedExistingLinks.add(normalized);
+              existingLinksMap.set(normalized, originalLink);
+              console.log(`[DEBUG] 기존 링크 추가 - 원본: "${originalLink}", 정규화: "${normalized}"`);
             }
           });
+        } else {
+          console.log(`[DEBUG] 광고주 ${clientId} (${client.companyName || client.username})의 기존 ${linkType} 링크 없음`);
+        }
+
+        console.log(`[DEBUG] 최종 기존 링크 개수: ${normalizedExistingLinks.size}`);
+        if (normalizedExistingLinks.size > 0) {
+          console.log(`[DEBUG] 기존 링크 목록:`, Array.from(normalizedExistingLinks));
         }
 
         // 각 링크마다 주문 생성
@@ -210,14 +227,25 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
             const trimmedLink = String(link).trim();
             const normalizedLink = normalizeUrl(trimmedLink);
             
+            console.log(`[DEBUG] ========== 체크 시작 ==========`);
+            console.log(`[DEBUG] 체크 중인 링크 - 원본: "${link}"`);
+            console.log(`[DEBUG] 체크 중인 링크 - trim: "${trimmedLink}"`);
+            console.log(`[DEBUG] 체크 중인 링크 - 정규화: "${normalizedLink}"`);
+            console.log(`[DEBUG] 기존 링크 Set에 존재 여부: ${normalizedExistingLinks.has(normalizedLink)}`);
+            
             // 해당 광고주의 기존 링크와 중복 체크
             if (normalizedExistingLinks.has(normalizedLink)) {
+              const matchedOriginalLink = existingLinksMap.get(normalizedLink);
+              console.log(`[DEBUG] ❌ 중복 감지! 정규화된 링크: "${normalizedLink}", 매칭된 원본: "${matchedOriginalLink}"`);
               failedLinks.push({
                 link,
-                error: '이미 등록된 링크입니다.',
+                error: `이미 등록된 링크입니다. (등록된 링크: ${matchedOriginalLink})`,
               });
               continue;
             }
+
+            console.log(`[DEBUG] ✅ 중복 없음, 등록 진행`);
+            console.log(`[DEBUG] ========== 체크 완료 ==========`);
 
             // 중복이 아니면 Set에 추가하여 같은 배치 내 중복 방지
             normalizedExistingLinks.add(normalizedLink);
