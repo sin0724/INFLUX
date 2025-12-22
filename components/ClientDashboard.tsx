@@ -126,77 +126,78 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                 {/* 블로그 리뷰 (맨 위) */}
                 <div className="bg-gradient-to-br from-pink-100 to-pink-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-pink-200">
                   <div className="text-xs font-medium text-pink-800 mb-1">블로그 리뷰</div>
-                  <div className="text-2xl font-bold text-pink-900">
-                    {currentUser.quota.blog?.remaining || 0}
+                  <div className="text-2xl font-bold text-pink-900 flex items-baseline gap-1">
+                    <span>{currentUser.quota.blog?.remaining || 0}</span>
+                    <span className="text-base font-medium">개</span>
                   </div>
-                  <div className="text-xs text-pink-700 mt-0.5">개</div>
                 </div>
                 {/* 영수증 리뷰 (맨 위) */}
                 <div className="bg-gradient-to-br from-red-100 to-red-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-red-200">
                   <div className="text-xs font-medium text-red-800 mb-1">영수증 리뷰</div>
-                  <div className="text-2xl font-bold text-red-900">
-                    {currentUser.quota.receipt?.remaining || 0}
+                  <div className="text-2xl font-bold text-red-900 flex items-baseline gap-1">
+                    <span>{currentUser.quota.receipt?.remaining || 0}</span>
+                    <span className="text-base font-medium">개</span>
                   </div>
-                  <div className="text-xs text-red-700 mt-0.5">개</div>
                 </div>
                 {/* 인스타 팔로워+좋아요 합계 */}
                 <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-green-200">
                   <div className="text-xs font-medium text-green-800 mb-1">인스타그램</div>
-                  <div className="text-2xl font-bold text-green-900">
-                    {(currentUser.quota.follower?.remaining || 0) + (currentUser.quota.like?.remaining || 0)}
+                  <div className="text-2xl font-bold text-green-900 flex items-baseline gap-1">
+                    <span>{(currentUser.quota.follower?.remaining || 0) + (currentUser.quota.like?.remaining || 0)}</span>
+                    <span className="text-base font-medium">개</span>
                   </div>
-                  <div className="text-xs text-green-700 mt-0.5">팔로워+좋아요</div>
+                  <div className="text-xs text-green-700 mt-1">팔로워+좋아요</div>
                 </div>
                 {/* 인기게시물 */}
                 <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-blue-200">
                   <div className="text-xs font-medium text-blue-800 mb-1">인기게시물</div>
-                  <div className="text-2xl font-bold text-blue-900">
-                    {currentUser.quota.hotpost?.remaining || 0}
+                  <div className="text-2xl font-bold text-blue-900 flex items-baseline gap-1">
+                    <span>{currentUser.quota.hotpost?.remaining || 0}</span>
+                    <span className="text-base font-medium">개</span>
                   </div>
-                  <div className="text-xs text-blue-700 mt-0.5">개</div>
                 </div>
                 {/* 맘카페 */}
                 <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-purple-200">
                   <div className="text-xs font-medium text-purple-800 mb-1">맘카페</div>
-                  <div className="text-2xl font-bold text-purple-900">
-                    {currentUser.quota.momcafe?.remaining || 0}
+                  <div className="text-2xl font-bold text-purple-900 flex items-baseline gap-1">
+                    <span>{currentUser.quota.momcafe?.remaining || 0}</span>
+                    <span className="text-base font-medium">개</span>
                   </div>
-                  <div className="text-xs text-purple-700 mt-0.5">개</div>
                 </div>
                 {/* 당근마켓 */}
                 <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-yellow-200">
                   <div className="text-xs font-medium text-yellow-800 mb-1">당근마켓</div>
-                  <div className="text-2xl font-bold text-yellow-900">
-                    {currentUser.quota.daangn?.remaining || 0}
+                  <div className="text-2xl font-bold text-yellow-900 flex items-baseline gap-1">
+                    <span>{currentUser.quota.daangn?.remaining || 0}</span>
+                    <span className="text-base font-medium">개</span>
                   </div>
-                  <div className="text-xs text-yellow-700 mt-0.5">개</div>
                 </div>
                 {/* 체험단 */}
                 <div className="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-indigo-200">
                   <div className="text-xs font-medium text-indigo-800 mb-1">체험단</div>
-                  <div className="text-2xl font-bold text-indigo-900">
-                    {currentUser.quota.experience?.remaining || 0}
+                  <div className="text-2xl font-bold text-indigo-900 flex items-baseline gap-1">
+                    <span>{currentUser.quota.experience?.remaining || 0}</span>
+                    <span className="text-base font-medium">개</span>
                   </div>
-                  <div className="text-xs text-indigo-700 mt-0.5">개</div>
                 </div>
                 {/* 파워블로그 (6개월 플랜만) */}
                 {currentUser.quota.powerblog && currentUser.quota.powerblog.total > 0 && (
                   <div className="bg-gradient-to-br from-teal-100 to-teal-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-teal-200">
                     <div className="text-xs font-medium text-teal-800 mb-1">파워블로그</div>
-                    <div className="text-2xl font-bold text-teal-900">
-                      {currentUser.quota.powerblog.remaining || 0}
+                    <div className="text-2xl font-bold text-teal-900 flex items-baseline gap-1">
+                      <span>{currentUser.quota.powerblog.remaining || 0}</span>
+                      <span className="text-base font-medium">개</span>
                     </div>
-                    <div className="text-xs text-teal-700 mt-0.5">개</div>
                   </div>
                 )}
                 {/* 내돈내산 리뷰 (관리자가 추가한 경우만) */}
                 {currentUser.quota.myexpense && currentUser.quota.myexpense.total > 0 && (
                   <div className="bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-amber-200">
                     <div className="text-xs font-medium text-amber-800 mb-1">내돈내산 리뷰</div>
-                    <div className="text-2xl font-bold text-amber-900">
-                      {currentUser.quota.myexpense.remaining || 0}
+                    <div className="text-2xl font-bold text-amber-900 flex items-baseline gap-1">
+                      <span>{currentUser.quota.myexpense.remaining || 0}</span>
+                      <span className="text-base font-medium">개</span>
                     </div>
-                    <div className="text-xs text-amber-700 mt-0.5">개</div>
                   </div>
                 )}
               </div>
