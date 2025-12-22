@@ -39,16 +39,87 @@ interface ClientDashboardProps {
   user: User;
 }
 
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  priority: 'high' | 'normal' | 'low';
+}
+
 export default function ClientDashboard({ user }: ClientDashboardProps) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(user);
   const [loading, setLoading] = useState(false);
   const [showExpiredModal, setShowExpiredModal] = useState(false);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   useEffect(() => {
     // Fetch latest user data to get updated quota
     fetchUserData();
+    // Fetch active announcements
+    fetchAnnouncements();
   }, []);
+
+  const fetchAnnouncements = async () => {
+    try {
+      const response = await fetch('/api/announcements');
+      if (response.ok) {
+        const data = await response.json();
+        const activeAnnouncements = (data.announcements || []).filter((ann: Announcement) => {
+          // localStorage에서 "다시 보지 않기" 체크
+          const hiddenAnnouncements = localStorage.getItem('hiddenAnnouncements');
+          if (hiddenAnnouncements) {
+            const hiddenIds = JSON.parse(hiddenAnnouncements);
+            return !hiddenIds.includes(ann.id);
+          }
+          return true;
+        });
+        
+        // 우선순위와 생성일 기준으로 정렬
+        activeAnnouncements.sort((a: Announcement, b: Announcement) => {
+          const priorityOrder = { high: 3, normal: 2, low: 1 };
+          if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+            return priorityOrder[b.priority] - priorityOrder[a.priority];
+          }
+          return 0;
+        });
+        
+        setAnnouncements(activeAnnouncements);
+        
+        // 활성화된 공지사항이 있으면 모달 표시
+        if (activeAnnouncements.length > 0) {
+          setShowAnnouncementModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch announcements:', error);
+    }
+  };
+
+  const handleCloseAnnouncement = () => {
+    if (dontShowAgain && announcements[currentAnnouncementIndex]) {
+      // "다시 보지 않기" 체크 시 localStorage에 저장
+      const hiddenAnnouncements = localStorage.getItem('hiddenAnnouncements');
+      const hiddenIds = hiddenAnnouncements ? JSON.parse(hiddenAnnouncements) : [];
+      if (!hiddenIds.includes(announcements[currentAnnouncementIndex].id)) {
+        hiddenIds.push(announcements[currentAnnouncementIndex].id);
+        localStorage.setItem('hiddenAnnouncements', JSON.stringify(hiddenIds));
+      }
+    }
+    
+    // 다음 공지사항이 있으면 다음으로, 없으면 모달 닫기
+    if (currentAnnouncementIndex < announcements.length - 1) {
+      setCurrentAnnouncementIndex(currentAnnouncementIndex + 1);
+      setDontShowAgain(false);
+    } else {
+      setShowAnnouncementModal(false);
+      setCurrentAnnouncementIndex(0);
+      setDontShowAgain(false);
+    }
+  };
 
   useEffect(() => {
     // 계약 만료 체크 (타임존 문제 해결)
@@ -102,6 +173,66 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
             router.push('/login');
           }}
         />
+      )}
+
+      {/* 공지사항 팝업 모달 */}
+      {showAnnouncementModal && announcements[currentAnnouncementIndex] && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900">공지사항</h2>
+                  {announcements.length > 1 && (
+                    <span className="text-sm text-gray-500">
+                      ({currentAnnouncementIndex + 1}/{announcements.length})
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={handleCloseAnnouncement}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {announcements[currentAnnouncementIndex].title}
+                </h3>
+                <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {announcements[currentAnnouncementIndex].content}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={dontShowAgain}
+                    onChange={(e) => setDontShowAgain(e.target.checked)}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">다시 보지 않기</span>
+                </label>
+                <button
+                  onClick={handleCloseAnnouncement}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium"
+                >
+                  {currentAnnouncementIndex < announcements.length - 1 ? '다음' : '확인'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Header */}
