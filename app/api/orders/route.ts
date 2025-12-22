@@ -41,6 +41,9 @@ async function getOrders(req: NextRequest, user: any) {
 
   query = query.order('createdAt', { ascending: false });
 
+  // Supabase 기본 제한(1000개)을 초과하여 모든 주문을 가져오도록 범위 확장
+  query = query.range(0, 999999);
+
   const { data, error } = await query;
 
   if (error) {

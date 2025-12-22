@@ -24,6 +24,9 @@ async function getUsers(req: NextRequest, user: any) {
     query = query.neq('role', 'superadmin');
   }
 
+  // Supabase 기본 제한(1000개)을 초과하여 모든 사용자를 가져오도록 범위 확장
+  query = query.range(0, 999999);
+
   const { data, error } = await query;
 
   if (error) {
@@ -70,7 +73,8 @@ async function getUsers(req: NextRequest, user: any) {
         .from('orders')
         .select('clientId, createdAt')
         .in('clientId', clientIds)
-        .order('createdAt', { ascending: false });
+        .order('createdAt', { ascending: false })
+        .range(0, 999999);
 
       if (!ordersError && ordersData) {
         // 각 클라이언트별 최근 주문 날짜 저장
