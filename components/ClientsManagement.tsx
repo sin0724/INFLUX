@@ -152,9 +152,7 @@ export default function ClientsManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [extendingClient, setExtendingClient] = useState<Client | null>(null);
-  const [renewingClient, setRenewingClient] = useState<Client | null>(null);
   const [extendDate, setExtendDate] = useState('');
-  const [renewPlanType, setRenewPlanType] = useState('1');
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkUploadResult, setBulkUploadResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -816,8 +814,8 @@ export default function ClientsManagement() {
     }
   };
 
-  // 계약 연장 (날짜 직접 선택, quota 유지)
-  const handleExtendContract = async () => {
+  // 계약 기간 수정 (종료일 자유롭게 수정, quota 유지)
+  const handleUpdateContractDate = async () => {
     if (!extendingClient || !extendDate) {
       alert('날짜를 선택해주세요.');
       return;
@@ -831,7 +829,6 @@ export default function ClientsManagement() {
         },
         body: JSON.stringify({
           contractEndDate: extendDate,
-          isActive: true, // 연장 시 활성화
         }),
       });
 
@@ -839,98 +836,14 @@ export default function ClientsManagement() {
         fetchClients();
         setExtendingClient(null);
         setExtendDate('');
-        alert('계약이 연장되었습니다.');
+        alert('계약 종료일이 수정되었습니다.');
       } else {
         const data = await response.json();
-        alert(data.error || '계약 연장에 실패했습니다.');
+        alert(data.error || '계약 종료일 수정에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Failed to extend contract:', error);
-      alert('계약 연장 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 재계약 (1,3,6개월 선택, quota 추가)
-  const handleRenewContract = async () => {
-    if (!renewingClient) {
-      return;
-    }
-
-    const newQuota = getQuotaByPlan(renewPlanType);
-    
-    // 기존 quota와 합산
-    const currentQuota = renewingClient.quota || {};
-    const mergedQuota = {
-      follower: {
-        total: (currentQuota.follower?.total || 0) + (newQuota.follower?.total || 0),
-        remaining: (currentQuota.follower?.remaining || 0) + (newQuota.follower?.remaining || 0),
-      },
-      like: {
-        total: (currentQuota.like?.total || 0) + (newQuota.like?.total || 0),
-        remaining: (currentQuota.like?.remaining || 0) + (newQuota.like?.remaining || 0),
-      },
-      hotpost: {
-        total: (currentQuota.hotpost?.total || 0) + (newQuota.hotpost?.total || 0),
-        remaining: (currentQuota.hotpost?.remaining || 0) + (newQuota.hotpost?.remaining || 0),
-      },
-      momcafe: {
-        total: (currentQuota.momcafe?.total || 0) + (newQuota.momcafe?.total || 0),
-        remaining: (currentQuota.momcafe?.remaining || 0) + (newQuota.momcafe?.remaining || 0),
-      },
-      powerblog: {
-        total: (currentQuota.powerblog?.total || 0) + (newQuota.powerblog?.total || 0),
-        remaining: (currentQuota.powerblog?.remaining || 0) + (newQuota.powerblog?.remaining || 0),
-      },
-      clip: {
-        total: (currentQuota.clip?.total || 0) + (newQuota.clip?.total || 0),
-        remaining: (currentQuota.clip?.remaining || 0) + (newQuota.clip?.remaining || 0),
-      },
-      myexpense: {
-        total: (currentQuota.myexpense?.total || 0) + (newQuota.myexpense?.total || 0),
-        remaining: (currentQuota.myexpense?.remaining || 0) + (newQuota.myexpense?.remaining || 0),
-      },
-    };
-
-    // 계약 종료일 기준으로 연장 (계약 시작일은 유지)
-    const currentEndDate = parseDate(renewingClient.contractEndDate) || new Date();
-    
-    // 계약 종료일이 과거인 경우 오늘 날짜부터 시작
-    const baseDate = currentEndDate > new Date() ? currentEndDate : new Date();
-    
-    // 새로운 종료일 계산 (기존 종료일 또는 오늘 + 재계약 기간)
-    const months = parseInt(renewPlanType, 10);
-    const newEndDate = new Date(baseDate);
-    newEndDate.setMonth(newEndDate.getMonth() + months);
-    
-    const endDateString = newEndDate.toISOString().split('T')[0];
-    // 계약 시작일은 변경하지 않음 (기존 값 유지)
-
-    try {
-      const response = await fetch(`/api/users/${renewingClient.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          // contractStartDate는 전송하지 않음 (기존 값 유지)
-          contractEndDate: endDateString,
-          quota: mergedQuota,
-          isActive: true,
-        }),
-      });
-
-      if (response.ok) {
-        fetchClients();
-        setRenewingClient(null);
-        setRenewPlanType('1');
-        alert('재계약이 완료되었습니다.');
-      } else {
-        const data = await response.json();
-        alert(data.error || '재계약에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Failed to renew contract:', error);
-      alert('재계약 중 오류가 발생했습니다.');
+      console.error('Failed to update contract date:', error);
+      alert('계약 종료일 수정 중 오류가 발생했습니다.');
     }
   };
 
@@ -2098,17 +2011,7 @@ export default function ClientsManagement() {
                                 }}
                                 className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50 text-gray-700 font-medium"
                               >
-                                연장
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRenewingClient(client);
-                                  setRenewPlanType('1');
-                                }}
-                                className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50 bg-blue-50 text-blue-700 font-medium"
-                              >
-                                재계약
+                                기간 수정
                               </button>
                               <button
                                 onClick={(e) => {
@@ -2131,7 +2034,7 @@ export default function ClientsManagement() {
           </div>
         )}
 
-        {/* 연장 모달 */}
+        {/* 계약 기간 수정 모달 */}
         {extendingClient && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -2145,7 +2048,7 @@ export default function ClientsManagement() {
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                계약 연장
+                계약 기간 수정
               </h2>
               <div className="space-y-4">
                 <div>
@@ -2170,19 +2073,11 @@ export default function ClientsManagement() {
                     type="date"
                     value={extendDate}
                     onChange={(e) => setExtendDate(e.target.value)}
-                    min={(() => {
-                      const currentEnd = parseDate(extendingClient.contractEndDate);
-                      const today = new Date();
-                      if (currentEnd && currentEnd > today) {
-                        return currentEnd.toISOString().split('T')[0];
-                      }
-                      return today.toISOString().split('T')[0];
-                    })()}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    ⚠️ 계약 기간만 연장되며, 작업 개수는 추가되지 않습니다.
+                    ⚠️ 계약 종료일만 수정되며, 작업 개수는 변경되지 않습니다.
                   </p>
                 </div>
                 <div className="flex gap-3 pt-4">
@@ -2196,106 +2091,10 @@ export default function ClientsManagement() {
                     취소
                   </button>
                   <button
-                    onClick={handleExtendContract}
+                    onClick={handleUpdateContractDate}
                     className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                   >
-                    연장
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 재계약 모달 */}
-        {renewingClient && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => {
-              setRenewingClient(null);
-              setRenewPlanType('1');
-            }}
-          >
-            <div
-              className="bg-white rounded-lg max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                재계약
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    광고주
-                  </label>
-                  <div className="text-gray-900 font-medium">{renewingClient.username}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    계약 기간 선택 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={renewPlanType}
-                    onChange={(e) => setRenewPlanType(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  >
-                    <option value="1">1개월</option>
-                    <option value="3">3개월</option>
-                    <option value="6">6개월</option>
-                  </select>
-                </div>
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-700 mb-2">추가될 작업:</div>
-                  {renewPlanType === '1' && (
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• 인기게시물: 3개</li>
-                      <li>• 맘카페: 3개</li>
-                      <li className="text-gray-400">• 인스타 팔로워/좋아요: 없음</li>
-                    </ul>
-                  )}
-                  {renewPlanType === '3' && (
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• 인기게시물: 3개</li>
-                      <li>• 맘카페: 3개</li>
-                      <li>• 인스타 팔로워: 1000개</li>
-                      <li>• 인스타 좋아요: 1000개</li>
-                    </ul>
-                  )}
-                  {renewPlanType === '6' && (
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• 인기게시물: 6개</li>
-                      <li>• 맘카페: 6개</li>
-                      <li>• 인스타 팔로워: 2500개</li>
-                      <li>• 인스타 좋아요: 2500개</li>
-                    </ul>
-                  )}
-                  <div className="mt-3 pt-3 border-t border-blue-200">
-                    <div className="text-xs text-blue-700">
-                      💡 기존 작업 개수에 추가됩니다.
-                    </div>
-                    <div className="text-xs text-blue-700">
-                      계약 시작일: {new Date().toLocaleDateString('ko-KR')}
-                    </div>
-                    <div className="text-xs text-blue-700">
-                      계약 종료일: {formatDateSafe(getContractEndDate(new Date().toISOString().split('T')[0], renewPlanType))}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setRenewingClient(null);
-                      setRenewPlanType('1');
-                    }}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleRenewContract}
-                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-                  >
-                    재계약 완료
+                    수정
                   </button>
                 </div>
               </div>
