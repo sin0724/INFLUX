@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { formatDateTime } from '@/lib/utils';
@@ -68,6 +68,15 @@ const mapExperienceStatusForAPI = (displayStatus: string): string => {
 const getExperienceStatusDisplayName = (status: string): string => {
   const displayStatus = mapExperienceStatusForDisplay(status);
   return STATUS_NAMES[displayStatus] || status;
+};
+
+// 대기 시간 계산 함수
+const getWaitingDays = (createdAt: string): number => {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffTime = now.getTime() - created.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
 };
 
 export default function OrdersManagement() {
@@ -491,7 +500,49 @@ export default function OrdersManagement() {
     }
   };
 
-  const filteredOrders = orders;
+  // 상태별 개수 계산
+  const statusCounts = useMemo(() => {
+    const counts = { pending: 0, working: 0, done: 0 };
+    orders.forEach((order) => {
+      const displayStatus = order.taskType === 'experience'
+        ? mapExperienceStatusForDisplay(order.status)
+        : order.status;
+      if (displayStatus === 'pending') counts.pending++;
+      else if (displayStatus === 'working') counts.working++;
+      else if (displayStatus === 'done') counts.done++;
+    });
+    return counts;
+  }, [orders]);
+
+  // 필터링 및 정렬된 주문 목록
+  const filteredOrders = useMemo(() => {
+    let filtered = [...orders];
+
+    // 상태 필터링
+    if (filters.status) {
+      filtered = filtered.filter((order) => {
+        const displayStatus = order.taskType === 'experience'
+          ? mapExperienceStatusForDisplay(order.status)
+          : order.status;
+        return displayStatus === filters.status;
+      });
+    }
+
+    // 정렬: 대기중일 때는 오래된 순(오름차순), 나머지는 최신순(내림차순)
+    filtered.sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      
+      // 필터링된 상태가 대기중이면 오래된 순
+      if (filters.status === 'pending') {
+        return aTime - bTime; // 오름차순 (오래된 것 먼저)
+      }
+      // 그 외에는 최신순
+      return bTime - aTime; // 내림차순 (최신 것 먼저)
+    });
+
+    return filtered;
+  }, [orders, filters.status]);
 
 
   return (
@@ -507,8 +558,107 @@ export default function OrdersManagement() {
           <h1 className="text-2xl font-bold text-gray-900">발주 내역 관리</h1>
         </div>
 
+        {/* Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-yellow-700 mb-1">대기중 작업</div>
+                <div className="text-3xl font-bold text-yellow-900">{statusCounts.pending}</div>
+              </div>
+              <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'pending' })}
+              className="mt-3 w-full px-3 py-1.5 bg-yellow-200 hover:bg-yellow-300 text-yellow-800 rounded-lg text-sm font-medium transition"
+            >
+              대기중 작업 보기
+            </button>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border-2 border-blue-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-blue-700 mb-1">진행중 작업</div>
+                <div className="text-3xl font-bold text-blue-900">{statusCounts.working}</div>
+              </div>
+              <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'working' })}
+              className="mt-3 w-full px-3 py-1.5 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg text-sm font-medium transition"
+            >
+              진행중 작업 보기
+            </button>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-green-700 mb-1">완료된 작업</div>
+                <div className="text-3xl font-bold text-green-900">{statusCounts.done}</div>
+              </div>
+              <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'done' })}
+              className="mt-3 w-full px-3 py-1.5 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg text-sm font-medium transition"
+            >
+              완료된 작업 보기
+            </button>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
+          {/* Quick Filter Buttons */}
+          <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-200">
+            <button
+              onClick={() => setFilters({ status: 'pending', taskType: '', clientId: '', startDate: '', endDate: '' })}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                filters.status === 'pending' && !filters.taskType && !filters.clientId && !filters.startDate && !filters.endDate
+                  ? 'bg-yellow-500 text-white'
+                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+              }`}
+            >
+              오늘의 대기중 작업
+            </button>
+            <button
+              onClick={() => setFilters({ status: 'working', taskType: '', clientId: '', startDate: '', endDate: '' })}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                filters.status === 'working' && !filters.taskType && !filters.clientId && !filters.startDate && !filters.endDate
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              }`}
+            >
+              진행중 작업
+            </button>
+            <button
+              onClick={() => {
+                const today = new Date().toISOString().split('T')[0];
+                setFilters({ status: 'pending', taskType: '', clientId: '', startDate: today, endDate: '' });
+              }}
+              className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition"
+            >
+              오늘 신청된 작업
+            </button>
+            <button
+              onClick={() => setFilters({ status: '', taskType: '', clientId: '', startDate: '', endDate: '' })}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+            >
+              전체 초기화
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -688,33 +838,38 @@ export default function OrdersManagement() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map((order) => (
+            {filteredOrders.map((order) => {
+              const displayStatus = order.taskType === 'experience' 
+                ? mapExperienceStatusForDisplay(order.status)
+                : order.status;
+              const waitingDays = displayStatus === 'pending' ? getWaitingDays(order.createdAt) : 0;
+              const isPending = displayStatus === 'pending';
+              
+              return (
               <div
                 key={order.id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition cursor-pointer"
+                className={`rounded-lg border-2 p-6 hover:shadow-md transition cursor-pointer ${
+                  isPending 
+                    ? 'bg-yellow-50 border-yellow-300' 
+                    : 'bg-white border-gray-200'
+                }`}
                 onClick={() => setSelectedOrder(order)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
                         {TASK_TYPE_NAMES[order.taskType] || order.taskType}
                       </span>
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          (() => {
-                            // 체험단인 경우 표시용 상태로 변환하여 색상 결정
-                            const displayStatus = order.taskType === 'experience' 
-                              ? mapExperienceStatusForDisplay(order.status)
-                              : order.status;
-                            return displayStatus === 'pending'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : displayStatus === 'working'
-                              ? 'bg-blue-100 text-blue-700'
-                              : displayStatus === 'done'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-700';
-                          })()
+                          displayStatus === 'pending'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : displayStatus === 'working'
+                            ? 'bg-blue-100 text-blue-700'
+                            : displayStatus === 'done'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-700'
                         }`}
                       >
                         {order.taskType === 'experience' 
@@ -723,6 +878,11 @@ export default function OrdersManagement() {
                           ? (SIMPLE_STATUS_NAMES[order.status] || STATUS_NAMES[order.status])
                           : (STATUS_NAMES[order.status] || order.status)}
                       </span>
+                      {isPending && waitingDays > 0 && (
+                        <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                          {waitingDays}일 대기중
+                        </span>
+                      )}
                       <span className="text-sm text-gray-600">
                         {order.client?.username || '알 수 없음'}
                         {order.client?.companyName && (
@@ -767,9 +927,16 @@ export default function OrdersManagement() {
                         })}
                       </div>
                     )}
-                    <p className="text-xs text-gray-500">
-                      {formatDateTime(order.createdAt)}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-gray-500">
+                        {formatDateTime(order.createdAt)}
+                      </p>
+                      {isPending && waitingDays >= 3 && (
+                        <span className="text-xs text-red-600 font-medium">
+                          ⚠ 오래된 작업
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <select
@@ -827,7 +994,8 @@ export default function OrdersManagement() {
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
 
