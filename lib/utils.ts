@@ -85,3 +85,13 @@ export function formatDateSafe(date: Date | string | null | undefined): string {
   }
 }
 
+/**
+ * 숫자를 천 단위 구분자(콤마)가 있는 문자열로 포맷팅합니다.
+ * @param num 포맷팅할 숫자
+ * @returns 포맷팅된 문자열 (예: 1234 -> "1,234")
+ */
+export function formatNumber(num: number | null | undefined): string {
+  if (num === null || num === undefined) return '0';
+  return num.toLocaleString('ko-KR');
+}
+

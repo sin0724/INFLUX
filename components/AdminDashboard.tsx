@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import LogoutButton from './LogoutButton';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatNumber } from '@/lib/utils';
 
 interface User {
   id: string;
@@ -86,26 +86,26 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="text-sm text-gray-600">전체 광고주</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">
-              {stats.totalClients}
+            <div className="text-2xl font-bold text-gray-900 mt-1 break-words">
+              {formatNumber(stats.totalClients)}
             </div>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="text-sm text-gray-600">전체 발주</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">
-              {stats.totalOrders}
+            <div className="text-2xl font-bold text-gray-900 mt-1 break-words">
+              {formatNumber(stats.totalOrders)}
             </div>
           </div>
           <div className="bg-white rounded-lg p-4 border border-yellow-200 bg-yellow-50">
             <div className="text-sm text-yellow-700">대기중</div>
-            <div className="text-2xl font-bold text-yellow-900 mt-1">
-              {stats.pendingOrders}
+            <div className="text-2xl font-bold text-yellow-900 mt-1 break-words">
+              {formatNumber(stats.pendingOrders)}
             </div>
           </div>
           <div className="bg-white rounded-lg p-4 border border-blue-200 bg-blue-50">
             <div className="text-sm text-blue-700">진행중</div>
-            <div className="text-2xl font-bold text-blue-900 mt-1">
-              {stats.workingOrders}
+            <div className="text-2xl font-bold text-blue-900 mt-1 break-words">
+              {formatNumber(stats.workingOrders)}
             </div>
           </div>
         </div>
