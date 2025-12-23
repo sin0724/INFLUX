@@ -187,59 +187,63 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
 
       {/* 공지사항 팝업 모달 */}
       {showAnnouncementModal && announcements[currentAnnouncementIndex] && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-xl">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900">공지사항</h2>
-                  {announcements.length > 1 && (
-                    <span className="text-sm text-gray-500">
-                      ({currentAnnouncementIndex + 1}/{announcements.length})
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={handleCloseAnnouncement}
-                  className="text-gray-400 hover:text-gray-600 transition"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
+            {/* 헤더 (고정) */}
+            <div className="flex items-center justify-between p-4 sm:p-6 pb-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                   </svg>
-                </button>
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">공지사항</h2>
+                {announcements.length > 1 && (
+                  <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+                    ({currentAnnouncementIndex + 1}/{announcements.length})
+                  </span>
+                )}
               </div>
+              <button
+                onClick={handleCloseAnnouncement}
+                className="text-gray-400 hover:text-gray-600 transition ml-2 flex-shrink-0 p-1"
+                aria-label="닫기"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
+            {/* 콘텐츠 영역 (스크롤 가능) */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
               <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
                   {announcements[currentAnnouncementIndex].title}
                 </h3>
-                <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                <div className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap leading-relaxed break-words">
                   {announcements[currentAnnouncementIndex].content}
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={dontShowAgain}
-                    onChange={(e) => setDontShowAgain(e.target.checked)}
-                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-600">다시 보지 않기</span>
-                </label>
-                <button
-                  onClick={handleCloseAnnouncement}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium"
-                >
-                  {currentAnnouncementIndex < announcements.length - 1 ? '다음' : '확인'}
-                </button>
-              </div>
+            {/* 하단 버튼 영역 (고정) */}
+            <div className="flex items-center justify-between p-4 sm:p-6 pt-4 border-t border-gray-200 flex-shrink-0 gap-3">
+              <label className="flex items-center cursor-pointer flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="ml-2 text-xs sm:text-sm text-gray-600 whitespace-nowrap">다시 보지 않기</span>
+              </label>
+              <button
+                onClick={handleCloseAnnouncement}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium text-sm sm:text-base flex-shrink-0"
+              >
+                {currentAnnouncementIndex < announcements.length - 1 ? '다음' : '확인'}
+              </button>
             </div>
           </div>
         </div>
