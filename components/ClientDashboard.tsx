@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
@@ -59,18 +59,20 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
   useEffect(() => {
     // Fetch latest user data to get updated quota
     fetchUserData();
-    // Fetch active announcements
-    fetchAnnouncements();
   }, []);
 
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
+    if (!currentUser.id) return;
+    
     try {
       const response = await fetch('/api/announcements');
       if (response.ok) {
         const data = await response.json();
+        // 사용자별로 localStorage 키 구분
+        const storageKey = `hiddenAnnouncements_${currentUser.id}`;
         const activeAnnouncements = (data.announcements || []).filter((ann: Announcement) => {
           // localStorage에서 "다시 보지 않기" 체크
-          const hiddenAnnouncements = localStorage.getItem('hiddenAnnouncements');
+          const hiddenAnnouncements = localStorage.getItem(storageKey);
           if (hiddenAnnouncements) {
             const hiddenIds = JSON.parse(hiddenAnnouncements);
             return !hiddenIds.includes(ann.id);
@@ -97,16 +99,24 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
     } catch (error) {
       console.error('Failed to fetch announcements:', error);
     }
-  };
+  }, [currentUser.id]);
+
+  useEffect(() => {
+    // 사용자 정보가 로드된 후 공지사항 가져오기
+    if (currentUser.id) {
+      fetchAnnouncements();
+    }
+  }, [currentUser.id, fetchAnnouncements]);
 
   const handleCloseAnnouncement = () => {
     if (dontShowAgain && announcements[currentAnnouncementIndex]) {
-      // "다시 보지 않기" 체크 시 localStorage에 저장
-      const hiddenAnnouncements = localStorage.getItem('hiddenAnnouncements');
+      // "다시 보지 않기" 체크 시 사용자별 localStorage에 저장
+      const storageKey = `hiddenAnnouncements_${currentUser.id}`;
+      const hiddenAnnouncements = localStorage.getItem(storageKey);
       const hiddenIds = hiddenAnnouncements ? JSON.parse(hiddenAnnouncements) : [];
       if (!hiddenIds.includes(announcements[currentAnnouncementIndex].id)) {
         hiddenIds.push(announcements[currentAnnouncementIndex].id);
-        localStorage.setItem('hiddenAnnouncements', JSON.stringify(hiddenIds));
+        localStorage.setItem(storageKey, JSON.stringify(hiddenIds));
       }
     }
     
