@@ -311,7 +311,7 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                 </div>
                 {/* 당근마켓 */}
                 <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 border border-yellow-200">
-                  <div className="text-xs font-medium text-yellow-800 mb-1">당근마켓</div>
+                  <div className="text-xs font-medium text-yellow-800 mb-1">당근마켓 후기</div>
                   <div className="text-2xl font-bold text-yellow-900 flex items-baseline gap-1">
                     <span>{currentUser.quota.daangn?.remaining || 0}</span>
                     <span className="text-base font-medium">개</span>

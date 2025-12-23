@@ -43,7 +43,7 @@ const TASK_TYPES = [
   },
   { id: 'hotpost', name: '인스타그램 인기게시물', requiresImage: true },
   { id: 'momcafe', name: '맘카페', requiresImage: false },
-  { id: 'daangn', name: '당근마켓', requiresImage: true, disabled: false },
+  { id: 'daangn', name: '당근마켓 후기', requiresImage: false, disabled: false },
   { id: 'experience', name: '체험단 신청', requiresImage: false, disabled: false },
   { id: 'powerblog', name: '파워블로그', requiresImage: false, disabled: false }, // 6개월 플랜만 표시됨
   { id: 'myexpense', name: '내돈내산 리뷰', requiresImage: false, disabled: false }, // 관리자가 추가한 경우만 표시됨
@@ -275,10 +275,7 @@ export default function OrderForm({ user }: OrderFormProps) {
         setError('당근 비지니스 프로필 주소를 입력해주세요.');
         return;
       }
-      if (images.length !== 1) {
-        setError('사진 1장을 업로드해주세요.');
-        return;
-      }
+      // 사진은 선택사항이므로 validation 제거
     }
 
     if (taskType === 'experience') {
@@ -994,7 +991,7 @@ export default function OrderForm({ user }: OrderFormProps) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  사진 <span className="text-red-500">*</span>
+                  사진 (선택)
                 </label>
                 <ImageUpload 
                   images={images} 
@@ -1013,7 +1010,7 @@ export default function OrderForm({ user }: OrderFormProps) {
               </h3>
               <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">
                 <li>당근 비지니스 프로필 주소를 정확히 입력해주세요.</li>
-                <li>사진 1장을 업로드해주세요.</li>
+                <li>사진은 선택사항입니다 (1장까지 업로드 가능).</li>
               </ul>
             </div>
           )}

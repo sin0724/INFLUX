@@ -124,7 +124,7 @@ async function createOrder(req: NextRequest, user: any) {
                 like: '인스타그램 좋아요',
                 hotpost: '인기게시물',
                 momcafe: '맘카페',
-                daangn: '당근마켓',
+                daangn: '당근마켓 후기',
                 myexpense: '내돈내산 리뷰',
               };
               return NextResponse.json(
@@ -140,7 +140,7 @@ async function createOrder(req: NextRequest, user: any) {
                 like: '인스타그램 좋아요',
                 hotpost: '인기게시물',
                 momcafe: '맘카페',
-                daangn: '당근마켓',
+                daangn: '당근마켓 후기',
                 myexpense: '내돈내산 리뷰',
               };
               return NextResponse.json(

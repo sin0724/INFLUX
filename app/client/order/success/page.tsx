@@ -41,7 +41,7 @@ function OrderSuccessContent() {
     clip: '클립',
     blog: '블로그 리뷰',
     receipt: '영수증 리뷰',
-    daangn: '당근마켓',
+    daangn: '당근마켓 후기',
     experience: '체험단',
     myexpense: '내돈내산 리뷰',
   };
