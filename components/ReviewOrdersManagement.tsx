@@ -116,17 +116,9 @@ export default function ReviewOrdersManagement() {
       // 리뷰 발주만 조회 (blog_review, receipt_review)
       const params = new URLSearchParams();
       
-      // 리뷰 상태 필터링
+      // 리뷰 상태 필터링 (pending, draft_uploaded, published)
       if (filters.status) {
-        if (filters.status === 'pending') {
-          params.append('status', 'pending');
-        } else if (filters.status === 'working') {
-          // 리뷰의 경우 working은 draft_uploaded 또는 revision_requested
-          // 서버에서 처리할 수 없으므로 클라이언트에서 필터링
-        } else if (filters.status === 'done') {
-          // 리뷰의 경우 done은 published
-          params.append('status', 'published');
-        }
+        params.append('status', filters.status);
       }
       
       // 리뷰 타입 필터링
@@ -135,8 +127,8 @@ export default function ReviewOrdersManagement() {
       } else {
         // taskType 필터가 없으면 blog_review와 receipt_review를 모두 조회
         const [blogRes, receiptRes] = await Promise.all([
-          fetch(`/api/orders?${new URLSearchParams({ ...Object.fromEntries(params), taskType: 'blog_review' }).toString()}`),
-          fetch(`/api/orders?${new URLSearchParams({ ...Object.fromEntries(params), taskType: 'receipt_review' }).toString()}`)
+          fetch(`/api/orders?${params.toString()}&taskType=blog_review`),
+          fetch(`/api/orders?${params.toString()}&taskType=receipt_review`)
         ]);
         const blogData = blogRes.ok ? await blogRes.json() : { orders: [] };
         const receiptData = receiptRes.ok ? await receiptRes.json() : { orders: [] };
@@ -152,11 +144,6 @@ export default function ReviewOrdersManagement() {
         if (filters.endDate) {
           allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) <= new Date(filters.endDate + 'T23:59:59'));
         }
-        if (filters.status === 'working') {
-          allOrders = allOrders.filter((o: Order) => 
-            o.status === 'draft_uploaded' || o.status === 'revision_requested'
-          );
-        }
         
         setOrders(allOrders);
         setLoading(false);
@@ -171,6 +158,16 @@ export default function ReviewOrdersManagement() {
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       let allOrders = ordersData.orders || [];
       
+      // 클라이언트 사이드 추가 필터링
+      if (filters.clientId) {
+        allOrders = allOrders.filter((o: Order) => o.client?.id === filters.clientId);
+      }
+      if (filters.startDate) {
+        allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) >= new Date(filters.startDate));
+      }
+      if (filters.endDate) {
+        allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) <= new Date(filters.endDate + 'T23:59:59'));
+      }
       
       setOrders(allOrders);
     } catch (error) {
@@ -935,6 +932,53 @@ export default function ReviewOrdersManagement() {
                       </button>
                     </div>
                   )}
+                  {/* 가이드 */}
+                  {(selectedOrder.guideFileUrl || selectedOrder.guideText) && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">가이드</div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        {selectedOrder.guideFileUrl ? (
+                          <a
+                            href={selectedOrder.guideFileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary-600 hover:text-primary-700 underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            가이드 파일 다운로드
+                          </a>
+                        ) : (
+                          <div className="text-gray-900 whitespace-pre-wrap">{selectedOrder.guideText}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 동영상 */}
+                  {selectedOrder.videoUrl && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">동영상</div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <video
+                          src={selectedOrder.videoUrl}
+                          controls
+                          className="w-full rounded-lg border border-gray-200"
+                          style={{ maxHeight: '400px' }}
+                        />
+                        <a
+                          href={selectedOrder.videoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="mt-2 inline-block text-primary-600 hover:text-primary-700 underline text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          동영상 다운로드
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  
                   {selectedOrder.caption && (
                     <div>
                       <div className="text-sm text-gray-600 mb-2">작업 정보</div>
