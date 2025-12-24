@@ -22,6 +22,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
   const [savedGuide, setSavedGuide] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savingGuide, setSavingGuide] = useState(false);
 
   // 사용자 정보 및 저장된 가이드 불러오기
   useEffect(() => {
@@ -37,8 +38,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
           const data = await response.json();
           if (data.user?.blogGuide) {
             setSavedGuide(data.user.blogGuide);
-            // 저장된 가이드가 있으면 자동으로 사용
-            setUseSavedGuide(true);
+            // 저장된 가이드가 있으면 자동으로 사용하도록 제안 (기본값은 false로 두고 사용자가 선택)
             // 저장된 가이드 내용을 파싱하여 필드에 채우기 (업체명 제외)
             try {
               const parsed = JSON.parse(data.user.blogGuide);
@@ -59,27 +59,68 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
     fetchUserGuide();
   }, [user]);
 
+  const handleSaveCurrentGuide = async () => {
+    // 현재 입력한 내용을 JSON 형식으로 저장
+    const guideData = {
+      placeLink,
+      keywords,
+      strengths,
+      additionalRequests,
+    };
+    
+    setSavingGuide(true);
+    try {
+      const response = await fetch('/api/users/guides', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          blogGuide: JSON.stringify(guideData),
+        }),
+      });
+
+      if (response.ok) {
+        setSavedGuide(JSON.stringify(guideData));
+        alert('고정 가이드가 저장되었습니다. 다음부터는 저장된 가이드를 사용할 수 있습니다.');
+      } else {
+        const data = await response.json();
+        alert(data.error || '가이드 저장에 실패했습니다.');
+      }
+    } catch (err) {
+      alert('가이드 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingGuide(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // 필수 필드 검증
-      if (!companyName.trim()) {
-        setError('업체명을 입력해주세요.');
-        setLoading(false);
-        return;
-      }
+      // 필수 필드 검증 (저장된 가이드 사용하지 않는 경우에만)
+      if (!useSavedGuide) {
+        if (!companyName.trim()) {
+          setError('업체명을 입력해주세요.');
+          setLoading(false);
+          return;
+        }
 
-      if (!keywords.trim()) {
-        setError('블로그 작성 키워드를 입력해주세요.');
-        setLoading(false);
-        return;
-      }
+        if (!keywords.trim()) {
+          setError('블로그 작성 키워드를 입력해주세요.');
+          setLoading(false);
+          return;
+        }
 
-      if (!strengths.trim()) {
-        setError('업장의 강점 / 원하시는 내용을 입력해주세요.');
+        if (!strengths.trim()) {
+          setError('업장의 강점 / 원하시는 내용을 입력해주세요.');
+          setLoading(false);
+          return;
+        }
+      } else if (!savedGuide) {
+        setError('저장된 가이드가 없습니다. 직접 입력해주세요.');
         setLoading(false);
         return;
       }
@@ -91,8 +132,15 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
         return;
       }
 
-      // 가이드 텍스트 구성
-      const guideText = `[ 블로그 리뷰 가이드 ]
+      // 가이드 텍스트 구성 (저장된 가이드 사용 여부에 따라)
+      let guideText: string | null = null;
+      
+      if (useSavedGuide && savedGuide) {
+        // 저장된 가이드 사용
+        guideText = savedGuide;
+      } else {
+        // 현재 입력한 내용으로 가이드 구성
+        guideText = `[ 블로그 리뷰 가이드 ]
 
 1. 업체명 : ${companyName}
 
@@ -103,6 +151,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
 4. 업장의 강점 / 원하시는 내용 : ${strengths}
 
 5. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 : ${additionalRequests || '(없음)'}`;
+      }
 
       const response = await fetch('/api/orders/review-request', {
         method: 'POST',
@@ -114,7 +163,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
           imageUrls: images,
           videoUrl: videoUrl,
           guideText: guideText,
-          useSavedGuide: false,
+          useSavedGuide: useSavedGuide && savedGuide ? true : false,
         }),
       });
 
@@ -166,85 +215,141 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
             </div>
           )}
 
+          {/* 저장된 가이드 사용 옵션 */}
+          {savedGuide && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="useSavedGuide"
+                    checked={useSavedGuide}
+                    onChange={(e) => setUseSavedGuide(e.target.checked)}
+                    className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                  />
+                  <label htmlFor="useSavedGuide" className="ml-2 text-sm text-gray-700">
+                    저장된 가이드 사용
+                  </label>
+                </div>
+                <a
+                  href="/client/guide/manage"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary-600 hover:text-primary-700 underline"
+                >
+                  가이드 관리
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* 가이드 입력 섹션 */}
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">블로그 리뷰 가이드</h2>
-
-            {/* 업체명 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                1. 업체명 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50"
-                placeholder="업체명이 자동으로 입력됩니다"
-                required
-                readOnly
-              />
-              <p className="text-xs text-gray-500 mt-1">업체명은 계정 정보에서 자동으로 가져옵니다.</p>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">블로그 리뷰 가이드</h2>
+              {!useSavedGuide && (
+                <button
+                  type="button"
+                  onClick={handleSaveCurrentGuide}
+                  disabled={savingGuide || !keywords.trim() || !strengths.trim()}
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                >
+                  {savingGuide ? '저장 중...' : '현재 내용을 고정 가이드로 저장'}
+                </button>
+              )}
             </div>
 
-            {/* 플레이스 링크 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                2. 플레이스 링크 <span className="text-gray-400 text-xs">(선택)</span>
-              </label>
-              <input
-                type="url"
-                value={placeLink}
-                onChange={(e) => setPlaceLink(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                placeholder="플레이스 링크를 입력해주세요 (생략 가능)"
-              />
-              <p className="text-xs text-gray-500 mt-1">플레이스 링크는 생략해주셔도 됩니다.</p>
-            </div>
+            {useSavedGuide && savedGuide ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="text-sm text-gray-700 mb-2">저장된 가이드를 사용합니다.</p>
+                <div className="text-sm text-gray-600 whitespace-pre-wrap">{savedGuide}</div>
+                <button
+                  type="button"
+                  onClick={() => setUseSavedGuide(false)}
+                  className="mt-3 text-sm text-primary-600 hover:text-primary-700"
+                >
+                  직접 입력하기
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* 업체명 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    1. 업체명 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50"
+                    placeholder="업체명이 자동으로 입력됩니다"
+                    required
+                    readOnly
+                  />
+                  <p className="text-xs text-gray-500 mt-1">업체명은 계정 정보에서 자동으로 가져옵니다.</p>
+                </div>
 
-            {/* 블로그 작성 키워드 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                3. 블로그 작성 키워드 <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                placeholder="블로그에 포함될 키워드를 입력해주세요"
-                required
-              />
-            </div>
+                {/* 플레이스 링크 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    2. 플레이스 링크 <span className="text-gray-400 text-xs">(선택)</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={placeLink}
+                    onChange={(e) => setPlaceLink(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="플레이스 링크를 입력해주세요 (생략 가능)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">플레이스 링크는 생략해주셔도 됩니다.</p>
+                </div>
 
-            {/* 업장의 강점 / 원하시는 내용 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                4. 업장의 강점 / 원하시는 내용 <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={strengths}
-                onChange={(e) => setStrengths(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                placeholder="업장의 강점이나 원하시는 리뷰 내용을 입력해주세요"
-                required
-              />
-            </div>
+                {/* 블로그 작성 키워드 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    3. 블로그 작성 키워드 <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={keywords}
+                    onChange={(e) => setKeywords(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="블로그에 포함될 키워드를 입력해주세요"
+                    required
+                  />
+                </div>
 
-            {/* 추가적인 요청사항 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                5. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 <span className="text-gray-400 text-xs">(선택)</span>
-              </label>
-              <textarea
-                value={additionalRequests}
-                onChange={(e) => setAdditionalRequests(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                placeholder="추가적인 요청사항, 컨셉, 필수 삽입 내용 등을 입력해주세요"
-              />
-            </div>
+                {/* 업장의 강점 / 원하시는 내용 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    4. 업장의 강점 / 원하시는 내용 <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={strengths}
+                    onChange={(e) => setStrengths(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="업장의 강점이나 원하시는 리뷰 내용을 입력해주세요"
+                    required
+                  />
+                </div>
+
+                {/* 추가적인 요청사항 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    5. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 <span className="text-gray-400 text-xs">(선택)</span>
+                  </label>
+                  <textarea
+                    value={additionalRequests}
+                    onChange={(e) => setAdditionalRequests(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="추가적인 요청사항, 컨셉, 필수 삽입 내용 등을 입력해주세요"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* 사진 업로드 */}
