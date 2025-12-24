@@ -32,6 +32,8 @@ export interface User {
   isActive?: boolean;
   points?: number;
   placeLink?: string;
+  blogGuide?: string;
+  receiptGuide?: string;
 }
 
 export interface Session {
@@ -124,6 +126,8 @@ export async function getSession(): Promise<Session | null> {
       isActive,
       points: data.points || 0,
       placeLink: data.placeLink || undefined,
+      blogGuide: data.blogGuide || undefined,
+      receiptGuide: data.receiptGuide || undefined,
     },
     token,
   };
@@ -181,6 +185,8 @@ export async function login(
     contractEndDate: data.contractEndDate,
     isActive,
     placeLink: data.placeLink || undefined,
+    blogGuide: data.blogGuide || undefined,
+    receiptGuide: data.receiptGuide || undefined,
   };
 
   const token = generateToken(user);

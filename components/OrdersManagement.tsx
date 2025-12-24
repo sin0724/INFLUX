@@ -11,8 +11,14 @@ interface Order {
   taskType: string;
   caption: string | null;
   imageUrls: string[];
-  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed';
+  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed' | 'draft_uploaded' | 'revision_requested' | 'client_approved' | 'published';
   completedLink?: string | null;
+  draftText?: string | null;
+  revisionText?: string | null;
+  revisionRequest?: string | null;
+  videoUrl?: string | null;
+  guideFileUrl?: string | null;
+  guideText?: string | null;
   createdAt: string;
   client: {
     id: string;
@@ -34,12 +40,18 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   daangn: '당근마켓 후기',
   experience: '체험단',
   myexpense: '내돈내산 리뷰',
+  blog_review: '블로그 리뷰 신청',
+  receipt_review: '영수증 리뷰 신청',
 };
 
 const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
   working: '진행중',
   done: '완료',
+  draft_uploaded: '원고 업로드 완료',
+  revision_requested: '수정 요청됨',
+  client_approved: '승인 완료',
+  published: '발행 완료',
 };
 
 // 인스타 좋아요/팔로워용 상태 이름
@@ -108,6 +120,10 @@ export default function OrdersManagement() {
   const [completedLink2, setCompletedLink2] = useState(''); // 내돈내산 리뷰용 두 번째 링크
   const [reviewerName, setReviewerName] = useState(''); // 내돈내산 리뷰어 이름
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
+  
+  // 원고 업로드 모달 상태 (리뷰 신청용)
+  const [draftUploadOrder, setDraftUploadOrder] = useState<Order | null>(null);
+  const [draftText, setDraftText] = useState('');
 
   useEffect(() => {
     fetchClients();
@@ -228,6 +244,14 @@ export default function OrdersManagement() {
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const order = orders.find(o => o.id === orderId);
+    
+    // 리뷰 신청 주문의 경우 원고 업로드 상태로 변경할 때 원고 입력 모달 표시
+    if (newStatus === 'draft_uploaded' && order && 
+        (order.taskType === 'blog_review' || order.taskType === 'receipt_review')) {
+      setDraftUploadOrder(order);
+      setDraftText(order.draftText || '');
+      return;
+    }
     
     // 인기게시물/맘카페/파워블로그/클립/체험단/내돈내산 리뷰를 완료로 변경할 때는 링크 입력 모달 표시
     if (newStatus === 'done' && order && (
@@ -689,8 +713,10 @@ export default function OrdersManagement() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
                 <option value="">전체</option>
-                <option value="blog">블로그 리뷰</option>
-                <option value="receipt">영수증 리뷰</option>
+                <option value="blog">블로그 리뷰 (완료 링크)</option>
+                <option value="receipt">영수증 리뷰 (완료 링크)</option>
+                <option value="blog_review">블로그 리뷰 신청</option>
+                <option value="receipt_review">영수증 리뷰 신청</option>
                 <option value="follower">인스타그램 팔로워</option>
                 <option value="like">인스타그램 좋아요</option>
                 <option value="hotpost">인스타그램 인기게시물</option>
@@ -865,8 +891,14 @@ export default function OrdersManagement() {
                         className={`px-3 py-1 rounded-full text-sm font-medium ${
                           displayStatus === 'pending'
                             ? 'bg-yellow-100 text-yellow-700'
-                            : displayStatus === 'working'
+                            : displayStatus === 'working' || displayStatus === 'draft_uploaded'
                             ? 'bg-blue-100 text-blue-700'
+                            : displayStatus === 'revision_requested'
+                            ? 'bg-orange-100 text-orange-700'
+                            : displayStatus === 'client_approved'
+                            ? 'bg-purple-100 text-purple-700'
+                            : displayStatus === 'published'
+                            ? 'bg-green-100 text-green-700'
                             : displayStatus === 'done'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-gray-100 text-gray-700'
@@ -949,8 +981,16 @@ export default function OrdersManagement() {
                       onClick={(e) => e.stopPropagation()}
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      {/* 체험단도 대기중, 진행중, 완료만 표시 */}
-                      {order.taskType === 'experience' ? (
+                      {/* 리뷰 신청 주문의 경우 리뷰 워크플로우 상태 옵션 표시 */}
+                      {(order.taskType === 'blog_review' || order.taskType === 'receipt_review') ? (
+                        <>
+                          <option value="pending">신청 완료</option>
+                          <option value="draft_uploaded">원고 업로드 완료</option>
+                          <option value="revision_requested">수정 요청됨</option>
+                          <option value="client_approved">승인 완료</option>
+                          <option value="published">발행 완료</option>
+                        </>
+                      ) : order.taskType === 'experience' ? (
                         <>
                           <option value="pending">대기중</option>
                           <option value="working">진행중</option>
@@ -1055,8 +1095,16 @@ export default function OrdersManagement() {
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      {/* 체험단도 대기중, 진행중, 완료만 표시 */}
-                      {selectedOrder.taskType === 'experience' ? (
+                      {/* 리뷰 신청 주문의 경우 리뷰 워크플로우 상태 옵션 표시 */}
+                      {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') ? (
+                        <>
+                          <option value="pending">신청 완료</option>
+                          <option value="draft_uploaded">원고 업로드 완료</option>
+                          <option value="revision_requested">수정 요청됨</option>
+                          <option value="client_approved">승인 완료</option>
+                          <option value="published">발행 완료</option>
+                        </>
+                      ) : selectedOrder.taskType === 'experience' ? (
                         <>
                           <option value="pending">대기중</option>
                           <option value="working">진행중</option>

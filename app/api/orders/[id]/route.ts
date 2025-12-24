@@ -37,26 +37,54 @@ async function getOrder(
   return NextResponse.json({ order: data });
 }
 
-// PATCH: Update order (admin only)
+// PATCH: Update order (admin 또는 본인 주문의 경우 client도 가능)
 async function updateOrder(
   req: NextRequest,
   user: any,
   orderId: string
 ) {
-  if (user.role !== 'admin' && user.role !== 'superadmin') {
+  // 권한 확인: admin이거나, client인 경우 본인 주문만 수정 가능
+  if (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'client') {
     return NextResponse.json(
       { error: '권한이 없습니다.' },
       { status: 403 }
     );
   }
 
+  // client인 경우 본인 주문인지 확인
+  if (user.role === 'client') {
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('clientId')
+      .eq('id', orderId)
+      .single();
+
+    if (!orderData || orderData.clientId !== user.id) {
+      return NextResponse.json(
+        { error: '권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const body = await req.json();
-    const { status, caption, imageUrls, completedLink, completedLink2, reviewerName } = body;
+    const { 
+      status, 
+      caption, 
+      imageUrls, 
+      completedLink, 
+      completedLink2, 
+      reviewerName,
+      draftText,
+      revisionRequest,
+      revisionText,
+    } = body;
 
     const updateData: any = {};
     
-    if (status && ['pending', 'working', 'done'].includes(status)) {
+    // 상태는 문자열로 자유롭게 저장 (기존 pending/working/done과 리뷰 신청 상태 모두 지원)
+    if (status !== undefined) {
       updateData.status = status;
     }
     
@@ -78,6 +106,19 @@ async function updateOrder(
     
     if (reviewerName !== undefined) {
       updateData.reviewerName = reviewerName || null;
+    }
+
+    // 리뷰 신청 관련 필드
+    if (draftText !== undefined) {
+      updateData.draftText = draftText || null;
+    }
+
+    if (revisionRequest !== undefined) {
+      updateData.revisionRequest = revisionRequest || null;
+    }
+
+    if (revisionText !== undefined) {
+      updateData.revisionText = revisionText || null;
     }
 
     if (Object.keys(updateData).length === 0) {

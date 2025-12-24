@@ -10,9 +10,11 @@ interface Order {
   taskType: string;
   caption: string | null;
   imageUrls: string[];
-  status: 'pending' | 'working' | 'done';
+  status: 'pending' | 'working' | 'done' | 'draft_uploaded' | 'revision_requested' | 'client_approved' | 'published';
   completedLink?: string | null;
   completedLink2?: string | null; // 내돈내산 리뷰용 두 번째 링크
+  draftText?: string | null;
+  revisionText?: string | null;
   createdAt: string;
 }
 
@@ -24,12 +26,18 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   powerblog: '파워블로그',
   clip: '클립',
   myexpense: '내돈내산 리뷰',
+  blog_review: '블로그 리뷰 신청',
+  receipt_review: '영수증 리뷰 신청',
 };
 
 const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
   working: '진행중',
   done: '완료',
+  draft_uploaded: '원고 업로드 완료',
+  revision_requested: '수정 요청됨',
+  client_approved: '승인 완료',
+  published: '발행 완료',
 };
 
 export default function ClientOrdersList() {
@@ -143,11 +151,16 @@ export default function ClientOrdersList() {
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
+                {filteredOrders.map((order) => {
+                  const isReviewRequest = order.taskType === 'blog_review' || order.taskType === 'receipt_review';
+                  const showReviewButton = isReviewRequest && 
+                    (order.status === 'draft_uploaded' || order.status === 'revision_requested' || 
+                     order.status === 'client_approved' || order.status === 'published');
+
+                  return (
                   <div
                     key={order.id}
-                    className="p-4 hover:bg-gray-50 transition cursor-pointer"
-                    onClick={() => setSelectedOrder(order)}
+                    className="p-4 hover:bg-gray-50 transition"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
@@ -159,14 +172,20 @@ export default function ClientOrdersList() {
                             className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap ${
                               order.status === 'pending'
                                 ? 'bg-yellow-100 text-yellow-700'
-                                : order.status === 'working'
+                                : order.status === 'working' || order.status === 'draft_uploaded'
                                 ? 'bg-blue-100 text-blue-700'
+                                : order.status === 'revision_requested'
+                                ? 'bg-orange-100 text-orange-700'
+                                : order.status === 'client_approved'
+                                ? 'bg-purple-100 text-purple-700'
+                                : order.status === 'published'
+                                ? 'bg-green-100 text-green-700'
                                 : 'bg-green-100 text-green-700'
                             }`}
                           >
                             {(order.taskType === 'follower' || order.taskType === 'like')
                               ? (order.status === 'pending' ? '대기중' : '신청완료')
-                              : STATUS_NAMES[order.status]}
+                              : STATUS_NAMES[order.status] || order.status}
                           </span>
                           {order.status === 'done' && order.completedLink && (
                             <a
@@ -204,14 +223,31 @@ export default function ClientOrdersList() {
                           </div>
                         </div>
                       )}
-                      <div className="ml-4 flex-shrink-0">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                      <div className="ml-4 flex-shrink-0 flex items-center gap-2">
+                        {showReviewButton && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/client/review-request/${order.id}`);
+                            }}
+                            className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition"
+                          >
+                            원고 확인
+                          </button>
+                        )}
+                        <div
+                          onClick={() => setSelectedOrder(order)}
+                          className="cursor-pointer"
+                        >
+                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
@@ -254,14 +290,36 @@ export default function ClientOrdersList() {
                       className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
                         selectedOrder.status === 'pending'
                           ? 'bg-yellow-100 text-yellow-700'
-                          : selectedOrder.status === 'working'
+                          : selectedOrder.status === 'working' || selectedOrder.status === 'draft_uploaded'
                           ? 'bg-blue-100 text-blue-700'
+                          : selectedOrder.status === 'revision_requested'
+                          ? 'bg-orange-100 text-orange-700'
+                          : selectedOrder.status === 'client_approved'
+                          ? 'bg-purple-100 text-purple-700'
+                          : selectedOrder.status === 'published'
+                          ? 'bg-green-100 text-green-700'
                           : 'bg-green-100 text-green-700'
                       }`}
                     >
-                      {STATUS_NAMES[selectedOrder.status]}
+                      {STATUS_NAMES[selectedOrder.status] || selectedOrder.status}
                     </div>
                   </div>
+
+                  {/* 리뷰 신청인 경우 원고 확인 버튼 */}
+                  {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && 
+                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'revision_requested' || selectedOrder.status === 'client_approved' || selectedOrder.status === 'published') && (
+                    <div>
+                      <button
+                        onClick={() => {
+                          setSelectedOrder(null);
+                          router.push(`/client/review-request/${selectedOrder.id}`);
+                        }}
+                        className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                      >
+                        원고 확인 및 수정
+                      </button>
+                    </div>
+                  )}
                   
                   {/* 완료된 링크 표시 */}
                   {selectedOrder.status === 'done' && selectedOrder.completedLink && (
@@ -369,4 +427,5 @@ export default function ClientOrdersList() {
     </div>
   );
 }
+
 
