@@ -15,6 +15,14 @@ interface Order {
   completedLink2?: string | null; // 내돈내산 리뷰용 두 번째 링크
   draftText?: string | null;
   revisionText?: string | null;
+  guideFileUrl?: string | null;
+  guideText?: string | null;
+  videoUrl?: string | null;
+  client?: {
+    id: string;
+    username: string;
+    companyName?: string;
+  };
   createdAt: string;
 }
 
@@ -38,16 +46,78 @@ const STATUS_NAMES: Record<string, string> = {
   published: '발행 완료',
 };
 
+// 가이드 텍스트를 읽기 쉬운 형식으로 변환하는 헬퍼 함수 (JSON 형식 지원)
+const formatGuideTextForDisplay = (guideText: string | null, companyName: string): string => {
+  if (!guideText) return '';
+  
+  // JSON 형식인 경우 파싱하여 읽기 쉬운 형식으로 변환
+  if (guideText.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(guideText);
+      
+      // 블로그 리뷰 가이드 형식
+      if (parsed.keywords !== undefined) {
+        return `[ 블로그 리뷰 가이드 ]
+
+1. 업체명 : ${companyName}
+
+2. 플레이스 링크 : ${parsed.placeLink || '(생략)'}
+
+3. 블로그 작성 키워드 : ${parsed.keywords || ''}
+
+4. 업장의 강점 / 원하시는 내용 : ${parsed.strengths || ''}
+
+5. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 : ${parsed.additionalRequests || '(없음)'}`;
+      }
+      
+      // 영수증 리뷰 가이드 형식
+      if (parsed.reviewContent !== undefined) {
+        return `[ 영수증 리뷰 가이드 ]
+
+1. 업체명 : ${companyName}
+
+2. 플레이스 링크 : ${parsed.placeLink || '(생략)'}
+
+3. 방문자 리뷰에 들어갈 내용 : ${parsed.reviewContent || ''}
+
+4. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 : ${parsed.additionalRequests || '(없음)'}`;
+      }
+    } catch (e) {
+      // JSON 파싱 실패 시 원본 반환
+      return guideText;
+    }
+  }
+  
+  // 일반 텍스트 형식인 경우 그대로 반환
+  return guideText;
+};
+
 export default function ClientOrdersList() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedTaskType, setSelectedTaskType] = useState<string>('all');
+  const [userCompanyName, setUserCompanyName] = useState<string>('');
 
   useEffect(() => {
     fetchOrders();
+    fetchUserInfo();
   }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.user?.companyName) {
+          setUserCompanyName(data.user.companyName);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch user info:', error);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -316,6 +386,56 @@ export default function ClientOrdersList() {
                       >
                         {selectedOrder.status === 'draft_uploaded' ? '원고 확인 및 수정' : '원고 확인'}
                       </button>
+                    </div>
+                  )}
+
+                  {/* 가이드 (리뷰 신청인 경우) */}
+                  {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') &&
+                   (selectedOrder.guideFileUrl || selectedOrder.guideText) && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">가이드</div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        {selectedOrder.guideFileUrl ? (
+                          <a
+                            href={selectedOrder.guideFileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary-600 hover:text-primary-700 underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            가이드 파일 다운로드
+                          </a>
+                        ) : (
+                          <div className="text-gray-900 whitespace-pre-wrap">
+                            {formatGuideTextForDisplay(selectedOrder.guideText || '', userCompanyName || selectedOrder.client?.companyName || '')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 동영상 (블로그 리뷰인 경우) */}
+                  {selectedOrder.taskType === 'blog_review' && selectedOrder.videoUrl && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">동영상</div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <video
+                          src={selectedOrder.videoUrl}
+                          controls
+                          className="w-full rounded-lg border border-gray-200"
+                          style={{ maxHeight: '400px' }}
+                        />
+                        <a
+                          href={selectedOrder.videoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="mt-2 inline-block text-primary-600 hover:text-primary-700 underline text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          동영상 다운로드
+                        </a>
+                      </div>
                     </div>
                   )}
                   
