@@ -1042,6 +1042,42 @@ export default function ReviewOrdersManagement() {
                     </div>
                   )}
                   
+                  {/* 원고 내용 */}
+                  {selectedOrder.draftText && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">원고 내용</div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="text-gray-900 whitespace-pre-wrap font-mono text-sm">
+                          {selectedOrder.draftText}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 수정 요청 내용 */}
+                  {selectedOrder.revisionRequest && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">수정 요청 내용</div>
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="text-yellow-900 whitespace-pre-wrap">
+                          {selectedOrder.revisionRequest}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 수정된 원고 (광고주가 직접 수정한 경우) */}
+                  {selectedOrder.revisionText && selectedOrder.revisionText !== selectedOrder.draftText && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">광고주가 수정한 원고</div>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="text-gray-900 whitespace-pre-wrap font-mono text-sm">
+                          {selectedOrder.revisionText}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedOrder.caption && (
                     <div>
                       <div className="text-sm text-gray-600 mb-2">작업 정보</div>
