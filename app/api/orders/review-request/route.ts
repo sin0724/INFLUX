@@ -164,9 +164,23 @@ async function createReviewRequest(req: NextRequest, user: any) {
         remaining: Math.max(0, taskQuota.remaining - 1),
       };
 
+      // 총 remainingQuota 계산 (하위 호환성)
+      const totalRemaining = (newQuota.follower?.remaining || 0) + 
+                             (newQuota.like?.remaining || 0) + 
+                             (newQuota.hotpost?.remaining || 0) + 
+                             (newQuota.momcafe?.remaining || 0) +
+                             (newQuota.powerblog?.remaining || 0) +
+                             (newQuota.clip?.remaining || 0) +
+                             (newQuota.blog?.remaining || 0) +
+                             (newQuota.receipt?.remaining || 0) +
+                             (newQuota.myexpense?.remaining || 0);
+
       const { error: quotaError } = await supabase
         .from('users')
-        .update({ quota: newQuota })
+        .update({ 
+          quota: newQuota,
+          remainingQuota: totalRemaining
+        })
         .eq('id', user.id);
 
       if (quotaError) {

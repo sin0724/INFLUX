@@ -165,17 +165,34 @@ async function updateOrder(
   }
 }
 
-// DELETE: Delete order (admin only)
+// DELETE: Delete order (admin 또는 본인 주문의 경우 client도 가능)
 async function deleteOrder(
   req: NextRequest,
   user: any,
   orderId: string
 ) {
-  if (user.role !== 'admin' && user.role !== 'superadmin') {
+  // 권한 확인: admin이거나, client인 경우 본인 주문만 삭제 가능
+  if (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'client') {
     return NextResponse.json(
       { error: '권한이 없습니다.' },
       { status: 403 }
     );
+  }
+
+  // client인 경우 본인 주문인지 확인
+  if (user.role === 'client') {
+    const { data: orderCheck } = await supabase
+      .from('orders')
+      .select('clientId')
+      .eq('id', orderId)
+      .single();
+
+    if (!orderCheck || orderCheck.clientId !== user.id) {
+      return NextResponse.json(
+        { error: '권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
   }
 
   try {
@@ -218,6 +235,14 @@ async function deleteOrder(
         const quota = { ...userData.quota } as any;
         const taskType = orderData.taskType;
         
+        // 리뷰 신청의 경우 quotaKey 매핑 (blog_review -> blog, receipt_review -> receipt)
+        let quotaKey = taskType;
+        if (taskType === 'blog_review') {
+          quotaKey = 'blog';
+        } else if (taskType === 'receipt_review') {
+          quotaKey = 'receipt';
+        }
+        
         // 삭제할 개수 계산 (caption에서 추출)
         let countToRestore = 1; // 기본값: hotpost, momcafe는 1개
         if (taskType === 'follower' || taskType === 'like') {
@@ -236,8 +261,8 @@ async function deleteOrder(
           }
         }
         
-        if (quota[taskType] && quota[taskType].remaining !== undefined) {
-          quota[taskType].remaining += countToRestore;
+        if (quota[quotaKey] && quota[quotaKey].remaining !== undefined) {
+          quota[quotaKey].remaining += countToRestore;
           
           // 총 remainingQuota 계산
           const totalRemaining = (quota.follower?.remaining || 0) + 
@@ -292,6 +317,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return withAuth((r, u) => deleteOrder(r, u, id), ['superadmin', 'admin'])(req);
+  return withAuth((r, u) => deleteOrder(r, u, id), ['superadmin', 'admin', 'client'])(req);
 }
 
