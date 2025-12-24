@@ -364,12 +364,12 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* 신청하기 버튼 */}
-        <div className="mb-6">
+        {/* 신청 버튼 영역 */}
+        <div className="mb-6 space-y-3">
           <Link
             href="/client/order"
             onClick={(e) => {
-              console.log('신청하기 버튼 클릭됨 (Link)');
+              console.log('2차 작업 신청 버튼 클릭됨 (Link)');
               console.log('Current user:', currentUser);
               
               // 1개월 플랜 체크
@@ -401,7 +401,20 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              신청하기
+              2차 작업 신청
+            </span>
+          </Link>
+          
+          <Link
+            href="/client/review-request"
+            className="block w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-4 rounded-xl font-semibold text-lg hover:from-orange-700 hover:to-orange-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] text-center relative z-10"
+            style={{ pointerEvents: 'auto', textDecoration: 'none' }}
+          >
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+              </svg>
+              리뷰 신청
             </span>
           </Link>
         </div>
@@ -461,26 +474,6 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
               <div className="flex-1">
                 <div className="font-semibold text-gray-900">공지사항</div>
                 <div className="text-sm text-gray-600 mt-0.5">중요한 공지사항 확인</div>
-              </div>
-              <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </button>
-
-          <button
-            onClick={() => router.push('/client/review-request')}
-            className="w-full bg-white border-2 border-gray-200 rounded-xl p-4 text-left hover:border-primary-400 hover:bg-primary-50 hover:shadow-md transition-all duration-200 active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-gray-900">리뷰 신청</div>
-                <div className="text-sm text-gray-600 mt-0.5">블로그/영수증 리뷰 신청</div>
               </div>
               <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
