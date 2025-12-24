@@ -30,9 +30,11 @@ async function createReviewRequest(req: NextRequest, user: any) {
       );
     }
 
+    // Get client's current quota and saved guide
+    // blogGuide와 receiptGuide는 선택적으로 조회 (컬럼이 없을 수 있음)
     const { data: clientData, error: clientError } = await supabase
       .from('users')
-      .select('id, quota, blogGuide, receiptGuide')
+      .select('id, quota')
       .eq('id', user.id)
       .single();
 
@@ -94,8 +96,23 @@ async function createReviewRequest(req: NextRequest, user: any) {
     
     if (useSavedGuide) {
       // 저장된 가이드 사용 (텍스트로 저장되어 있음)
-      const savedGuide = taskType === 'blog_review' ? clientData.blogGuide : clientData.receiptGuide;
-      finalGuideText = savedGuide || null;
+      // blogGuide/receiptGuide 컬럼이 있을 경우에만 조회 시도
+      try {
+        const guideColumn = taskType === 'blog_review' ? 'blogGuide' : 'receiptGuide';
+        const { data: guideData, error: guideError } = await supabase
+          .from('users')
+          .select(guideColumn)
+          .eq('id', user.id)
+          .single();
+        
+        if (!guideError && guideData) {
+          finalGuideText = (guideData as any)[guideColumn] || null;
+        }
+      } catch (err) {
+        // 컬럼이 없을 경우 에러를 무시하고 계속 진행
+        console.warn('Guide column may not exist:', err);
+        finalGuideText = null;
+      }
     } else if (guideText) {
       // 텍스트로 가이드가 전달된 경우
       finalGuideText = guideText;
