@@ -212,8 +212,8 @@ export default function ReviewOrdersManagement() {
         status: newStatus,
       };
       
-      if (link !== null && link !== undefined) {
-        requestBody.completedLink = link;
+      if (link !== null && link !== undefined && link.trim() !== '') {
+        requestBody.completedLink = link.trim();
       }
       
       if (draftText !== undefined && draftText !== null) {
