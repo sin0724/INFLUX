@@ -28,6 +28,14 @@ CREATE INDEX IF NOT EXISTS idx_orders_video_url ON orders("videoUrl") WHERE "vid
 ALTER TABLE users ADD COLUMN IF NOT EXISTS "blogGuide" TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS "receiptGuide" TEXT;
 
+-- 4. orders 테이블의 status CHECK constraint에 리뷰 워크플로우 상태 추가
+ALTER TABLE orders 
+DROP CONSTRAINT IF EXISTS orders_status_check;
+
+ALTER TABLE orders 
+ADD CONSTRAINT orders_status_check 
+CHECK (status IN ('pending', 'working', 'done', 'draft_uploaded', 'published'));
+
 -- 완료 메시지
 SELECT '✅ 블로그/영수증 리뷰 신청 기능을 위한 데이터베이스 변경이 완료되었습니다!' AS message;
 
