@@ -292,14 +292,13 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
                     저장된 가이드 사용
                   </label>
                 </div>
-                <a
-                  href="/client/guide/manage"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => router.push('/client/guide/manage')}
                   className="text-sm text-primary-600 hover:text-primary-700 underline"
                 >
                   가이드 관리
-                </a>
+                </button>
               </div>
             </div>
           )}

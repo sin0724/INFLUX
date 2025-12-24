@@ -13,6 +13,7 @@ export default function GuideManagePage({ user }: GuideManagePageProps) {
   const [receiptGuide, setReceiptGuide] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<{ blog: boolean; receipt: boolean }>({ blog: false, receipt: false });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -74,6 +75,49 @@ export default function GuideManagePage({ user }: GuideManagePageProps) {
     }
   };
 
+  const handleDelete = async (type: 'blog' | 'receipt') => {
+    if (!confirm(`정말 ${type === 'blog' ? '블로그' : '영수증'} 리뷰 가이드를 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    setDeleting(prev => ({ ...prev, [type]: true }));
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch('/api/users/guides', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          blogGuide: type === 'blog' ? null : undefined,
+          receiptGuide: type === 'receipt' ? null : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || '가이드 삭제에 실패했습니다.');
+        setDeleting(prev => ({ ...prev, [type]: false }));
+        return;
+      }
+
+      if (type === 'blog') {
+        setBlogGuide('');
+      } else {
+        setReceiptGuide('');
+      }
+
+      setSuccess(`${type === 'blog' ? '블로그' : '영수증'} 리뷰 가이드가 삭제되었습니다.`);
+      setDeleting(prev => ({ ...prev, [type]: false }));
+    } catch (err) {
+      setError('가이드 삭제 중 오류가 발생했습니다.');
+      setDeleting(prev => ({ ...prev, [type]: false }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -111,7 +155,19 @@ export default function GuideManagePage({ user }: GuideManagePageProps) {
 
           {/* 블로그 리뷰 가이드 */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">블로그 리뷰 가이드</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">블로그 리뷰 가이드</h2>
+              {blogGuide.trim() && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete('blog')}
+                  disabled={deleting.blog}
+                  className="px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleting.blog ? '삭제 중...' : '삭제'}
+                </button>
+              )}
+            </div>
             <textarea
               value={blogGuide}
               onChange={(e) => setBlogGuide(e.target.value)}
@@ -126,7 +182,19 @@ export default function GuideManagePage({ user }: GuideManagePageProps) {
 
           {/* 영수증 리뷰 가이드 */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">영수증 리뷰 가이드</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">영수증 리뷰 가이드</h2>
+              {receiptGuide.trim() && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete('receipt')}
+                  disabled={deleting.receipt}
+                  className="px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleting.receipt ? '삭제 중...' : '삭제'}
+                </button>
+              )}
+            </div>
             <textarea
               value={receiptGuide}
               onChange={(e) => setReceiptGuide(e.target.value)}

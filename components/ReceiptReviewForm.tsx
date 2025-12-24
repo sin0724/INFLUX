@@ -231,14 +231,13 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
                   모든 항목에 저장된 가이드 사용
                 </label>
                 {useSavedGuide && (
-                  <a
-                    href="/client/guide/manage"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => router.push('/client/guide/manage')}
                     className="ml-4 text-sm text-primary-600 hover:text-primary-700"
                   >
                     가이드 수정
-                  </a>
+                  </button>
                 )}
               </div>
             </div>
