@@ -82,13 +82,13 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
         // 승인(발행) 버튼 클릭 시 발행 완료로 변경
         updateData.status = 'published';
       } else if (action === 'request_revision') {
-        // 수정 요청 버튼 클릭 시 대기중으로 변경하고 수정 요청 사유 저장
+        // 수정 요청 버튼 클릭 시 revision_requested 상태로 변경하고 수정 요청 사유 저장
         if (!revisionRequestText.trim()) {
           setError('수정 요청 내용을 입력해주세요.');
           setActionLoading(false);
           return;
         }
-        updateData.status = 'pending';
+        updateData.status = 'revision_requested';
         updateData.revisionRequest = revisionRequestText;
       } else if (action === 'save_edit') {
         // 직접 수정 버튼 클릭 시 수정한 원고 저장하고 발행 완료로 변경 (자동 승인)
