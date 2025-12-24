@@ -337,7 +337,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50 text-gray-900 placeholder:text-gray-400"
                     placeholder="업체명이 자동으로 입력됩니다"
                     required
                     readOnly
@@ -354,7 +354,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
                     type="url"
                     value={placeLink}
                     onChange={(e) => setPlaceLink(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-900 placeholder:text-gray-400"
                     placeholder="플레이스 링크를 입력해주세요 (생략 가능)"
                   />
                   <p className="text-xs text-gray-500 mt-1">플레이스 링크는 생략해주셔도 됩니다.</p>
@@ -369,7 +369,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
                     value={keywords}
                     onChange={(e) => setKeywords(e.target.value)}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-900 placeholder:text-gray-400"
                     placeholder="블로그에 포함될 키워드를 입력해주세요"
                     required
                   />
@@ -384,7 +384,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
                     value={strengths}
                     onChange={(e) => setStrengths(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-900 placeholder:text-gray-400"
                     placeholder="업장의 강점이나 원하시는 리뷰 내용을 입력해주세요"
                     required
                   />
@@ -399,7 +399,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
                     value={additionalRequests}
                     onChange={(e) => setAdditionalRequests(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-900 placeholder:text-gray-400"
                     placeholder="추가적인 요청사항, 컨셉, 필수 삽입 내용 등을 입력해주세요"
                   />
                 </div>

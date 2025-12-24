@@ -982,7 +982,7 @@ export default function ClientsManagement() {
                       setFormData({ ...formData, username: e.target.value })
                     }
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -997,7 +997,7 @@ export default function ClientsManagement() {
                     }
                     required
                     placeholder="예: 인플루언서컴퍼니"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -1011,7 +1011,7 @@ export default function ClientsManagement() {
                       setFormData({ ...formData, password: e.target.value })
                     }
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -1025,7 +1025,7 @@ export default function ClientsManagement() {
                       setFormData({ ...formData, contractStartDate: e.target.value })
                     }
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -1037,7 +1037,7 @@ export default function ClientsManagement() {
                     onChange={(e) =>
                       setFormData({ ...formData, businessType: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   >
                     <option value="">선택 안 함</option>
                     {BUSINESS_TYPES.map((type) => (
@@ -1062,7 +1062,7 @@ export default function ClientsManagement() {
                       });
                     }}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   >
                     <option value="manual">수기입력</option>
                     <option value="1">1개월 (블로그 10개, 영수증 10개, 인기게시물 1개, 맘카페 1개)</option>
@@ -1522,7 +1522,7 @@ export default function ClientsManagement() {
                     }
                     rows={3}
                     placeholder="특이사항을 입력하세요..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 <div className="space-y-4">
@@ -1537,7 +1537,7 @@ export default function ClientsManagement() {
                         setFormData({ ...formData, naverId: e.target.value })
                       }
                       placeholder="네이버 아이디"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
@@ -1551,7 +1551,7 @@ export default function ClientsManagement() {
                         setFormData({ ...formData, naverPassword: e.target.value })
                       }
                       placeholder="네이버 비밀번호"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
@@ -1565,7 +1565,7 @@ export default function ClientsManagement() {
                         setFormData({ ...formData, placeLink: e.target.value })
                       }
                       placeholder="https://place.map.kakao.com/..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       맘카페 신청 시 자동으로 입력됩니다
@@ -1621,7 +1621,7 @@ export default function ClientsManagement() {
                 placeholder="아이디 또는 상호명 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
               />
             </div>
             <div>
@@ -1631,7 +1631,7 @@ export default function ClientsManagement() {
               <select
                 value={businessTypeFilter}
                 onChange={(e) => setBusinessTypeFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
               >
                 <option value="all">전체 업종</option>
                 {BUSINESS_TYPES.map((type) => (
@@ -1648,7 +1648,7 @@ export default function ClientsManagement() {
               <select
                 value={contractFilter}
                 onChange={(e) => setContractFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
               >
                 <option value="all">전체</option>
                 <option value="expired">계약 만료됨</option>
@@ -2074,7 +2074,7 @@ export default function ClientsManagement() {
                     value={extendDate}
                     onChange={(e) => setExtendDate(e.target.value)}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     ⚠️ 계약 종료일만 수정되며, 작업 개수는 변경되지 않습니다.
@@ -2135,7 +2135,7 @@ export default function ClientsManagement() {
                   <select
                     value={bulkEditForm.businessType}
                     onChange={(e) => setBulkEditForm({ ...bulkEditForm, businessType: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   >
                     <option value="">변경 안 함</option>
                     {BUSINESS_TYPES.map((type) => (
@@ -2157,7 +2157,7 @@ export default function ClientsManagement() {
                         ...bulkEditForm, 
                         optimization: e.target.value === '' ? null : e.target.value === 'true' 
                       })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     >
                       <option value="">변경 안 함</option>
                       <option value="true">완료</option>
@@ -2175,7 +2175,7 @@ export default function ClientsManagement() {
                         ...bulkEditForm, 
                         reservation: e.target.value === '' ? null : e.target.value === 'true' 
                       })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     >
                       <option value="">변경 안 함</option>
                       <option value="true">완료</option>
@@ -2193,7 +2193,7 @@ export default function ClientsManagement() {
                         ...bulkEditForm, 
                         reviewing: e.target.value === '' ? null : e.target.value === 'true' 
                       })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     >
                       <option value="">변경 안 함</option>
                       <option value="true">검수중</option>
@@ -2211,7 +2211,7 @@ export default function ClientsManagement() {
                         ...bulkEditForm, 
                         isActive: e.target.value === '' ? null : e.target.value === 'true' 
                       })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     >
                       <option value="">변경 안 함</option>
                       <option value="true">활성화</option>
@@ -2299,7 +2299,7 @@ export default function ClientsManagement() {
                     value={editForm.username}
                     onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -2311,7 +2311,7 @@ export default function ClientsManagement() {
                     value={editForm.companyName}
                     onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
                     placeholder="예: 인플루언서컴퍼니"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -2706,7 +2706,7 @@ export default function ClientsManagement() {
                     <select
                       value={editForm.businessType}
                       onChange={(e) => setEditForm({ ...editForm, businessType: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     >
                       <option value="">선택 안 함</option>
                       {BUSINESS_TYPES.map((type) => (
@@ -2725,7 +2725,7 @@ export default function ClientsManagement() {
                       value={editForm.naverId}
                       onChange={(e) => setEditForm({ ...editForm, naverId: e.target.value })}
                       placeholder="네이버 아이디"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
@@ -2737,7 +2737,7 @@ export default function ClientsManagement() {
                       value={editForm.naverPassword}
                       onChange={(e) => setEditForm({ ...editForm, naverPassword: e.target.value })}
                       placeholder="네이버 비밀번호 (변경 시에만 입력)"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
@@ -2749,7 +2749,7 @@ export default function ClientsManagement() {
                       value={editForm.placeLink}
                       onChange={(e) => setEditForm({ ...editForm, placeLink: e.target.value })}
                       placeholder="https://place.map.kakao.com/..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       맘카페 신청 시 자동으로 입력됩니다
@@ -2764,7 +2764,7 @@ export default function ClientsManagement() {
                       onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                       rows={3}
                       placeholder="특이사항을 입력하세요..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   {/* 최적화/예약/검수중 체크박스 */}

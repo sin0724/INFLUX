@@ -1195,7 +1195,7 @@ export default function ReviewOrdersManagement() {
                       value={draftText}
                       onChange={(e) => setDraftText(e.target.value)}
                       rows={20}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono text-sm"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono text-sm text-gray-900 placeholder:text-gray-400"
                       placeholder="작성한 원고 내용을 입력해주세요"
                     />
                     <p className="text-xs text-gray-500 mt-1">

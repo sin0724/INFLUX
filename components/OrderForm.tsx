@@ -643,7 +643,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                       value={instagramNickname}
                       onChange={(e) => setInstagramNickname(e.target.value)}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                       placeholder="예: incom_seoul"
                     />
                   </div>
@@ -662,7 +662,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                       onChange={(e) => setFollowerCount(e.target.value)}
                       min="50"
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                       placeholder="50"
                     />
                   </div>
@@ -685,7 +685,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                       value={postLink}
                       onChange={(e) => setPostLink(e.target.value)}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                       placeholder="https://www.instagram.com/p/..."
                     />
                   </div>
@@ -704,7 +704,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                       onChange={(e) => setLikeCount(e.target.value)}
                       min="10"
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                       placeholder="10"
                     />
                   </div>
@@ -729,7 +729,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={postLink}
                   onChange={(e) => setPostLink(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="https://www.instagram.com/p/..."
                 />
               </div>
@@ -748,7 +748,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   onChange={(e) => setLikeCount(e.target.value)}
                   min="10"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="10"
                 />
               </div>
@@ -771,7 +771,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={instagramNickname}
                   onChange={(e) => setInstagramNickname(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="예: incom_seoul"
                 />
               </div>
@@ -790,7 +790,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   onChange={(e) => setFollowerCount(e.target.value)}
                   min="50"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="50"
                 />
               </div>
@@ -813,7 +813,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={hotpostNickname}
                   onChange={(e) => setHotpostNickname(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="예: incom_seoul"
                 />
               </div>
@@ -830,7 +830,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={mainHashtag}
                   onChange={(e) => setMainHashtag(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="예: 김포맛집"
                 />
               </div>
@@ -847,7 +847,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="예: 인플루언서컴퍼니"
                 />
               </div>
@@ -870,7 +870,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={momcafeBusinessName}
                   onChange={(e) => setMomcafeBusinessName(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="상호명을 입력하세요"
                 />
               </div>
@@ -886,7 +886,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   type="text"
                   value={momcafeCafeName}
                   onChange={(e) => setMomcafeCafeName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="카페이름 또는 주소를 입력하세요 (미기재 시 추천 카페로 작업)"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -929,7 +929,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={momcafePostGuideline}
                   onChange={(e) => setMomcafePostGuideline(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="게시글 가이드라인을 입력하세요 (공란 시 임의로 작업)"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -948,7 +948,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={momcafeCommentGuideline}
                   onChange={(e) => setMomcafeCommentGuideline(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="댓글 가이드라인을 입력하세요 (공란 시 임의로 작업)"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -975,7 +975,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={daangnBusinessProfile}
                   onChange={(e) => setDaangnBusinessProfile(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="https://www.daangn.com/..."
                 />
               </div>
@@ -1021,7 +1021,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={experienceCompanyName}
                   onChange={(e) => setExperienceCompanyName(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="상호명을 입력하세요"
                 />
               </div>
@@ -1039,7 +1039,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={experiencePlace}
                   onChange={(e) => setExperiencePlace(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="플레이스명을 입력하세요"
                 />
               </div>
@@ -1057,7 +1057,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={experienceReservationPhone}
                   onChange={(e) => setExperienceReservationPhone(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="예: 010-1234-5678"
                 />
               </div>
@@ -1076,7 +1076,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={experienceDesiredParticipants}
                   onChange={(e) => setExperienceDesiredParticipants(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="예: 10"
                 />
               </div>
@@ -1094,7 +1094,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   onChange={(e) => setExperienceProvidedDetails(e.target.value)}
                   required
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="체험단에게 제공할 내역을 입력하세요"
                 />
               </div>
@@ -1112,7 +1112,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={experienceKeywords}
                   onChange={(e) => setExperienceKeywords(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="예: 맛집, 데이트, 카페"
                 />
               </div>
@@ -1143,7 +1143,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                   value={experienceAdditionalNotes}
                   onChange={(e) => setExperienceAdditionalNotes(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
                   placeholder="기타 전달사항을 입력하세요 (선택사항)"
                 />
               </div>

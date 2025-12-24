@@ -145,7 +145,7 @@ export default function ExperienceApplicationForm({ user }: ExperienceApplicatio
               value={formData.desiredParticipants}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
               placeholder="예: 10"
             />
           </div>
@@ -161,7 +161,7 @@ export default function ExperienceApplicationForm({ user }: ExperienceApplicatio
               onChange={handleChange}
               required
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 placeholder:text-gray-400"
               placeholder="체험단에게 제공할 내역을 입력하세요"
             />
           </div>

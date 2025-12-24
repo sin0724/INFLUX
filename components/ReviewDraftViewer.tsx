@@ -260,7 +260,7 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
                   value={editedText}
                   onChange={(e) => setEditedText(e.target.value)}
                   rows={15}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                   placeholder="원고 내용을 입력하세요"
                 />
                 <div className="flex gap-3">

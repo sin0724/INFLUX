@@ -172,7 +172,7 @@ export default function GuideManagePage({ user }: GuideManagePageProps) {
               value={blogGuide}
               onChange={(e) => setBlogGuide(e.target.value)}
               rows={10}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none text-gray-900 placeholder:text-gray-400"
               placeholder="블로그 리뷰 신청 시 사용할 고정 가이드를 입력하세요..."
             />
             <p className="text-xs text-gray-500 mt-2">
@@ -199,7 +199,7 @@ export default function GuideManagePage({ user }: GuideManagePageProps) {
               value={receiptGuide}
               onChange={(e) => setReceiptGuide(e.target.value)}
               rows={10}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none text-gray-900 placeholder:text-gray-400"
               placeholder="영수증 리뷰 신청 시 사용할 고정 가이드를 입력하세요..."
             />
             <p className="text-xs text-gray-500 mt-2">

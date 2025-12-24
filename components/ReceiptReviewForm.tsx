@@ -273,7 +273,7 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
                       type="text"
                       value={item.companyName}
                       onChange={(e) => updateItem(item.id, { companyName: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50 text-gray-900 placeholder:text-gray-400"
                       placeholder="업체명이 자동으로 입력됩니다"
                       readOnly
                     />
@@ -304,7 +304,7 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
                       value={item.reviewContent}
                       onChange={(e) => updateItem(item.id, { reviewContent: e.target.value })}
                       rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-900 placeholder:text-gray-400"
                       placeholder="방문자 리뷰에 들어갈 내용을 입력해주세요"
                     />
                   </div>
@@ -318,7 +318,7 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
                       value={item.additionalRequests}
                       onChange={(e) => updateItem(item.id, { additionalRequests: e.target.value })}
                       rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-gray-900 placeholder:text-gray-400"
                       placeholder="추가적인 요청사항, 컨셉, 필수 삽입 내용 등을 입력해주세요"
                     />
                   </div>
