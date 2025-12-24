@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/middleware';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // POST: Create blog/receipt review request
 async function createReviewRequest(req: NextRequest, user: any) {
@@ -22,13 +22,37 @@ async function createReviewRequest(req: NextRequest, user: any) {
     }
 
     // Get client's current quota and saved guide
-    const { data: clientData, error: clientError } = await supabaseAdmin
+    if (!user || !user.id) {
+      console.error('Invalid user object:', user);
+      return NextResponse.json(
+        { error: '사용자 정보가 올바르지 않습니다.' },
+        { status: 400 }
+      );
+    }
+
+    const { data: clientData, error: clientError } = await supabase
       .from('users')
-      .select('quota, blogGuide, receiptGuide')
+      .select('id, quota, blogGuide, receiptGuide')
       .eq('id', user.id)
       .single();
 
-    if (clientError || !clientData) {
+    if (clientError) {
+      console.error('Client data fetch error:', {
+        error: clientError,
+        userId: user.id,
+        code: clientError.code,
+        message: clientError.message,
+        details: clientError.details,
+        hint: clientError.hint
+      });
+      return NextResponse.json(
+        { error: `사용자 정보를 찾을 수 없습니다. (${clientError.message || '알 수 없는 오류'})` },
+        { status: 404 }
+      );
+    }
+
+    if (!clientData) {
+      console.error('Client data is null for user ID:', user.id);
       return NextResponse.json(
         { error: '사용자 정보를 찾을 수 없습니다.' },
         { status: 404 }
@@ -101,7 +125,7 @@ async function createReviewRequest(req: NextRequest, user: any) {
       // 임시 가이드가 텍스트로 전달된 경우 처리 (필요시)
     }
 
-    const { data: order, error: orderError } = await supabaseAdmin
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert(orderData)
       .select()
@@ -123,7 +147,7 @@ async function createReviewRequest(req: NextRequest, user: any) {
         remaining: Math.max(0, taskQuota.remaining - 1),
       };
 
-      const { error: quotaError } = await supabaseAdmin
+      const { error: quotaError } = await supabase
         .from('users')
         .update({ quota: newQuota })
         .eq('id', user.id);
