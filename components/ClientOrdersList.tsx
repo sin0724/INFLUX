@@ -43,6 +43,8 @@ const STATUS_NAMES: Record<string, string> = {
   working: '진행중',
   done: '완료',
   draft_uploaded: '원고 업로드 완료',
+  revision_requested: '원고 수정요청',
+  draft_revised: '원고 수정완료',
   published: '발행 완료',
 };
 
