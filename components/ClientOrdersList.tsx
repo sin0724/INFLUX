@@ -225,7 +225,7 @@ export default function ClientOrdersList() {
                 {filteredOrders.map((order) => {
                   // 블로그 리뷰 및 영수증 리뷰에 원고 확인/링크 확인 버튼 표시
                   const showReviewButton = (order.taskType === 'blog_review' || order.taskType === 'receipt_review') && 
-                    (order.status === 'draft_uploaded' || order.status === 'draft_revised' || 
+                    (order.status === 'working' || order.status === 'draft_uploaded' || order.status === 'draft_revised' || 
                      order.status === 'revision_requested' || order.status === 'client_approved' || order.status === 'published');
 
                   return (
@@ -385,7 +385,7 @@ export default function ClientOrdersList() {
 
                   {/* 블로그 리뷰 및 영수증 리뷰 원고 확인/링크 확인 버튼 */}
                   {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && 
-                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved' || selectedOrder.status === 'published' || selectedOrder.status === 'done') && (
+                   (selectedOrder.status === 'working' || selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved' || selectedOrder.status === 'published' || selectedOrder.status === 'done') && (
                     <div>
                       {(selectedOrder.status === 'published' || selectedOrder.status === 'done') && selectedOrder.completedLink ? (
                         <a
@@ -404,7 +404,7 @@ export default function ClientOrdersList() {
                           }}
                           className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                         >
-                          {(selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised') ? '원고 확인 및 수정' : '원고 확인'}
+                          {(selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised') ? '원고 확인 및 수정' : selectedOrder.status === 'working' ? '진행 상황 확인' : '원고 확인'}
                         </button>
                       )}
                     </div>

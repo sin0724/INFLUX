@@ -30,9 +30,18 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
   const fetchStats = async () => {
     try {
-      const [usersRes, ordersRes] = await Promise.all([
+      const [usersRes, ordersRes, reviewOrdersRes] = await Promise.all([
         fetch('/api/users'),
         fetch('/api/orders'),
+        // 리뷰 발주도 별도로 조회
+        Promise.all([
+          fetch('/api/orders?taskType=blog_review'),
+          fetch('/api/orders?taskType=receipt_review'),
+        ]).then(async ([blogRes, receiptRes]) => {
+          const blogData = blogRes.ok ? await blogRes.json() : { orders: [] };
+          const receiptData = receiptRes.ok ? await receiptRes.json() : { orders: [] };
+          return [...(blogData.orders || []), ...(receiptData.orders || [])];
+        }),
       ]);
 
       if (usersRes.ok) {
@@ -43,15 +52,33 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         setStats((prev) => ({ ...prev, totalClients: clients.length }));
       }
 
-      if (ordersRes.ok) {
+      if (ordersRes.ok && reviewOrdersRes) {
         const ordersData = await ordersRes.json();
-        const orders = ordersData.orders || [];
+        const allOrders = ordersData.orders || [];
+        const reviewOrders = reviewOrdersRes || [];
+        
+        // 모든 주문을 합쳐서 통계 계산 (일반 발주 + 리뷰 발주)
+        const allOrdersCombined = [...allOrders, ...reviewOrders];
+        
+        // pending 상태: 일반 발주의 pending + 리뷰 발주의 pending
+        const pendingCount = allOrdersCombined.filter((o: any) => o.status === 'pending').length;
+        
+        // working 상태: 일반 발주의 working + 리뷰 발주의 working 관련 상태들
+        // 리뷰 발주의 경우 draft_uploaded, draft_revised, client_approved도 진행중으로 간주
+        const workingCount = allOrdersCombined.filter((o: any) => {
+          if (o.status === 'working') return true;
+          // 리뷰 발주의 진행중 상태
+          if ((o.taskType === 'blog_review' || o.taskType === 'receipt_review') && 
+              (o.status === 'draft_uploaded' || o.status === 'draft_revised' || o.status === 'client_approved')) {
+            return true;
+          }
+          return false;
+        }).length;
+        
         setStats((prev) => ({
           ...prev,
-          pendingOrders: orders.filter((o: any) => o.status === 'pending')
-            .length,
-          workingOrders: orders.filter((o: any) => o.status === 'working')
-            .length,
+          pendingOrders: pendingCount,
+          workingOrders: workingCount,
         }));
       }
     } catch (error) {
