@@ -161,15 +161,15 @@ export default function ClientOrdersList() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="mb-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="mb-4">
           <button
             onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900 mb-4"
+            className="text-gray-600 hover:text-gray-900 mb-3 text-sm"
           >
             ← 뒤로가기
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">발주 목록</h1>
+          <h1 className="text-xl font-bold text-gray-900">발주 목록</h1>
         </div>
 
         {loading ? (
@@ -187,11 +187,11 @@ export default function ClientOrdersList() {
         ) : (
           <>
             {/* 작업별 필터 탭 */}
-            <div className="mb-6 bg-white rounded-lg border border-gray-200 p-2">
-              <div className="flex flex-wrap gap-2">
+            <div className="mb-4 bg-white rounded-lg border border-gray-200 p-2">
+              <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => setSelectedTaskType('all')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
                     selectedTaskType === 'all'
                       ? 'bg-primary-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -203,7 +203,7 @@ export default function ClientOrdersList() {
                   <button
                     key={taskType}
                     onClick={() => setSelectedTaskType(taskType)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
                       selectedTaskType === taskType
                         ? 'bg-primary-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -231,49 +231,13 @@ export default function ClientOrdersList() {
                   return (
                   <div
                     key={order.id}
-                    className="p-4 hover:bg-gray-50 transition"
+                    className="p-3 hover:bg-gray-50 transition"
+                    onClick={() => setSelectedOrder(order)}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="px-2.5 py-1 bg-primary-100 text-primary-700 rounded text-xs font-medium whitespace-nowrap">
-                            {TASK_TYPE_NAMES[order.taskType] || order.taskType}
-                          </span>
-                          <span
-                            className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                              order.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : order.status === 'working' || order.status === 'draft_uploaded'
-                                ? 'bg-blue-100 text-blue-700'
-                                : order.status === 'revision_requested'
-                                ? 'bg-orange-100 text-orange-700'
-                                : order.status === 'draft_revised'
-                                ? 'bg-purple-100 text-purple-700'
-                                : order.status === 'client_approved'
-                                ? 'bg-purple-100 text-purple-700'
-                                : order.status === 'published'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-green-100 text-green-700'
-                            }`}
-                          >
-                            {(order.taskType === 'follower' || order.taskType === 'like')
-                              ? (order.status === 'pending' ? '대기중' : '신청완료')
-                              : STATUS_NAMES[order.status] || order.status}
-                          </span>
-                          {/* 완료 링크는 버튼으로 표시하지 않고 아래 버튼 영역에서 통일된 스타일로 표시 */}
-                        </div>
-                        {order.caption && (
-                          <div className="text-sm text-gray-700 mb-1 truncate">
-                            {order.caption.split('\n')[0]}
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-500">
-                          {formatDateTime(order.createdAt)}
-                        </div>
-                      </div>
+                    <div className="flex items-start gap-3">
                       {order.imageUrls && order.imageUrls.length > 0 && (
-                        <div className="ml-4 flex-shrink-0">
-                          <div className="w-12 h-12 relative rounded overflow-hidden border border-gray-200">
+                        <div className="flex-shrink-0">
+                          <div className="w-16 h-16 relative rounded overflow-hidden border border-gray-200 bg-gray-100">
                             <Image
                               src={order.imageUrls[0]}
                               alt="첫 번째 이미지"
@@ -283,48 +247,77 @@ export default function ClientOrdersList() {
                           </div>
                         </div>
                       )}
-                      <div className="ml-4 flex-shrink-0 flex items-center gap-2">
-                        {/* 리뷰 신청(블로그/영수증) 발행 완료 상태일 때 링크 확인 버튼 */}
-                        {showReviewButton && (order.status === 'published' || order.status === 'done') && order.completedLink ? (
-                          <a
-                            href={order.completedLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-medium">
+                            {TASK_TYPE_NAMES[order.taskType] || order.taskType}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              order.status === 'pending'
+                                ? 'bg-yellow-50 text-yellow-700'
+                                : order.status === 'working' || order.status === 'draft_uploaded'
+                                ? 'bg-blue-50 text-blue-700'
+                                : order.status === 'revision_requested'
+                                ? 'bg-orange-50 text-orange-700'
+                                : order.status === 'draft_revised'
+                                ? 'bg-purple-50 text-purple-700'
+                                : order.status === 'client_approved'
+                                ? 'bg-indigo-50 text-indigo-700'
+                                : order.status === 'published' || order.status === 'done'
+                                ? 'bg-green-50 text-green-700'
+                                : 'bg-green-50 text-green-700'
+                            }`}
                           >
-                            링크 확인
-                          </a>
-                        ) : showReviewButton ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/client/review-request/${order.id}`);
-                            }}
-                            className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition"
-                          >
-                            원고 확인
-                          </button>
-                        ) : null}
-                        {/* 일반 완료 작업(내돈내산 등) 발행 완료 상태일 때 링크 확인 버튼 */}
-                        {!showReviewButton && (order.status === 'done' || order.status === 'published') && order.completedLink && (
-                          <a
-                            href={order.completedLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
-                          >
-                            링크 확인
-                          </a>
+                            {(order.taskType === 'follower' || order.taskType === 'like')
+                              ? (order.status === 'pending' ? '대기중' : '신청완료')
+                              : STATUS_NAMES[order.status] || order.status}
+                          </span>
+                        </div>
+                        {order.caption && (
+                          <div className="text-sm text-gray-700 mb-1 line-clamp-2">
+                            {order.caption.split('\n')[0]}
+                          </div>
                         )}
-                        <div
-                          onClick={() => setSelectedOrder(order)}
-                          className="cursor-pointer"
-                        >
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+                        <div className="text-xs text-gray-500 mb-2">
+                          {formatDateTime(order.createdAt)}
+                        </div>
+                        {/* 버튼 영역 */}
+                        <div className="flex items-center gap-2">
+                          {/* 리뷰 신청(블로그/영수증) 발행 완료 상태일 때 링크 확인 버튼 */}
+                          {showReviewButton && (order.status === 'published' || order.status === 'done') && order.completedLink ? (
+                            <a
+                              href={order.completedLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                            >
+                              링크 확인
+                            </a>
+                          ) : showReviewButton ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/client/review-request/${order.id}`);
+                              }}
+                              className="px-3 py-1.5 bg-primary-600 text-white text-xs rounded hover:bg-primary-700 transition"
+                            >
+                              원고 확인
+                            </button>
+                          ) : null}
+                          {/* 일반 완료 작업(내돈내산 등) 발행 완료 상태일 때 링크 확인 버튼 */}
+                          {!showReviewButton && (order.status === 'done' || order.status === 'published') && order.completedLink && (
+                            <a
+                              href={order.completedLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                            >
+                              링크 확인
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -348,18 +341,18 @@ export default function ClientOrdersList() {
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">
+                  <h2 className="text-lg font-bold text-gray-900">
                     발주 상세
                   </h2>
                   <button
                     onClick={() => setSelectedOrder(null)}
-                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                    className="text-gray-400 hover:text-gray-600 text-xl w-8 h-8 flex items-center justify-center"
                   >
                     ×
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <div className="text-sm text-gray-600">작업 종류</div>
                     <div className="font-medium text-gray-900">
