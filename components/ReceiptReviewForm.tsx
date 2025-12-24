@@ -92,14 +92,7 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
     try {
       // 각 항목 검증
       for (const item of items) {
-        if (useSavedGuide) {
-          // 저장된 가이드 사용 시 사진만 필수
-          if (item.images.length === 0) {
-            setError('각 항목마다 사진을 1장 이상 업로드해주세요.');
-            setLoading(false);
-            return;
-          }
-        } else {
+        if (!useSavedGuide) {
           // 새 가이드 입력 시 필수 필드 검증
           if (!item.companyName.trim()) {
             setError('각 항목마다 업체명을 입력해주세요.');
@@ -109,12 +102,6 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
 
           if (!item.reviewContent.trim()) {
             setError('각 항목마다 방문자 리뷰에 들어갈 내용을 입력해주세요.');
-            setLoading(false);
-            return;
-          }
-
-          if (item.images.length === 0) {
-            setError('사진과 함께 작성을 원할 시 사진 자료를 첨부해주세요.');
             setLoading(false);
             return;
           }
@@ -216,7 +203,7 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h3 className="text-sm font-semibold text-blue-900 mb-2">📌 유의사항</h3>
           <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
-            <li>사진 자료와 함께 작성을 원할 시 사진 자료 첨부하여 전달 부탁드립니다.</li>
+            <li>영수증 사진은 필요하지 않습니다.</li>
             <li>플레이스 링크는 생략해주셔도 됩니다.</li>
             <li>방문자 리뷰 임의 작성으로 원할 시 컨펌 없이 계약 기간과 총수량에 맞추어 임의 발행됩니다.</li>
           </ul>
@@ -342,16 +329,13 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
               {/* 사진 업로드 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  사진 <span className="text-red-500">*</span>
+                  사진 <span className="text-gray-400 text-xs">(선택)</span>
                 </label>
                 <ImageUpload 
                   images={item.images} 
                   onImagesChange={(urls) => updateItem(item.id, { images: urls })}
                   maxImages={20}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  사진 자료와 함께 작성을 원할 시 사진 자료를 첨부해주세요.
-                </p>
               </div>
             </div>
           ))}
