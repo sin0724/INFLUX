@@ -112,21 +112,12 @@ export default function ReviewOrdersManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [filters, setFilters] = useState({
     status: '',
     taskType: '',
     clientId: '',
-    startDate: '',
-    endDate: '',
   });
   const [clients, setClients] = useState<any[]>([]);
-  
-  // 수정 폼 상태
-  const [editForm, setEditForm] = useState({
-    caption: '',
-    imageUrls: [] as string[],
-  });
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   
@@ -186,12 +177,6 @@ export default function ReviewOrdersManagement() {
         if (filters.clientId) {
           allOrders = allOrders.filter((o: Order) => o.client?.id === filters.clientId);
         }
-        if (filters.startDate) {
-          allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) >= new Date(filters.startDate));
-        }
-        if (filters.endDate) {
-          allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) <= new Date(filters.endDate + 'T23:59:59'));
-        }
         
         setOrders(allOrders);
         setLoading(false);
@@ -199,8 +184,6 @@ export default function ReviewOrdersManagement() {
       }
       
       if (filters.clientId) params.append('clientId', filters.clientId);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
 
       const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
@@ -209,12 +192,6 @@ export default function ReviewOrdersManagement() {
       // 클라이언트 사이드 추가 필터링
       if (filters.clientId) {
         allOrders = allOrders.filter((o: Order) => o.client?.id === filters.clientId);
-      }
-      if (filters.startDate) {
-        allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) >= new Date(filters.startDate));
-      }
-      if (filters.endDate) {
-        allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) <= new Date(filters.endDate + 'T23:59:59'));
       }
       
       setOrders(allOrders);
@@ -342,46 +319,6 @@ export default function ReviewOrdersManagement() {
   };
 
 
-  const handleEditOrder = (order: Order) => {
-    setEditingOrder(order);
-    setEditForm({
-      caption: order.caption || '',
-      imageUrls: order.imageUrls || [],
-    });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingOrder) return;
-
-    try {
-      const response = await fetch(`/api/orders/${editingOrder.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          caption: editForm.caption,
-          imageUrls: editForm.imageUrls,
-        }),
-      });
-
-      if (response.ok) {
-        fetchOrders();
-        setEditingOrder(null);
-        if (selectedOrder?.id === editingOrder.id) {
-          const data = await response.json();
-          setSelectedOrder(data.order);
-        }
-        alert('발주가 수정되었습니다.');
-      } else {
-        const data = await response.json();
-        alert(data.error || '발주 수정에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Failed to edit order:', error);
-      alert('발주 수정 중 오류가 발생했습니다.');
-    }
-  };
 
   const downloadImage = async (url: string, filename: string) => {
     try {
@@ -524,174 +461,90 @@ export default function ReviewOrdersManagement() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-yellow-700 mb-1">대기중 작업</div>
-                <div className="text-3xl font-bold text-yellow-900">{statusCounts.pending}</div>
-              </div>
-              <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+          <button
+            onClick={() => setFilters({ ...filters, status: filters.status === 'pending' ? '' : 'pending' })}
+            className={`p-3 rounded-lg border text-left transition ${
+              filters.status === 'pending'
+                ? 'bg-yellow-50 border-yellow-300'
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <div className="text-xs text-gray-600 mb-1">대기중</div>
+            <div className={`text-2xl font-bold ${filters.status === 'pending' ? 'text-yellow-700' : 'text-gray-900'}`}>
+              {statusCounts.pending}
             </div>
-            <button
-              onClick={() => setFilters({ ...filters, status: 'pending' })}
-              className="mt-3 w-full px-3 py-1.5 bg-yellow-200 hover:bg-yellow-300 text-yellow-800 rounded-lg text-sm font-medium transition"
-            >
-              대기중 작업 보기
-            </button>
-          </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border-2 border-blue-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-blue-700 mb-1">원고 업로드 완료</div>
-                <div className="text-3xl font-bold text-blue-900">{statusCounts.draft_uploaded}</div>
-              </div>
-              <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
+          </button>
+          <button
+            onClick={() => setFilters({ ...filters, status: filters.status === 'draft_uploaded' ? '' : 'draft_uploaded' })}
+            className={`p-3 rounded-lg border text-left transition ${
+              filters.status === 'draft_uploaded'
+                ? 'bg-blue-50 border-blue-300'
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <div className="text-xs text-gray-600 mb-1">원고 업로드 완료</div>
+            <div className={`text-2xl font-bold ${filters.status === 'draft_uploaded' ? 'text-blue-700' : 'text-gray-900'}`}>
+              {statusCounts.draft_uploaded}
             </div>
-            <button
-              onClick={() => setFilters({ ...filters, status: 'draft_uploaded' })}
-              className="mt-3 w-full px-3 py-1.5 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg text-sm font-medium transition"
-            >
-              원고 업로드 완료 보기
-            </button>
-          </div>
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border-2 border-orange-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-orange-700 mb-1">원고 수정요청</div>
-                <div className="text-3xl font-bold text-orange-900">{statusCounts.revision_requested}</div>
-              </div>
-              <div className="w-12 h-12 bg-orange-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
+          </button>
+          <button
+            onClick={() => setFilters({ ...filters, status: filters.status === 'revision_requested' ? '' : 'revision_requested' })}
+            className={`p-3 rounded-lg border text-left transition ${
+              filters.status === 'revision_requested'
+                ? 'bg-orange-50 border-orange-300'
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <div className="text-xs text-gray-600 mb-1">원고 수정요청</div>
+            <div className={`text-2xl font-bold ${filters.status === 'revision_requested' ? 'text-orange-700' : 'text-gray-900'}`}>
+              {statusCounts.revision_requested}
             </div>
-            <button
-              onClick={() => setFilters({ ...filters, status: 'revision_requested' })}
-              className="mt-3 w-full px-3 py-1.5 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-lg text-sm font-medium transition"
-            >
-              원고 수정요청 보기
-            </button>
-          </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-purple-700 mb-1">원고 수정완료</div>
-                <div className="text-3xl font-bold text-purple-900">{statusCounts.draft_revised}</div>
-              </div>
-              <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
+          </button>
+          <button
+            onClick={() => setFilters({ ...filters, status: filters.status === 'draft_revised' ? '' : 'draft_revised' })}
+            className={`p-3 rounded-lg border text-left transition ${
+              filters.status === 'draft_revised'
+                ? 'bg-purple-50 border-purple-300'
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <div className="text-xs text-gray-600 mb-1">원고 수정완료</div>
+            <div className={`text-2xl font-bold ${filters.status === 'draft_revised' ? 'text-purple-700' : 'text-gray-900'}`}>
+              {statusCounts.draft_revised}
             </div>
-            <button
-              onClick={() => setFilters({ ...filters, status: 'draft_revised' })}
-              className="mt-3 w-full px-3 py-1.5 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-lg text-sm font-medium transition"
-            >
-              원고 수정완료 보기
-            </button>
-          </div>
-          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 border-2 border-indigo-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-indigo-700 mb-1">승인완료</div>
-                <div className="text-3xl font-bold text-indigo-900">{statusCounts.client_approved}</div>
-              </div>
-              <div className="w-12 h-12 bg-indigo-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+          </button>
+          <button
+            onClick={() => setFilters({ ...filters, status: filters.status === 'client_approved' ? '' : 'client_approved' })}
+            className={`p-3 rounded-lg border text-left transition ${
+              filters.status === 'client_approved'
+                ? 'bg-indigo-50 border-indigo-300'
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <div className="text-xs text-gray-600 mb-1">승인완료</div>
+            <div className={`text-2xl font-bold ${filters.status === 'client_approved' ? 'text-indigo-700' : 'text-gray-900'}`}>
+              {statusCounts.client_approved}
             </div>
-            <button
-              onClick={() => setFilters({ ...filters, status: 'client_approved' })}
-              className="mt-3 w-full px-3 py-1.5 bg-indigo-200 hover:bg-indigo-300 text-indigo-800 rounded-lg text-sm font-medium transition"
-            >
-              승인완료 보기
-            </button>
-          </div>
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-green-700 mb-1">발행 완료</div>
-                <div className="text-3xl font-bold text-green-900">{statusCounts.published}</div>
-              </div>
-              <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+          </button>
+          <button
+            onClick={() => setFilters({ ...filters, status: filters.status === 'published' ? '' : 'published' })}
+            className={`p-3 rounded-lg border text-left transition ${
+              filters.status === 'published'
+                ? 'bg-green-50 border-green-300'
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <div className="text-xs text-gray-600 mb-1">발행 완료</div>
+            <div className={`text-2xl font-bold ${filters.status === 'published' ? 'text-green-700' : 'text-gray-900'}`}>
+              {statusCounts.published}
             </div>
-            <button
-              onClick={() => setFilters({ ...filters, status: 'published' })}
-              className="mt-3 w-full px-3 py-1.5 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg text-sm font-medium transition"
-            >
-              발행 완료 보기
-            </button>
-          </div>
+          </button>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
-          {/* Quick Filter Buttons */}
-          <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-200">
-            <button
-              onClick={() => setFilters({ status: 'pending', taskType: '', clientId: '', startDate: '', endDate: '' })}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filters.status === 'pending' && !filters.taskType && !filters.clientId && !filters.startDate && !filters.endDate
-                  ? 'bg-yellow-500 text-white'
-                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-              }`}
-            >
-              대기중
-            </button>
-            <button
-              onClick={() => setFilters({ status: 'draft_uploaded', taskType: '', clientId: '', startDate: '', endDate: '' })}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filters.status === 'draft_uploaded' && !filters.taskType && !filters.clientId && !filters.startDate && !filters.endDate
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-              }`}
-            >
-              원고 업로드 완료
-            </button>
-            <button
-              onClick={() => setFilters({ status: 'revision_requested', taskType: '', clientId: '', startDate: '', endDate: '' })}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filters.status === 'revision_requested' && !filters.taskType && !filters.clientId && !filters.startDate && !filters.endDate
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-              }`}
-            >
-              원고 수정요청
-            </button>
-            <button
-              onClick={() => {
-                const today = new Date().toISOString().split('T')[0];
-                setFilters({ status: 'pending', taskType: '', clientId: '', startDate: today, endDate: '' });
-              }}
-              className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition"
-            >
-              오늘 신청된 작업
-            </button>
-            <button
-              onClick={() => setFilters({ status: '', taskType: '', clientId: '', startDate: '', endDate: '' })}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
-            >
-              전체 초기화
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="bg-white rounded-lg p-3 mb-4 border border-gray-200">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 상태
@@ -826,32 +679,6 @@ export default function ReviewOrdersManagement() {
                 )}
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                시작일
-              </label>
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) =>
-                  setFilters({ ...filters, startDate: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                종료일
-              </label>
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) =>
-                  setFilters({ ...filters, endDate: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
-            </div>
           </div>
         </div>
 
@@ -871,41 +698,41 @@ export default function ReviewOrdersManagement() {
               return (
               <div
                 key={order.id}
-                className={`rounded-lg border-2 p-6 hover:shadow-md transition cursor-pointer ${
+                className={`rounded-lg border p-4 hover:bg-gray-50 transition cursor-pointer ${
                   isPending 
-                    ? 'bg-yellow-50 border-yellow-300' 
+                    ? 'bg-yellow-50 border-yellow-200' 
                     : 'bg-white border-gray-200'
                 }`}
                 onClick={() => setSelectedOrder(order)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-medium">
                         {TASK_TYPE_NAMES[order.taskType] || order.taskType}
                       </span>
                       <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        className={`px-2 py-0.5 rounded text-xs font-medium ${
                           order.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-700'
+                            ? 'bg-yellow-50 text-yellow-700'
                             : order.status === 'draft_uploaded'
-                            ? 'bg-blue-100 text-blue-700'
+                            ? 'bg-blue-50 text-blue-700'
                             : order.status === 'revision_requested'
-                            ? 'bg-orange-100 text-orange-700'
+                            ? 'bg-orange-50 text-orange-700'
                             : order.status === 'draft_revised'
-                            ? 'bg-purple-100 text-purple-700'
+                            ? 'bg-purple-50 text-purple-700'
                             : order.status === 'client_approved'
-                            ? 'bg-indigo-100 text-indigo-700'
+                            ? 'bg-indigo-50 text-indigo-700'
                             : order.status === 'published'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? 'bg-green-50 text-green-700'
+                            : 'bg-gray-50 text-gray-700'
                         }`}
                       >
                         {STATUS_NAMES[order.status] || order.status}
                       </span>
                       {isPending && waitingDays > 0 && (
-                        <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                          {waitingDays}일 대기중
+                        <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded text-xs font-medium">
+                          {waitingDays}일 대기
                         </span>
                       )}
                       <span className="text-sm text-gray-600">
@@ -963,29 +790,27 @@ export default function ReviewOrdersManagement() {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        handleStatusChange(order.id, e.target.value)
-                      }
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    >
-                      <option value="pending">대기중</option>
-                      {order.taskType === 'blog_review' && (
-                        <option value="draft_uploaded">원고 업로드 완료</option>
-                      )}
-                      <option value="published">발행 완료</option>
-                    </select>
-                  </div>
+                  <select
+                    value={order.status}
+                    onChange={(e) =>
+                      handleStatusChange(order.id, e.target.value)
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="pending">대기중</option>
+                    {order.taskType === 'blog_review' && (
+                      <option value="draft_uploaded">원고 업로드 완료</option>
+                    )}
+                    <option value="published">발행 완료</option>
+                  </select>
                 </div>
                 {order.imageUrls && order.imageUrls.length > 0 && (
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-3 flex gap-2">
                     {order.imageUrls.slice(0, 3).map((url, idx) => (
                       <div
                         key={idx}
-                        className="w-20 h-20 relative rounded-lg overflow-hidden border border-gray-200"
+                        className="w-16 h-16 relative rounded overflow-hidden border border-gray-200 bg-gray-100"
                       >
                         <Image
                           src={url}
@@ -996,7 +821,7 @@ export default function ReviewOrdersManagement() {
                       </div>
                     ))}
                     {order.imageUrls.length > 3 && (
-                      <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200 text-sm text-gray-600">
+                      <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border border-gray-200 text-xs text-gray-600">
                         +{order.imageUrls.length - 3}
                       </div>
                     )}
@@ -1023,18 +848,18 @@ export default function ReviewOrdersManagement() {
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">
+                  <h2 className="text-lg font-bold text-gray-900">
                     발주 상세
                   </h2>
                   <button
                     onClick={() => setSelectedOrder(null)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 text-xl w-8 h-8 flex items-center justify-center"
                   >
                     ×
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <div className="text-sm text-gray-600">작업 종류</div>
                     <div className="font-medium text-gray-900">
@@ -1093,27 +918,19 @@ export default function ReviewOrdersManagement() {
                       </button>
                     )}
                   </div>
-                  {(
-                    <div className="flex gap-2 pt-4 border-t border-gray-200">
-                      <button
-                        onClick={() => handleEditOrder(selectedOrder)}
-                        className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-                      >
-                        수정
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('정말 이 발주를 삭제하시겠습니까?')) {
-                            handleDeleteOrder(selectedOrder.id);
-                            setSelectedOrder(null);
-                          }
-                        }}
-                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex gap-2 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        if (confirm('정말 이 발주를 삭제하시겠습니까?')) {
+                          handleDeleteOrder(selectedOrder.id);
+                          setSelectedOrder(null);
+                        }
+                      }}
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                    >
+                      삭제
+                    </button>
+                  </div>
                   {/* 가이드 */}
                   {(selectedOrder.guideFileUrl || selectedOrder.guideText) && (
                     <div>
@@ -1479,78 +1296,6 @@ export default function ReviewOrdersManagement() {
                       className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                     >
                       발행 완료 처리
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Order Edit Modal */}
-        {editingOrder && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setEditingOrder(null)}
-          >
-            <div
-              className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">
-                    발주 수정
-                  </h2>
-                  <button
-                    onClick={() => setEditingOrder(null)}
-                    className="text-gray-400 hover:text-gray-600 text-2xl"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-sm text-gray-600 mb-2">작업 종류</div>
-                    <div className="font-medium text-gray-900">
-                      {TASK_TYPE_NAMES[editingOrder.taskType] || editingOrder.taskType}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      작업 정보
-                    </label>
-                    <textarea
-                      value={editForm.caption}
-                      onChange={(e) => setEditForm({ ...editForm, caption: e.target.value })}
-                      rows={6}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      placeholder="작업 정보를 입력하세요"
-                    />
-                  </div>
-
-                  {(editingOrder.taskType === 'hotpost' || editingOrder.taskType === 'momcafe') && (
-                    <ImageUpload
-                      images={editForm.imageUrls}
-                      onImagesChange={(urls) => setEditForm({ ...editForm, imageUrls: urls })}
-                      maxImages={editingOrder.taskType === 'hotpost' ? 1 : 10}
-                    />
-                  )}
-
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => setEditingOrder(null)}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleSaveEdit}
-                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-                    >
-                      저장
                     </button>
                   </div>
                 </div>
