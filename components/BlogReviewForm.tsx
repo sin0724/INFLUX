@@ -84,9 +84,9 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
         return;
       }
 
-      // 사진 최소 5장 검증 (동영상이 없을 경우)
-      if (images.length < 5 && !videoUrl) {
-        setError('블로그 리뷰에는 사진 자료 최소 5장이 필요합니다. (또는 동영상 업로드)');
+      // 사진 최소 4장 검증 (동영상이 없을 경우)
+      if (images.length < 4 && !videoUrl) {
+        setError('블로그 리뷰에는 사진 자료 최소 4장이 필요합니다. (또는 동영상 업로드)');
         setLoading(false);
         return;
       }
@@ -152,7 +152,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h3 className="text-sm font-semibold text-blue-900 mb-2">📌 유의사항</h3>
           <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
-            <li>블로그 리뷰에는 사진 자료 최소 5장이 필요합니다.</li>
+            <li>블로그 리뷰에는 사진 자료 최소 4장이 필요합니다.</li>
             <li>플레이스 링크는 생략해주셔도 됩니다.</li>
             <li>보내주신 가이드라인 토대로 원고를 작성하여 보내드릴 예정입니다.</li>
             <li>원고 컨펌 후 블로그 수정이 어려우니 꼼꼼하게 작성 부탁드립니다.</li>
@@ -250,7 +250,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
           {/* 사진 업로드 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              사진 업로드 <span className="text-red-500">*</span> <span className="text-gray-500 text-xs">(최소 5장)</span>
+              사진 업로드 <span className="text-red-500">*</span> <span className="text-gray-500 text-xs">(최소 4장)</span>
             </label>
             <ImageUpload 
               images={images} 
