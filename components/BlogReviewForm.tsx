@@ -257,9 +257,6 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
               onImagesChange={setImages}
               maxImages={20}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              사진 자료 최소 5장이 필요합니다. 또는 동영상으로 대체 가능합니다.
-            </p>
           </div>
 
           {/* 동영상 업로드 */}
@@ -268,9 +265,6 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
               videoUrl={videoUrl}
               onVideoChange={setVideoUrl}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              동영상을 업로드하시면 사진 5장 요구사항을 대체할 수 있습니다.
-            </p>
           </div>
 
           {/* 제출 버튼 */}
