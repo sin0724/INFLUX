@@ -35,8 +35,6 @@ const STATUS_NAMES: Record<string, string> = {
   working: '진행중',
   done: '완료',
   draft_uploaded: '원고 업로드 완료',
-  revision_requested: '수정 요청됨',
-  client_approved: '승인 완료',
   published: '발행 완료',
 };
 
@@ -307,7 +305,7 @@ export default function ClientOrdersList() {
 
                   {/* 리뷰 신청인 경우 원고 확인 버튼 */}
                   {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && 
-                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'revision_requested' || selectedOrder.status === 'client_approved' || selectedOrder.status === 'published') && (
+                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'published') && (
                     <div>
                       <button
                         onClick={() => {
@@ -316,7 +314,7 @@ export default function ClientOrdersList() {
                         }}
                         className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                       >
-                        원고 확인 및 수정
+                        {selectedOrder.status === 'draft_uploaded' ? '원고 확인 및 수정' : '원고 확인'}
                       </button>
                     </div>
                   )}

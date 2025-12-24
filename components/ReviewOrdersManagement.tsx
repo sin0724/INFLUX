@@ -46,11 +46,7 @@ const TASK_TYPE_NAMES: Record<string, string> = {
 
 const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
-  working: '진행중',
-  done: '완료',
   draft_uploaded: '원고 업로드 완료',
-  revision_requested: '수정 요청됨',
-  client_approved: '승인 완료',
   published: '발행 완료',
 };
 
@@ -91,6 +87,10 @@ export default function ReviewOrdersManagement() {
   // 원고 업로드 모달 상태 (리뷰 신청용)
   const [draftUploadOrder, setDraftUploadOrder] = useState<Order | null>(null);
   const [draftText, setDraftText] = useState('');
+  
+  // 발행 완료 모달 상태
+  const [publishingOrder, setPublishingOrder] = useState<Order | null>(null);
+  const [completedLink, setCompletedLink] = useState('');
 
   useEffect(() => {
     fetchClients();
@@ -171,12 +171,6 @@ export default function ReviewOrdersManagement() {
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       let allOrders = ordersData.orders || [];
       
-      // 클라이언트 사이드 추가 필터링 (status가 working인 경우)
-      if (filters.status === 'working') {
-        allOrders = allOrders.filter((o: Order) => 
-          o.status === 'draft_uploaded' || o.status === 'revision_requested'
-        );
-      }
       
       setOrders(allOrders);
     } catch (error) {
@@ -189,10 +183,17 @@ export default function ReviewOrdersManagement() {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const order = orders.find(o => o.id === orderId);
     
-    // 리뷰 신청 주문의 경우 원고 업로드 상태로 변경할 때 원고 입력 모달 표시
+    // 원고 업로드 상태로 변경할 때 원고 입력 모달 표시
     if (newStatus === 'draft_uploaded' && order) {
       setDraftUploadOrder(order);
       setDraftText(order.draftText || '');
+      return;
+    }
+    
+    // 발행 완료 상태로 변경할 때 완료 링크 입력 모달 표시
+    if (newStatus === 'published' && order) {
+      setPublishingOrder(order);
+      setCompletedLink(order.completedLink || '');
       return;
     }
     
@@ -200,12 +201,19 @@ export default function ReviewOrdersManagement() {
     await updateOrderStatus(orderId, newStatus, null);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null, link2?: string | null, reviewerName?: string | null) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null, draftText?: string | null) => {
     try {
       const requestBody: any = { 
         status: newStatus,
-        completedLink: link || null
       };
+      
+      if (link !== null) {
+        requestBody.completedLink = link;
+      }
+      
+      if (draftText !== undefined) {
+        requestBody.draftText = draftText;
+      }
       
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
@@ -229,6 +237,32 @@ export default function ReviewOrdersManagement() {
       console.error('Failed to update order status:', error);
       alert('상태 변경에 실패했습니다.');
     }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!draftUploadOrder) return;
+    
+    if (!draftText.trim()) {
+      alert('원고 내용을 입력해주세요.');
+      return;
+    }
+    
+    await updateOrderStatus(draftUploadOrder.id, 'draft_uploaded', null, draftText.trim());
+    setDraftUploadOrder(null);
+    setDraftText('');
+  };
+
+  const handlePublish = async () => {
+    if (!publishingOrder) return;
+    
+    if (!completedLink.trim()) {
+      alert('완료 링크를 입력해주세요.');
+      return;
+    }
+    
+    await updateOrderStatus(publishingOrder.id, 'published', completedLink.trim());
+    setPublishingOrder(null);
+    setCompletedLink('');
   };
 
 
@@ -362,11 +396,11 @@ export default function ReviewOrdersManagement() {
 
   // 상태별 개수 계산 (리뷰 발주 전용)
   const statusCounts = useMemo(() => {
-    const counts = { pending: 0, working: 0, done: 0 };
+    const counts = { pending: 0, draft_uploaded: 0, published: 0 };
     orders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
-      else if (order.status === 'draft_uploaded' || order.status === 'revision_requested') counts.working++;
-      else if (order.status === 'published') counts.done++;
+      else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
+      else if (order.status === 'published') counts.published++;
     });
     return counts;
   }, [orders]);
@@ -377,15 +411,7 @@ export default function ReviewOrdersManagement() {
 
     // 상태 필터링
     if (filters.status) {
-      if (filters.status === 'working') {
-        filtered = filtered.filter((order) => 
-          order.status === 'draft_uploaded' || order.status === 'revision_requested'
-        );
-      } else if (filters.status === 'done') {
-        filtered = filtered.filter((order) => order.status === 'published');
-      } else {
-        filtered = filtered.filter((order) => order.status === filters.status);
-      }
+      filtered = filtered.filter((order) => order.status === filters.status);
     }
 
     // 정렬: 대기중일 때는 오래된 순(오름차순), 나머지는 최신순(내림차순)
@@ -442,8 +468,8 @@ export default function ReviewOrdersManagement() {
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border-2 border-blue-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-blue-700 mb-1">진행중 작업</div>
-                <div className="text-3xl font-bold text-blue-900">{statusCounts.working}</div>
+                <div className="text-sm font-medium text-blue-700 mb-1">원고 업로드 완료</div>
+                <div className="text-3xl font-bold text-blue-900">{statusCounts.draft_uploaded}</div>
               </div>
               <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -452,17 +478,17 @@ export default function ReviewOrdersManagement() {
               </div>
             </div>
             <button
-              onClick={() => setFilters({ ...filters, status: 'working' })}
+              onClick={() => setFilters({ ...filters, status: 'draft_uploaded' })}
               className="mt-3 w-full px-3 py-1.5 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg text-sm font-medium transition"
             >
-              진행중 작업 보기
+              원고 업로드 완료 보기
             </button>
           </div>
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-green-700 mb-1">완료된 작업</div>
-                <div className="text-3xl font-bold text-green-900">{statusCounts.done}</div>
+                <div className="text-sm font-medium text-green-700 mb-1">발행 완료</div>
+                <div className="text-3xl font-bold text-green-900">{statusCounts.published}</div>
               </div>
               <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -471,10 +497,10 @@ export default function ReviewOrdersManagement() {
               </div>
             </div>
             <button
-              onClick={() => setFilters({ ...filters, status: 'done' })}
+              onClick={() => setFilters({ ...filters, status: 'published' })}
               className="mt-3 w-full px-3 py-1.5 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg text-sm font-medium transition"
             >
-              완료된 작업 보기
+              발행 완료 보기
             </button>
           </div>
         </div>
@@ -491,17 +517,17 @@ export default function ReviewOrdersManagement() {
                   : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
               }`}
             >
-              오늘의 대기중 작업
+              대기중
             </button>
             <button
-              onClick={() => setFilters({ status: 'working', taskType: '', clientId: '', startDate: '', endDate: '' })}
+              onClick={() => setFilters({ status: 'draft_uploaded', taskType: '', clientId: '', startDate: '', endDate: '' })}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filters.status === 'working' && !filters.taskType && !filters.clientId && !filters.startDate && !filters.endDate
+                filters.status === 'draft_uploaded' && !filters.taskType && !filters.clientId && !filters.startDate && !filters.endDate
                   ? 'bg-blue-500 text-white'
                   : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
               }`}
             >
-              진행중 작업
+              원고 업로드 완료
             </button>
             <button
               onClick={() => {
@@ -533,8 +559,8 @@ export default function ReviewOrdersManagement() {
               >
                 <option value="">전체</option>
                 <option value="pending">대기중</option>
-                <option value="working">진행중</option>
-                <option value="done">완료</option>
+                <option value="draft_uploaded">원고 업로드 완료</option>
+                <option value="published">발행 완료</option>
               </select>
             </div>
             <div>
@@ -795,10 +821,8 @@ export default function ReviewOrdersManagement() {
                       onClick={(e) => e.stopPropagation()}
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      <option value="pending">신청 완료</option>
+                      <option value="pending">대기중</option>
                       <option value="draft_uploaded">원고 업로드 완료</option>
-                      <option value="revision_requested">수정 요청됨</option>
-                      <option value="client_approved">승인 완료</option>
                       <option value="published">발행 완료</option>
                     </select>
                   </div>
@@ -885,10 +909,8 @@ export default function ReviewOrdersManagement() {
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
-                      <option value="pending">신청 완료</option>
+                      <option value="pending">대기중</option>
                       <option value="draft_uploaded">원고 업로드 완료</option>
-                      <option value="revision_requested">수정 요청됨</option>
-                      <option value="client_approved">승인 완료</option>
                       <option value="published">발행 완료</option>
                     </select>
                   </div>
@@ -1031,6 +1053,158 @@ export default function ReviewOrdersManagement() {
                         )}
                       </div>
                     )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Draft Upload Modal */}
+        {draftUploadOrder && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setDraftUploadOrder(null);
+              setDraftText('');
+            }}
+          >
+            <div
+              className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    원고 업로드
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setDraftUploadOrder(null);
+                      setDraftText('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2">작업 종류</div>
+                    <div className="font-medium text-gray-900">
+                      {TASK_TYPE_NAMES[draftUploadOrder.taskType] || draftUploadOrder.taskType}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      원고 내용 <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={draftText}
+                      onChange={(e) => setDraftText(e.target.value)}
+                      rows={20}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono text-sm"
+                      placeholder="작성한 원고 내용을 입력해주세요"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      작성한 원고 텍스트를 입력해주세요.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setDraftUploadOrder(null);
+                        setDraftText('');
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleSaveDraft}
+                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                    >
+                      원고 업로드
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Publish Modal */}
+        {publishingOrder && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setPublishingOrder(null);
+              setCompletedLink('');
+            }}
+          >
+            <div
+              className="bg-white rounded-lg max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    발행 완료
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setPublishingOrder(null);
+                      setCompletedLink('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2">작업 종류</div>
+                    <div className="font-medium text-gray-900">
+                      {TASK_TYPE_NAMES[publishingOrder.taskType] || publishingOrder.taskType}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      완료 링크 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={completedLink}
+                      onChange={(e) => setCompletedLink(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      발행된 리뷰의 완료 링크를 입력해주세요.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setPublishingOrder(null);
+                        setCompletedLink('');
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handlePublish}
+                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                    >
+                      발행 완료 처리
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -20,6 +20,7 @@ interface ReviewOrder {
   draftText?: string | null;
   revisionRequest?: string | null;
   revisionText?: string | null;
+  completedLink?: string | null;
   status: string;
   createdAt: string;
 }
@@ -30,10 +31,8 @@ const TASK_TYPE_NAMES: Record<string, string> = {
 };
 
 const STATUS_NAMES: Record<string, string> = {
-  pending: '신청 완료',
+  pending: '대기중',
   draft_uploaded: '원고 업로드 완료',
-  revision_requested: '수정 요청됨',
-  client_approved: '승인 완료',
   published: '발행 완료',
 };
 
@@ -80,23 +79,26 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
       let updateData: any = {};
 
       if (action === 'approve') {
-        updateData.status = 'client_approved';
+        // 승인(발행) 버튼 클릭 시 발행 완료로 변경
+        updateData.status = 'published';
       } else if (action === 'request_revision') {
+        // 수정 요청 버튼 클릭 시 대기중으로 변경하고 수정 요청 사유 저장
         if (!revisionRequestText.trim()) {
           setError('수정 요청 내용을 입력해주세요.');
           setActionLoading(false);
           return;
         }
-        updateData.status = 'revision_requested';
+        updateData.status = 'pending';
         updateData.revisionRequest = revisionRequestText;
       } else if (action === 'save_edit') {
+        // 직접 수정 버튼 클릭 시 수정한 원고 저장하고 발행 완료로 변경 (자동 승인)
         if (!editedText.trim()) {
           setError('원고 내용을 입력해주세요.');
           setActionLoading(false);
           return;
         }
         updateData.revisionText = editedText;
-        updateData.status = 'revision_requested'; // 직접 수정한 경우도 수정 요청 상태로
+        updateData.status = 'published'; // 직접 수정한 경우 자동 승인되어 발행 완료로
         setIsEditing(false);
       }
 
@@ -145,7 +147,7 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
     );
   }
 
-  const canEdit = order.status === 'draft_uploaded' || order.status === 'revision_requested';
+  const canEdit = order.status === 'draft_uploaded';
   const showDraft = order.draftText || order.revisionText;
   const currentDraftText = order.revisionText || order.draftText || '';
 
@@ -330,17 +332,22 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
           </div>
         )}
 
-        {/* 승인 완료 상태일 때 */}
-        {order.status === 'client_approved' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-            <div className="text-green-800 font-medium">승인 완료되었습니다. 발행을 기다려주세요.</div>
-          </div>
-        )}
-
         {/* 발행 완료 상태일 때 */}
         {order.status === 'published' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-            <div className="text-blue-800 font-medium">발행이 완료되었습니다.</div>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+            <div className="text-green-800 font-medium">발행이 완료되었습니다.</div>
+            {order.completedLink && (
+              <div className="mt-2">
+                <a
+                  href={order.completedLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-700 hover:text-green-800 underline"
+                >
+                  발행된 리뷰 보기
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>
