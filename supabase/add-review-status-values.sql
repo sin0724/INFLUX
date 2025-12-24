@@ -9,7 +9,7 @@ DROP CONSTRAINT IF EXISTS orders_status_check;
 
 ALTER TABLE orders 
 ADD CONSTRAINT orders_status_check 
-CHECK (status IN ('pending', 'working', 'done', 'draft_uploaded', 'revision_requested', 'draft_revised', 'published'));
+CHECK (status IN ('pending', 'working', 'done', 'draft_uploaded', 'revision_requested', 'draft_revised', 'client_approved', 'published'));
 
 -- 완료 메시지
 SELECT '✅ 리뷰 워크플로우 상태 값이 추가되었습니다!' AS message;

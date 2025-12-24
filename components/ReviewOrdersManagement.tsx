@@ -252,8 +252,8 @@ export default function ReviewOrdersManagement() {
       return;
     }
     
-    // 발행 완료 상태로 변경할 때 완료 링크 입력 모달 표시
-    if (newStatus === 'published' && order) {
+    // 발행 완료 상태로 변경할 때 완료 링크 입력 모달 표시 (client_approved 상태에서만 가능)
+    if (newStatus === 'published' && order && (order.status === 'client_approved' || order.status === 'draft_uploaded' || order.status === 'draft_revised')) {
       setPublishingOrder(order);
       setCompletedLink(order.completedLink || '');
       return;
@@ -463,12 +463,13 @@ export default function ReviewOrdersManagement() {
 
   // 상태별 개수 계산 (리뷰 발주 전용)
   const statusCounts = useMemo(() => {
-    const counts = { pending: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, published: 0 };
+    const counts = { pending: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
     orders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
       else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
       else if (order.status === 'revision_requested') counts.revision_requested++;
       else if (order.status === 'draft_revised') counts.draft_revised++;
+      else if (order.status === 'client_approved') counts.client_approved++;
       else if (order.status === 'published') counts.published++;
     });
     return counts;
@@ -514,7 +515,7 @@ export default function ReviewOrdersManagement() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
           <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -591,6 +592,25 @@ export default function ReviewOrdersManagement() {
               원고 수정완료 보기
             </button>
           </div>
+          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 border-2 border-indigo-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-indigo-700 mb-1">승인완료</div>
+                <div className="text-3xl font-bold text-indigo-900">{statusCounts.client_approved}</div>
+              </div>
+              <div className="w-12 h-12 bg-indigo-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'client_approved' })}
+              className="mt-3 w-full px-3 py-1.5 bg-indigo-200 hover:bg-indigo-300 text-indigo-800 rounded-lg text-sm font-medium transition"
+            >
+              승인완료 보기
+            </button>
+          </div>
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -662,7 +682,7 @@ export default function ReviewOrdersManagement() {
               전체 초기화
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 상태
@@ -677,6 +697,9 @@ export default function ReviewOrdersManagement() {
                 <option value="">전체</option>
                 <option value="pending">대기중</option>
                 <option value="draft_uploaded">원고 업로드 완료</option>
+                <option value="revision_requested">원고 수정요청</option>
+                <option value="draft_revised">원고 수정완료</option>
+                <option value="client_approved">승인완료</option>
                 <option value="published">발행 완료</option>
               </select>
             </div>

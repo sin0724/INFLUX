@@ -34,6 +34,7 @@ const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
   draft_uploaded: '원고 업로드 완료',
   draft_revised: '원고 수정완료',
+  client_approved: '승인완료',
   published: '발행 완료',
 };
 
@@ -80,8 +81,8 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
       let updateData: any = {};
 
       if (action === 'approve') {
-        // 승인(발행) 버튼 클릭 시 발행 완료로 변경
-        updateData.status = 'published';
+        // 승인 버튼 클릭 시 승인 완료로 변경 (관리자가 발행 링크 입력 후 발행 완료 처리)
+        updateData.status = 'client_approved';
       } else if (action === 'request_revision') {
         // 수정 요청 버튼 클릭 시 revision_requested 상태로 변경하고 수정 요청 사유 저장
         if (!revisionRequestText.trim()) {
@@ -92,14 +93,14 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
         updateData.status = 'revision_requested';
         updateData.revisionRequest = revisionRequestText;
       } else if (action === 'save_edit') {
-        // 직접 수정 버튼 클릭 시 수정한 원고 저장하고 발행 완료로 변경 (자동 승인)
+        // 직접 수정 버튼 클릭 시 수정한 원고 저장하고 승인 완료로 변경 (자동 승인)
         if (!editedText.trim()) {
           setError('원고 내용을 입력해주세요.');
           setActionLoading(false);
           return;
         }
         updateData.revisionText = editedText;
-        updateData.status = 'published'; // 직접 수정한 경우 자동 승인되어 발행 완료로
+        updateData.status = 'client_approved'; // 직접 수정한 경우 자동 승인되어 승인 완료로
         setIsEditing(false);
       }
 
@@ -167,8 +168,8 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
           </h1>
           <div className="mt-2">
             <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-              order.status === 'client_approved' ? 'bg-green-100 text-green-800' :
-              order.status === 'published' ? 'bg-blue-100 text-blue-800' :
+              order.status === 'client_approved' ? 'bg-purple-100 text-purple-800' :
+              order.status === 'published' ? 'bg-green-100 text-green-800' :
               order.status === 'draft_revised' ? 'bg-purple-100 text-purple-800' :
               order.status === 'revision_requested' ? 'bg-yellow-100 text-yellow-800' :
               'bg-gray-100 text-gray-800'

@@ -45,6 +45,7 @@ const STATUS_NAMES: Record<string, string> = {
   draft_uploaded: '원고 업로드 완료',
   revision_requested: '원고 수정요청',
   draft_revised: '원고 수정완료',
+  client_approved: '승인완료',
   published: '발행 완료',
 };
 
