@@ -31,8 +31,6 @@ interface OrderFormProps {
 }
 
 const TASK_TYPES = [
-  { id: 'blog', name: '블로그 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
-  { id: 'receipt', name: '영수증 리뷰', requiresImage: false, disabled: true, kakaoOnly: true },
   { 
     id: 'instagram', 
     name: '인스타그램 (팔로워/좋아요)', 
@@ -132,8 +130,6 @@ export default function OrderForm({ user }: OrderFormProps) {
     if (task?.disabled) {
       if ((task as any).comingSoon) {
         alert('준비중입니다.');
-      } else if (task.kakaoOnly) {
-        alert('블로그 리뷰와 영수증 리뷰는 관리자가 완료 링크를 입력할 때 자동으로 차감됩니다.\n추가 신청은 단톡방으로 신청 부탁드립니다.');
       } else {
         alert('이 작업은 담당자를 통해 카카오톡으로 신청부탁드립니다.');
       }
@@ -507,7 +503,7 @@ export default function OrderForm({ user }: OrderFormProps) {
                 );
                 
                 // 1개월 플랜은 quota 체크를 우회 (수기 입력이므로 모든 작업 가능)
-                if (isOneMonthPlan && !task.kakaoOnly && !hasExternalLink) {
+                if (isOneMonthPlan && !hasExternalLink) {
                   isDisabled = false;
                 } else if (userQuota && !hasExternalLink) {
                   if (task.id === 'instagram' && task.combinedQuota) {
@@ -522,12 +518,11 @@ export default function OrderForm({ user }: OrderFormProps) {
                     if (taskQuota) {
                       remainingCount = taskQuota.remaining || 0;
                     }
-                    // 블로그/영수증 리뷰는 항상 비활성화 (남은 개수는 표시)
-                    if (!task.kakaoOnly && (!taskQuota || taskQuota.remaining <= 0)) {
+                    if (!taskQuota || taskQuota.remaining <= 0) {
                       isDisabled = true;
                     }
                   }
-                } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0 && !hasExternalLink && !task.disabled && !task.kakaoOnly && task.id !== 'instagram') {
+                } else if (user.remainingQuota !== undefined && user.remainingQuota <= 0 && !hasExternalLink && !task.disabled && task.id !== 'instagram') {
                   isDisabled = true;
                 }
                 
@@ -548,8 +543,8 @@ export default function OrderForm({ user }: OrderFormProps) {
                     }`}
                   >
                     <div className="font-medium text-gray-900">{task.name}</div>
-                    {!hasExternalLink && userQuota && (remainingCount > 0 || task.kakaoOnly || (task.id === 'instagram' && remainingCount === 0 && task.combinedQuota)) && (
-                      <div className={`text-xs mt-1 font-medium ${task.kakaoOnly ? 'text-gray-600' : 'text-primary-600'}`}>
+                    {!hasExternalLink && userQuota && (remainingCount > 0 || (task.id === 'instagram' && remainingCount === 0 && task.combinedQuota)) && (
+                      <div className="text-xs mt-1 font-medium text-primary-600">
                         {task.id === 'instagram' && task.combinedQuota 
                           ? `남은 개수: ${remainingCount}개 (팔로워+좋아요 합계)`
                           : `남은 개수: ${remainingCount}개`
@@ -564,14 +559,9 @@ export default function OrderForm({ user }: OrderFormProps) {
                     {task.requiresImage && (
                       <div className="text-xs text-gray-500 mt-1">이미지 필요</div>
                     )}
-                    {task.disabled && !(task as any).comingSoon && !task.kakaoOnly && (
+                    {task.disabled && !(task as any).comingSoon && (
                       <div className="text-xs text-orange-600 mt-1">
                         카카오톡 신청
-                      </div>
-                    )}
-                    {task.kakaoOnly && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        단톡방 신청
                       </div>
                     )}
                     {(task as any).comingSoon && (
