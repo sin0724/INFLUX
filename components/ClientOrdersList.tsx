@@ -41,7 +41,7 @@ const TASK_TYPE_NAMES: Record<string, string> = {
 const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
   working: '진행중',
-  done: '완료',
+  done: '발행 완료',
   draft_uploaded: '원고 업로드 완료',
   revision_requested: '원고 수정요청',
   draft_revised: '원고 수정완료',
@@ -223,8 +223,8 @@ export default function ClientOrdersList() {
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
                 {filteredOrders.map((order) => {
-                  // 블로그 리뷰만 원고 확인/링크 확인 버튼 표시 (영수증 리뷰는 제외)
-                  const showReviewButton = order.taskType === 'blog_review' && 
+                  // 블로그 리뷰 및 영수증 리뷰에 원고 확인/링크 확인 버튼 표시
+                  const showReviewButton = (order.taskType === 'blog_review' || order.taskType === 'receipt_review') && 
                     (order.status === 'draft_uploaded' || order.status === 'draft_revised' || 
                      order.status === 'revision_requested' || order.status === 'client_approved' || order.status === 'published');
 
@@ -260,20 +260,7 @@ export default function ClientOrdersList() {
                               ? (order.status === 'pending' ? '대기중' : '신청완료')
                               : STATUS_NAMES[order.status] || order.status}
                           </span>
-                          {order.status === 'done' && order.completedLink && (
-                            <a
-                              href={order.completedLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary-600 hover:text-primary-700 text-xs underline flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              완료 링크
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </a>
-                          )}
+                          {/* 완료 링크는 버튼으로 표시하지 않고 아래 버튼 영역에서 통일된 스타일로 표시 */}
                         </div>
                         {order.caption && (
                           <div className="text-sm text-gray-700 mb-1 truncate">
@@ -297,28 +284,39 @@ export default function ClientOrdersList() {
                         </div>
                       )}
                       <div className="ml-4 flex-shrink-0 flex items-center gap-2">
-                        {showReviewButton && (
-                          order.status === 'published' && order.completedLink ? (
-                            <a
-                              href={order.completedLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
-                            >
-                              링크 확인
-                            </a>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/client/review-request/${order.id}`);
-                              }}
-                              className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition"
-                            >
-                              원고 확인
-                            </button>
-                          )
+                        {/* 리뷰 신청(블로그/영수증) 발행 완료 상태일 때 링크 확인 버튼 */}
+                        {showReviewButton && (order.status === 'published' || order.status === 'done') && order.completedLink ? (
+                          <a
+                            href={order.completedLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+                          >
+                            링크 확인
+                          </a>
+                        ) : showReviewButton ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/client/review-request/${order.id}`);
+                            }}
+                            className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition"
+                          >
+                            원고 확인
+                          </button>
+                        ) : null}
+                        {/* 일반 완료 작업(내돈내산 등) 발행 완료 상태일 때 링크 확인 버튼 */}
+                        {!showReviewButton && (order.status === 'done' || order.status === 'published') && order.completedLink && (
+                          <a
+                            href={order.completedLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+                          >
+                            링크 확인
+                          </a>
                         )}
                         <div
                           onClick={() => setSelectedOrder(order)}
@@ -392,11 +390,11 @@ export default function ClientOrdersList() {
                     </div>
                   </div>
 
-                  {/* 블로그 리뷰 신청인 경우만 원고 확인 버튼 (영수증 리뷰는 제외) */}
-                  {selectedOrder.taskType === 'blog_review' && 
-                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved' || selectedOrder.status === 'published') && (
+                  {/* 블로그 리뷰 및 영수증 리뷰 원고 확인/링크 확인 버튼 */}
+                  {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && 
+                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved' || selectedOrder.status === 'published' || selectedOrder.status === 'done') && (
                     <div>
-                      {selectedOrder.status === 'published' && selectedOrder.completedLink ? (
+                      {(selectedOrder.status === 'published' || selectedOrder.status === 'done') && selectedOrder.completedLink ? (
                         <a
                           href={selectedOrder.completedLink}
                           target="_blank"
@@ -469,8 +467,9 @@ export default function ClientOrdersList() {
                     </div>
                   )}
                   
-                  {/* 완료된 링크 표시 */}
-                  {selectedOrder.status === 'done' && selectedOrder.completedLink && (
+                  {/* 완료된 링크 표시 (리뷰 신청이 아닌 경우) */}
+                  {(selectedOrder.status === 'done' || selectedOrder.status === 'published') && selectedOrder.completedLink && 
+                   selectedOrder.taskType !== 'blog_review' && selectedOrder.taskType !== 'receipt_review' && (
                     <div className="space-y-2">
                       <div>
                         <div className="text-sm text-gray-600 mb-2">
@@ -480,12 +479,9 @@ export default function ClientOrdersList() {
                           href={selectedOrder.completedLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                          className="block w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center"
                         >
-                          <span className="truncate max-w-md">{selectedOrder.completedLink}</span>
-                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
+                          링크 확인
                         </a>
                       </div>
                       {selectedOrder.taskType === 'myexpense' && (selectedOrder as any).completedLink2 && (
@@ -495,12 +491,9 @@ export default function ClientOrdersList() {
                             href={(selectedOrder as any).completedLink2}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition break-all"
+                            className="block w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center"
                           >
-                            <span className="truncate max-w-md">{(selectedOrder as any).completedLink2}</span>
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
+                            링크 확인
                           </a>
                         </div>
                       )}
