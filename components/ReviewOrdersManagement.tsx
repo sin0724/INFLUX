@@ -886,7 +886,7 @@ export default function ReviewOrdersManagement() {
                             : order.status === 'draft_revised'
                             ? 'bg-purple-100 text-purple-700'
                             : order.status === 'client_approved'
-                            ? 'bg-purple-100 text-purple-700'
+                            ? 'bg-indigo-100 text-indigo-700'
                             : order.status === 'published'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-gray-100 text-gray-700'
@@ -1062,7 +1062,9 @@ export default function ReviewOrdersManagement() {
                           )}
                         </>
                       )}
-                      <option value="published">발행 완료</option>
+                      {(selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved') && (
+                        <option value="published">발행 완료</option>
+                      )}
                     </select>
                     {/* revision_requested 상태일 때 재수정 버튼 표시 */}
                     {selectedOrder.status === 'revision_requested' && selectedOrder.taskType === 'blog_review' && (

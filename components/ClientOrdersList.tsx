@@ -370,7 +370,7 @@ export default function ClientOrdersList() {
                           : selectedOrder.status === 'draft_revised'
                           ? 'bg-purple-100 text-purple-700'
                           : selectedOrder.status === 'client_approved'
-                          ? 'bg-purple-100 text-purple-700'
+                          ? 'bg-indigo-100 text-indigo-700'
                           : selectedOrder.status === 'published'
                           ? 'bg-green-100 text-green-700'
                           : 'bg-green-100 text-green-700'
