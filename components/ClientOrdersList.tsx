@@ -223,10 +223,13 @@ export default function ClientOrdersList() {
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
                 {filteredOrders.map((order) => {
-                  // 블로그 리뷰 및 영수증 리뷰에 원고 확인/링크 확인 버튼 표시
-                  const showReviewButton = (order.taskType === 'blog_review' || order.taskType === 'receipt_review') && 
+                  // 블로그 리뷰에만 원고 확인 버튼 표시 (영수증 리뷰는 제외)
+                  const showReviewButton = order.taskType === 'blog_review' && 
                     (order.status === 'working' || order.status === 'draft_uploaded' || order.status === 'draft_revised' || 
                      order.status === 'revision_requested' || order.status === 'client_approved' || order.status === 'published');
+                  // 영수증 리뷰는 발행 완료 시 링크 확인 버튼만 표시
+                  const showReceiptLinkButton = order.taskType === 'receipt_review' && 
+                    (order.status === 'published' || order.status === 'done') && order.completedLink;
 
                   return (
                   <div
@@ -279,46 +282,58 @@ export default function ClientOrdersList() {
                             {order.caption.split('\n')[0]}
                           </div>
                         )}
-                        <div className="text-xs text-gray-500 mb-2">
+                        <div className="text-xs text-gray-500">
                           {formatDateTime(order.createdAt)}
                         </div>
-                        {/* 버튼 영역 */}
-                        <div className="flex items-center gap-2">
-                          {/* 리뷰 신청(블로그/영수증) 발행 완료 상태일 때 링크 확인 버튼 */}
-                          {showReviewButton && (order.status === 'published' || order.status === 'done') && order.completedLink ? (
-                            <a
-                              href={order.completedLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
-                            >
-                              링크 확인
-                            </a>
-                          ) : showReviewButton ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/client/review-request/${order.id}`);
-                              }}
-                              className="px-3 py-1.5 bg-primary-600 text-white text-xs rounded hover:bg-primary-700 transition"
-                            >
-                              원고 확인
-                            </button>
-                          ) : null}
-                          {/* 일반 완료 작업(내돈내산 등) 발행 완료 상태일 때 링크 확인 버튼 */}
-                          {!showReviewButton && (order.status === 'done' || order.status === 'published') && order.completedLink && (
-                            <a
-                              href={order.completedLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
-                            >
-                              링크 확인
-                            </a>
-                          )}
-                        </div>
+                      </div>
+                      {/* 버튼 영역 - 우측 배치 */}
+                      <div className="flex-shrink-0 flex items-center">
+                        {/* 블로그 리뷰 발행 완료 시 링크 확인 버튼 */}
+                        {showReviewButton && (order.status === 'published' || order.status === 'done') && order.completedLink ? (
+                          <a
+                            href={order.completedLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition whitespace-nowrap"
+                          >
+                            링크 확인
+                          </a>
+                        ) : showReviewButton ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/client/review-request/${order.id}`);
+                            }}
+                            className="px-3 py-1.5 bg-primary-600 text-white text-xs rounded hover:bg-primary-700 transition whitespace-nowrap"
+                          >
+                            원고 확인
+                          </button>
+                        ) : null}
+                        {/* 영수증 리뷰 발행 완료 시 링크 확인 버튼 */}
+                        {showReceiptLinkButton && (
+                          <a
+                            href={order.completedLink!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition whitespace-nowrap"
+                          >
+                            링크 확인
+                          </a>
+                        )}
+                        {/* 일반 완료 작업(내돈내산 등) 발행 완료 상태일 때 링크 확인 버튼 */}
+                        {!showReviewButton && !showReceiptLinkButton && (order.status === 'done' || order.status === 'published') && order.completedLink && (
+                          <a
+                            href={order.completedLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition whitespace-nowrap"
+                          >
+                            링크 확인
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -383,8 +398,8 @@ export default function ClientOrdersList() {
                     </div>
                   </div>
 
-                  {/* 블로그 리뷰 및 영수증 리뷰 원고 확인/링크 확인 버튼 */}
-                  {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && 
+                  {/* 블로그 리뷰 원고 확인/링크 확인 버튼 (영수증 리뷰는 제외) */}
+                  {selectedOrder.taskType === 'blog_review' && 
                    (selectedOrder.status === 'working' || selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved' || selectedOrder.status === 'published' || selectedOrder.status === 'done') && (
                     <div>
                       {(selectedOrder.status === 'published' || selectedOrder.status === 'done') && selectedOrder.completedLink ? (
@@ -407,6 +422,20 @@ export default function ClientOrdersList() {
                           {(selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised') ? '원고 확인 및 수정' : selectedOrder.status === 'working' ? '진행 상황 확인' : '원고 확인'}
                         </button>
                       )}
+                    </div>
+                  )}
+                  {/* 영수증 리뷰 발행 완료 시 링크 확인 버튼만 표시 */}
+                  {selectedOrder.taskType === 'receipt_review' && 
+                   (selectedOrder.status === 'published' || selectedOrder.status === 'done') && selectedOrder.completedLink && (
+                    <div>
+                      <a
+                        href={selectedOrder.completedLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center"
+                      >
+                        링크 확인
+                      </a>
                     </div>
                   )}
 
