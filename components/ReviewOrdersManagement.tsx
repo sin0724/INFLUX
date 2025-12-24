@@ -312,8 +312,8 @@ export default function ReviewOrdersManagement() {
       return;
     }
     
-    // revision_requested 상태에서 수정한 경우 draft_uploaded로 변경 (광고주가 다시 확인할 수 있도록)
-    const newStatus = draftUploadOrder.status === 'revision_requested' ? 'draft_uploaded' : 'draft_uploaded';
+    // revision_requested 상태에서 수정한 경우 draft_revised로 변경 (원고 수정완료)
+    const newStatus = draftUploadOrder.status === 'revision_requested' ? 'draft_revised' : 'draft_uploaded';
     await updateOrderStatus(draftUploadOrder.id, newStatus, null, draftText.trim());
     setDraftUploadOrder(null);
     setDraftText('');
