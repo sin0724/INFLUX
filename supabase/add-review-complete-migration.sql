@@ -34,7 +34,7 @@ DROP CONSTRAINT IF EXISTS orders_status_check;
 
 ALTER TABLE orders 
 ADD CONSTRAINT orders_status_check 
-CHECK (status IN ('pending', 'working', 'done', 'draft_uploaded', 'revision_requested', 'published'));
+CHECK (status IN ('pending', 'working', 'done', 'draft_uploaded', 'revision_requested', 'draft_revised', 'published'));
 
 -- 완료 메시지
 SELECT '✅ 블로그/영수증 리뷰 신청 기능을 위한 데이터베이스 변경이 완료되었습니다!' AS message;

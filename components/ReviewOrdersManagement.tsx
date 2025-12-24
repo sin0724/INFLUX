@@ -11,7 +11,7 @@ interface Order {
   taskType: string;
   caption: string | null;
   imageUrls: string[];
-  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed' | 'draft_uploaded' | 'revision_requested' | 'client_approved' | 'published';
+  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed' | 'draft_uploaded' | 'revision_requested' | 'draft_revised' | 'client_approved' | 'published';
   completedLink?: string | null;
   draftText?: string | null;
   revisionText?: string | null;
@@ -48,6 +48,7 @@ const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
   draft_uploaded: '원고 업로드 완료',
   revision_requested: '원고 수정요청',
+  draft_revised: '원고 수정완료',
   published: '발행 완료',
 };
 
@@ -462,11 +463,12 @@ export default function ReviewOrdersManagement() {
 
   // 상태별 개수 계산 (리뷰 발주 전용)
   const statusCounts = useMemo(() => {
-    const counts = { pending: 0, draft_uploaded: 0, revision_requested: 0, published: 0 };
+    const counts = { pending: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, published: 0 };
     orders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
       else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
       else if (order.status === 'revision_requested') counts.revision_requested++;
+      else if (order.status === 'draft_revised') counts.draft_revised++;
       else if (order.status === 'published') counts.published++;
     });
     return counts;
@@ -512,7 +514,7 @@ export default function ReviewOrdersManagement() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -568,6 +570,25 @@ export default function ReviewOrdersManagement() {
               className="mt-3 w-full px-3 py-1.5 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-lg text-sm font-medium transition"
             >
               원고 수정요청 보기
+            </button>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-purple-700 mb-1">원고 수정완료</div>
+                <div className="text-3xl font-bold text-purple-900">{statusCounts.draft_revised}</div>
+              </div>
+              <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'draft_revised' })}
+              className="mt-3 w-full px-3 py-1.5 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-lg text-sm font-medium transition"
+            >
+              원고 수정완료 보기
             </button>
           </div>
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200 shadow-sm">
@@ -839,6 +860,8 @@ export default function ReviewOrdersManagement() {
                             ? 'bg-blue-100 text-blue-700'
                             : order.status === 'revision_requested'
                             ? 'bg-orange-100 text-orange-700'
+                            : order.status === 'draft_revised'
+                            ? 'bg-purple-100 text-purple-700'
                             : order.status === 'client_approved'
                             ? 'bg-purple-100 text-purple-700'
                             : order.status === 'published'
@@ -1340,7 +1363,7 @@ export default function ReviewOrdersManagement() {
                       onClick={handleSaveDraft}
                       className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                     >
-                      {draftUploadOrder.status === 'revision_requested' ? '수정완료' : '원고 업로드'}
+                      {draftUploadOrder.status === 'revision_requested' ? '수정 완료' : '원고 업로드'}
                     </button>
                   </div>
                 </div>

@@ -10,7 +10,7 @@ interface Order {
   taskType: string;
   caption: string | null;
   imageUrls: string[];
-  status: 'pending' | 'working' | 'done' | 'draft_uploaded' | 'revision_requested' | 'client_approved' | 'published';
+  status: 'pending' | 'working' | 'done' | 'draft_uploaded' | 'revision_requested' | 'draft_revised' | 'client_approved' | 'published';
   completedLink?: string | null;
   completedLink2?: string | null; // 내돈내산 리뷰용 두 번째 링크
   draftText?: string | null;
@@ -222,8 +222,8 @@ export default function ClientOrdersList() {
                 {filteredOrders.map((order) => {
                   // 블로그 리뷰만 원고 확인 버튼 표시 (영수증 리뷰는 제외)
                   const showReviewButton = order.taskType === 'blog_review' && 
-                    (order.status === 'draft_uploaded' || order.status === 'revision_requested' || 
-                     order.status === 'client_approved' || order.status === 'published');
+                    (order.status === 'draft_uploaded' || order.status === 'draft_revised' || 
+                     order.status === 'revision_requested' || order.status === 'client_approved' || order.status === 'published');
 
                   return (
                   <div
@@ -244,6 +244,8 @@ export default function ClientOrdersList() {
                                 ? 'bg-blue-100 text-blue-700'
                                 : order.status === 'revision_requested'
                                 ? 'bg-orange-100 text-orange-700'
+                                : order.status === 'draft_revised'
+                                ? 'bg-purple-100 text-purple-700'
                                 : order.status === 'client_approved'
                                 ? 'bg-purple-100 text-purple-700'
                                 : order.status === 'published'
@@ -362,6 +364,8 @@ export default function ClientOrdersList() {
                           ? 'bg-blue-100 text-blue-700'
                           : selectedOrder.status === 'revision_requested'
                           ? 'bg-orange-100 text-orange-700'
+                          : selectedOrder.status === 'draft_revised'
+                          ? 'bg-purple-100 text-purple-700'
                           : selectedOrder.status === 'client_approved'
                           ? 'bg-purple-100 text-purple-700'
                           : selectedOrder.status === 'published'
@@ -375,7 +379,7 @@ export default function ClientOrdersList() {
 
                   {/* 블로그 리뷰 신청인 경우만 원고 확인 버튼 (영수증 리뷰는 제외) */}
                   {selectedOrder.taskType === 'blog_review' && 
-                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'published') && (
+                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'published') && (
                     <div>
                       <button
                         onClick={() => {
@@ -384,7 +388,7 @@ export default function ClientOrdersList() {
                         }}
                         className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                       >
-                        {selectedOrder.status === 'draft_uploaded' ? '원고 확인 및 수정' : '원고 확인'}
+                        {(selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised') ? '원고 확인 및 수정' : '원고 확인'}
                       </button>
                     </div>
                   )}

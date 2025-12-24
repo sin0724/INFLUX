@@ -33,6 +33,7 @@ const TASK_TYPE_NAMES: Record<string, string> = {
 const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
   draft_uploaded: '원고 업로드 완료',
+  draft_revised: '원고 수정완료',
   published: '발행 완료',
 };
 
@@ -147,7 +148,7 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
     );
   }
 
-  const canEdit = order.status === 'draft_uploaded';
+  const canEdit = order.status === 'draft_uploaded' || order.status === 'draft_revised';
   const showDraft = order.draftText || order.revisionText;
   const currentDraftText = order.revisionText || order.draftText || '';
 
@@ -168,6 +169,7 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
             <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
               order.status === 'client_approved' ? 'bg-green-100 text-green-800' :
               order.status === 'published' ? 'bg-blue-100 text-blue-800' :
+              order.status === 'draft_revised' ? 'bg-purple-100 text-purple-800' :
               order.status === 'revision_requested' ? 'bg-yellow-100 text-yellow-800' :
               'bg-gray-100 text-gray-800'
             }`}>
@@ -303,7 +305,7 @@ export default function ReviewDraftViewer({ user, orderId }: ReviewDraftViewerPr
         )}
 
         {/* 액션 버튼 */}
-        {canEdit && order.status === 'draft_uploaded' && (
+        {canEdit && (order.status === 'draft_uploaded' || order.status === 'draft_revised') && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">수정 요청</h2>
             <textarea
