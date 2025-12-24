@@ -9,6 +9,26 @@ interface BlogReviewFormProps {
   user: any;
 }
 
+// JSON 형식의 가이드를 읽기 쉬운 텍스트 형식으로 변환하는 헬퍼 함수
+const formatGuideText = (jsonGuide: string, companyName: string): string => {
+  try {
+    const parsed = JSON.parse(jsonGuide);
+    return `[ 블로그 리뷰 가이드 ]
+
+1. 업체명 : ${companyName}
+
+2. 플레이스 링크 : ${parsed.placeLink || '(생략)'}
+
+3. 블로그 작성 키워드 : ${parsed.keywords || ''}
+
+4. 업장의 강점 / 원하시는 내용 : ${parsed.strengths || ''}
+
+5. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 : ${parsed.additionalRequests || '(없음)'}`;
+  } catch (e) {
+    return jsonGuide;
+  }
+};
+
 export default function BlogReviewForm({ user }: BlogReviewFormProps) {
   const router = useRouter();
   const [images, setImages] = useState<string[]>([]);
@@ -41,14 +61,45 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
             // 저장된 가이드가 있으면 자동으로 사용하도록 제안 (기본값은 false로 두고 사용자가 선택)
             // 저장된 가이드 내용을 파싱하여 필드에 채우기 (업체명 제외)
             try {
-              const parsed = JSON.parse(data.user.blogGuide);
-              // 업체명은 user.companyName을 사용하므로 제외
-              setPlaceLink(parsed.placeLink || '');
-              setKeywords(parsed.keywords || '');
-              setStrengths(parsed.strengths || '');
-              setAdditionalRequests(parsed.additionalRequests || '');
+              const guideText = data.user.blogGuide;
+              
+              // JSON 형식인 경우 (하위 호환성)
+              if (guideText.trim().startsWith('{')) {
+                const parsed = JSON.parse(guideText);
+                setPlaceLink(parsed.placeLink || '');
+                setKeywords(parsed.keywords || '');
+                setStrengths(parsed.strengths || '');
+                setAdditionalRequests(parsed.additionalRequests || '');
+              } else {
+                // 텍스트 형식인 경우 파싱하여 필드에 채우기
+                const lines = guideText.split('\n');
+                for (const line of lines) {
+                  if (line.includes('플레이스 링크 :')) {
+                    const match = line.match(/플레이스 링크 :\s*(.+)/);
+                    if (match && match[1] && match[1] !== '(생략)') {
+                      setPlaceLink(match[1].trim());
+                    }
+                  } else if (line.includes('블로그 작성 키워드 :')) {
+                    const match = line.match(/블로그 작성 키워드 :\s*(.+)/);
+                    if (match && match[1]) {
+                      setKeywords(match[1].trim());
+                    }
+                  } else if (line.includes('업장의 강점 / 원하시는 내용 :')) {
+                    const match = line.match(/업장의 강점 \/ 원하시는 내용 :\s*(.+)/);
+                    if (match && match[1]) {
+                      setStrengths(match[1].trim());
+                    }
+                  } else if (line.includes('추가적인 요청사항')) {
+                    const match = line.match(/추가적인 요청사항[^:]*:\s*(.+)/);
+                    if (match && match[1] && match[1] !== '(없음)') {
+                      setAdditionalRequests(match[1].trim());
+                    }
+                  }
+                }
+              }
             } catch (e) {
-              // JSON 파싱 실패 시 텍스트 그대로 사용 (기존 방식)
+              // 파싱 실패 시 필드 초기화 (사용자가 직접 입력하도록)
+              console.error('Failed to parse saved guide:', e);
             }
           }
         }
@@ -60,13 +111,18 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
   }, [user]);
 
   const handleSaveCurrentGuide = async () => {
-    // 현재 입력한 내용을 JSON 형식으로 저장
-    const guideData = {
-      placeLink,
-      keywords,
-      strengths,
-      additionalRequests,
-    };
+    // 현재 입력한 내용을 읽기 쉬운 텍스트 형식으로 저장
+    const guideText = `[ 블로그 리뷰 가이드 ]
+
+1. 업체명 : (자동 입력)
+
+2. 플레이스 링크 : ${placeLink || '(생략)'}
+
+3. 블로그 작성 키워드 : ${keywords}
+
+4. 업장의 강점 / 원하시는 내용 : ${strengths}
+
+5. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 : ${additionalRequests || '(없음)'}`;
     
     setSavingGuide(true);
     try {
@@ -76,12 +132,12 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          blogGuide: JSON.stringify(guideData),
+          blogGuide: guideText,
         }),
       });
 
       if (response.ok) {
-        setSavedGuide(JSON.stringify(guideData));
+        setSavedGuide(guideText);
         alert('고정 가이드가 저장되었습니다. 다음부터는 저장된 가이드를 사용할 수 있습니다.');
       } else {
         const data = await response.json();
@@ -136,8 +192,13 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
       let guideText: string | null = null;
       
       if (useSavedGuide && savedGuide) {
-        // 저장된 가이드 사용
-        guideText = savedGuide;
+        // 저장된 가이드 사용 (JSON 형식이면 변환)
+        if (savedGuide.trim().startsWith('{')) {
+          guideText = formatGuideText(savedGuide, companyName);
+        } else {
+          // 텍스트 형식이면 업체명만 교체
+          guideText = savedGuide.replace(/업체명 : \(자동 입력\)/g, `업체명 : ${companyName}`);
+        }
       } else {
         // 현재 입력한 내용으로 가이드 구성
         guideText = `[ 블로그 리뷰 가이드 ]

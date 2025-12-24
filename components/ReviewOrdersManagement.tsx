@@ -59,6 +59,52 @@ const getWaitingDays = (createdAt: string): number => {
   return diffDays;
 };
 
+// 가이드 텍스트를 읽기 쉬운 형식으로 변환하는 헬퍼 함수 (JSON 형식 지원)
+const formatGuideTextForDisplay = (guideText: string | null, companyName: string): string => {
+  if (!guideText) return '';
+  
+  // JSON 형식인 경우 파싱하여 읽기 쉬운 형식으로 변환
+  if (guideText.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(guideText);
+      
+      // 블로그 리뷰 가이드 형식
+      if (parsed.keywords !== undefined) {
+        return `[ 블로그 리뷰 가이드 ]
+
+1. 업체명 : ${companyName}
+
+2. 플레이스 링크 : ${parsed.placeLink || '(생략)'}
+
+3. 블로그 작성 키워드 : ${parsed.keywords || ''}
+
+4. 업장의 강점 / 원하시는 내용 : ${parsed.strengths || ''}
+
+5. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 : ${parsed.additionalRequests || '(없음)'}`;
+      }
+      
+      // 영수증 리뷰 가이드 형식
+      if (parsed.reviewContent !== undefined) {
+        return `[ 영수증 리뷰 가이드 ]
+
+1. 업체명 : ${companyName}
+
+2. 플레이스 링크 : ${parsed.placeLink || '(생략)'}
+
+3. 방문자 리뷰에 들어갈 내용 : ${parsed.reviewContent || ''}
+
+4. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 : ${parsed.additionalRequests || '(없음)'}`;
+      }
+    } catch (e) {
+      // JSON 파싱 실패 시 원본 반환
+      return guideText;
+    }
+  }
+  
+  // 이미 텍스트 형식인 경우 그대로 반환
+  return guideText;
+};
+
 export default function ReviewOrdersManagement() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -963,7 +1009,9 @@ export default function ReviewOrdersManagement() {
                             가이드 파일 다운로드
                           </a>
                         ) : (
-                          <div className="text-gray-900 whitespace-pre-wrap">{selectedOrder.guideText}</div>
+                          <div className="text-gray-900 whitespace-pre-wrap">
+                            {formatGuideTextForDisplay(selectedOrder.guideText || '', selectedOrder.client?.companyName || '')}
+                          </div>
                         )}
                       </div>
                     </div>
