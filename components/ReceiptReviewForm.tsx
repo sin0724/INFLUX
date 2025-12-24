@@ -23,7 +23,7 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
     { 
       id: Date.now().toString(), 
       images: [], 
-      companyName: '',
+      companyName: user?.companyName || '',
       placeLink: '',
       reviewContent: '',
       additionalRequests: '',
@@ -65,7 +65,7 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
     setItems([...items, { 
       id: Date.now().toString(), 
       images: [], 
-      companyName: '',
+      companyName: user?.companyName || '',
       placeLink: '',
       reviewContent: '',
       additionalRequests: '',
@@ -287,9 +287,11 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
                       type="text"
                       value={item.companyName}
                       onChange={(e) => updateItem(item.id, { companyName: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="업체명을 입력해주세요"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50"
+                      placeholder="업체명이 자동으로 입력됩니다"
+                      readOnly
                     />
+                    <p className="text-xs text-gray-500 mt-1">업체명은 계정 정보에서 자동으로 가져옵니다.</p>
                   </div>
 
                   {/* 플레이스 링크 */}

@@ -23,8 +23,13 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 저장된 가이드 불러오기
+  // 사용자 정보 및 저장된 가이드 불러오기
   useEffect(() => {
+    // 업체명 자동 입력
+    if (user?.companyName) {
+      setCompanyName(user.companyName);
+    }
+
     const fetchUserGuide = async () => {
       try {
         const response = await fetch('/api/auth/me');
@@ -34,10 +39,10 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
             setSavedGuide(data.user.blogGuide);
             // 저장된 가이드가 있으면 자동으로 사용
             setUseSavedGuide(true);
-            // 저장된 가이드 내용을 파싱하여 필드에 채우기
+            // 저장된 가이드 내용을 파싱하여 필드에 채우기 (업체명 제외)
             try {
               const parsed = JSON.parse(data.user.blogGuide);
-              setCompanyName(parsed.companyName || '');
+              // 업체명은 user.companyName을 사용하므로 제외
               setPlaceLink(parsed.placeLink || '');
               setKeywords(parsed.keywords || '');
               setStrengths(parsed.strengths || '');
@@ -52,7 +57,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
       }
     };
     fetchUserGuide();
-  }, []);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,10 +179,12 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                placeholder="업체명을 입력해주세요"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50"
+                placeholder="업체명이 자동으로 입력됩니다"
                 required
+                readOnly
               />
+              <p className="text-xs text-gray-500 mt-1">업체명은 계정 정보에서 자동으로 가져옵니다.</p>
             </div>
 
             {/* 플레이스 링크 */}
