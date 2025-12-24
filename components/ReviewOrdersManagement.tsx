@@ -252,11 +252,20 @@ export default function ReviewOrdersManagement() {
       return;
     }
     
-    // 발행 완료 상태로 변경할 때 완료 링크 입력 모달 표시 (client_approved 상태에서만 가능)
-    if (newStatus === 'published' && order && (order.status === 'client_approved' || order.status === 'draft_uploaded' || order.status === 'draft_revised')) {
-      setPublishingOrder(order);
-      setCompletedLink(order.completedLink || '');
-      return;
+    // 발행 완료 상태로 변경할 때 완료 링크 입력 모달 표시
+    if (newStatus === 'published' && order) {
+      // 영수증 리뷰는 pending에서 바로 published로 가능
+      if (order.taskType === 'receipt_review' && (order.status === 'pending' || order.status === 'client_approved' || order.status === 'draft_uploaded' || order.status === 'draft_revised')) {
+        setPublishingOrder(order);
+        setCompletedLink(order.completedLink || '');
+        return;
+      }
+      // 블로그 리뷰는 client_approved, draft_uploaded, draft_revised에서만 published로 가능
+      if (order.taskType === 'blog_review' && (order.status === 'client_approved' || order.status === 'draft_uploaded' || order.status === 'draft_revised')) {
+        setPublishingOrder(order);
+        setCompletedLink(order.completedLink || '');
+        return;
+      }
     }
     
     // 그 외의 경우는 바로 상태 변경
@@ -1062,7 +1071,12 @@ export default function ReviewOrdersManagement() {
                           )}
                         </>
                       )}
-                      {(selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved') && (
+                      {/* 영수증 리뷰는 pending에서 바로 published로 가능 */}
+                      {selectedOrder.taskType === 'receipt_review' && selectedOrder.status === 'pending' && (
+                        <option value="published">발행 완료</option>
+                      )}
+                      {/* 블로그 리뷰는 draft_uploaded, draft_revised, client_approved에서 published로 가능 */}
+                      {selectedOrder.taskType === 'blog_review' && (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved') && (
                         <option value="published">발행 완료</option>
                       )}
                     </select>
