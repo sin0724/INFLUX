@@ -12,7 +12,7 @@ async function createReviewRequest(req: NextRequest, user: any) {
   }
 
   try {
-    const { taskType, imageUrls, videoUrl, guideFileUrl, useSavedGuide, customGuide } = await req.json();
+    const { taskType, imageUrls, videoUrl, guideFileUrl, guideText, useSavedGuide, customGuide } = await req.json();
 
     if (!taskType || (taskType !== 'blog_review' && taskType !== 'receipt_review')) {
       return NextResponse.json(
@@ -72,7 +72,11 @@ async function createReviewRequest(req: NextRequest, user: any) {
       // 저장된 가이드 사용 (텍스트로 저장되어 있음)
       const savedGuide = taskType === 'blog_review' ? clientData.blogGuide : clientData.receiptGuide;
       finalGuideText = savedGuide || null;
+    } else if (guideText) {
+      // 텍스트로 가이드가 전달된 경우
+      finalGuideText = guideText;
     } else {
+      // 파일로 가이드가 전달된 경우
       finalGuideFileUrl = guideFileUrl || null;
     }
 
