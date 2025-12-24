@@ -180,8 +180,16 @@ export default function ReviewOrdersManagement() {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const order = orders.find(o => o.id === orderId);
     
-    // 원고 업로드 상태로 변경할 때 원고 입력 모달 표시
-    if (newStatus === 'draft_uploaded' && order) {
+    // 영수증 리뷰는 원고 업로드 단계를 건너뛰고 바로 발행 완료로
+    if (newStatus === 'draft_uploaded' && order && order.taskType === 'receipt_review') {
+      // 영수증 리뷰는 원고 업로드 단계 없이 바로 발행 완료로 이동
+      setPublishingOrder(order);
+      setCompletedLink(order.completedLink || '');
+      return;
+    }
+    
+    // 블로그 리뷰만 원고 업로드 상태로 변경할 때 원고 입력 모달 표시
+    if (newStatus === 'draft_uploaded' && order && order.taskType === 'blog_review') {
       setDraftUploadOrder(order);
       setDraftText(order.draftText || '');
       return;
@@ -221,9 +229,9 @@ export default function ReviewOrdersManagement() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         fetchOrders();
         if (selectedOrder?.id === orderId) {
-          const data = await response.json();
           setSelectedOrder(data.order);
         }
       } else {
@@ -819,7 +827,9 @@ export default function ReviewOrdersManagement() {
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">대기중</option>
-                      <option value="draft_uploaded">원고 업로드 완료</option>
+                      {order.taskType === 'blog_review' && (
+                        <option value="draft_uploaded">원고 업로드 완료</option>
+                      )}
                       <option value="published">발행 완료</option>
                     </select>
                   </div>
@@ -907,7 +917,9 @@ export default function ReviewOrdersManagement() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">대기중</option>
-                      <option value="draft_uploaded">원고 업로드 완료</option>
+                      {selectedOrder.taskType === 'blog_review' && (
+                        <option value="draft_uploaded">원고 업로드 완료</option>
+                      )}
                       <option value="published">발행 완료</option>
                     </select>
                   </div>
