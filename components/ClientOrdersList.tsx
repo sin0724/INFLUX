@@ -223,7 +223,7 @@ export default function ClientOrdersList() {
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
                 {filteredOrders.map((order) => {
-                  // 블로그 리뷰만 원고 확인 버튼 표시 (영수증 리뷰는 제외)
+                  // 블로그 리뷰만 원고 확인/링크 확인 버튼 표시 (영수증 리뷰는 제외)
                   const showReviewButton = order.taskType === 'blog_review' && 
                     (order.status === 'draft_uploaded' || order.status === 'draft_revised' || 
                      order.status === 'revision_requested' || order.status === 'client_approved' || order.status === 'published');
@@ -298,15 +298,27 @@ export default function ClientOrdersList() {
                       )}
                       <div className="ml-4 flex-shrink-0 flex items-center gap-2">
                         {showReviewButton && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/client/review-request/${order.id}`);
-                            }}
-                            className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition"
-                          >
-                            원고 확인
-                          </button>
+                          order.status === 'published' && order.completedLink ? (
+                            <a
+                              href={order.completedLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+                            >
+                              링크 확인
+                            </a>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/client/review-request/${order.id}`);
+                              }}
+                              className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition"
+                            >
+                              원고 확인
+                            </button>
+                          )
                         )}
                         <div
                           onClick={() => setSelectedOrder(order)}
@@ -382,17 +394,28 @@ export default function ClientOrdersList() {
 
                   {/* 블로그 리뷰 신청인 경우만 원고 확인 버튼 (영수증 리뷰는 제외) */}
                   {selectedOrder.taskType === 'blog_review' && 
-                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'published') && (
+                   (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised' || selectedOrder.status === 'client_approved' || selectedOrder.status === 'published') && (
                     <div>
-                      <button
-                        onClick={() => {
-                          setSelectedOrder(null);
-                          router.push(`/client/review-request/${selectedOrder.id}`);
-                        }}
-                        className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-                      >
-                        {(selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised') ? '원고 확인 및 수정' : '원고 확인'}
-                      </button>
+                      {selectedOrder.status === 'published' && selectedOrder.completedLink ? (
+                        <a
+                          href={selectedOrder.completedLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center"
+                        >
+                          링크 확인
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedOrder(null);
+                            router.push(`/client/review-request/${selectedOrder.id}`);
+                          }}
+                          className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                        >
+                          {(selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'draft_revised') ? '원고 확인 및 수정' : '원고 확인'}
+                        </button>
+                      )}
                     </div>
                   )}
 
