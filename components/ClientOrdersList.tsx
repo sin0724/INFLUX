@@ -150,8 +150,8 @@ export default function ClientOrdersList() {
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
                 {filteredOrders.map((order) => {
-                  const isReviewRequest = order.taskType === 'blog_review' || order.taskType === 'receipt_review';
-                  const showReviewButton = isReviewRequest && 
+                  // 블로그 리뷰만 원고 확인 버튼 표시 (영수증 리뷰는 제외)
+                  const showReviewButton = order.taskType === 'blog_review' && 
                     (order.status === 'draft_uploaded' || order.status === 'revision_requested' || 
                      order.status === 'client_approved' || order.status === 'published');
 
@@ -303,8 +303,8 @@ export default function ClientOrdersList() {
                     </div>
                   </div>
 
-                  {/* 리뷰 신청인 경우 원고 확인 버튼 */}
-                  {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && 
+                  {/* 블로그 리뷰 신청인 경우만 원고 확인 버튼 (영수증 리뷰는 제외) */}
+                  {selectedOrder.taskType === 'blog_review' && 
                    (selectedOrder.status === 'draft_uploaded' || selectedOrder.status === 'published') && (
                     <div>
                       <button

@@ -284,7 +284,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return withAuth((r, u) => updateOrder(r, u, id), ['superadmin', 'admin'])(req);
+  return withAuth((r, u) => updateOrder(r, u, id), ['superadmin', 'admin', 'client'])(req);
 }
 
 export async function DELETE(
