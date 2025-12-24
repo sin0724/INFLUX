@@ -212,13 +212,15 @@ export default function ReviewOrdersManagement() {
         status: newStatus,
       };
       
-      if (link !== null) {
+      if (link !== null && link !== undefined) {
         requestBody.completedLink = link;
       }
       
-      if (draftText !== undefined) {
+      if (draftText !== undefined && draftText !== null) {
         requestBody.draftText = draftText;
       }
+      
+      console.log('Updating order:', orderId, requestBody);
       
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
@@ -236,6 +238,7 @@ export default function ReviewOrdersManagement() {
         }
       } else {
         const data = await response.json();
+        console.error('Update failed:', data);
         alert(data.error || '상태 변경에 실패했습니다.');
       }
     } catch (error) {

@@ -138,18 +138,28 @@ async function updateOrder(
       `)
       .single();
 
-    if (error || !data) {
+    if (error) {
+      console.error('Supabase update error:', error);
+      console.error('Update data:', JSON.stringify(updateData, null, 2));
       return NextResponse.json(
-        { error: '주문 업데이트에 실패했습니다.' },
+        { error: `주문 업데이트에 실패했습니다: ${error.message || error.details || '알 수 없는 오류'}` },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
+      console.error('No data returned from update');
+      return NextResponse.json(
+        { error: '주문 업데이트 후 데이터를 가져올 수 없습니다.' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ order: data });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update order error:', error);
     return NextResponse.json(
-      { error: '주문 업데이트 중 오류가 발생했습니다.' },
+      { error: `주문 업데이트 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}` },
       { status: 500 }
     );
   }
