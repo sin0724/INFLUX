@@ -111,6 +111,7 @@ const formatGuideTextForDisplay = (guideText: string | null, companyName: string
 export default function ReviewOrdersManagement() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]); // 전체 주문 목록 (상태 카운트용)
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [filters, setFilters] = useState({
@@ -153,49 +154,41 @@ export default function ReviewOrdersManagement() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // 리뷰 발주만 조회 (blog_review, receipt_review)
-      const params = new URLSearchParams();
+      // 전체 주문 목록 조회 (상태 카운트용) - 필터 없이 조회
+      const allParams = new URLSearchParams();
+      if (filters.clientId) allParams.append('clientId', filters.clientId);
       
-      // 리뷰 상태 필터링 (pending, draft_uploaded, published)
-      if (filters.status) {
-        params.append('status', filters.status);
-      }
+      // 전체 리뷰 발주 조회 (blog_review, receipt_review)
+      const [allBlogRes, allReceiptRes] = await Promise.all([
+        fetch(`/api/orders?${allParams.toString()}&taskType=blog_review`),
+        fetch(`/api/orders?${allParams.toString()}&taskType=receipt_review`)
+      ]);
+      const allBlogData = allBlogRes.ok ? await allBlogRes.json() : { orders: [] };
+      const allReceiptData = allReceiptRes.ok ? await allReceiptRes.json() : { orders: [] };
+      let totalAllOrders = [...(allBlogData.orders || []), ...(allReceiptData.orders || [])];
       
-      // 리뷰 타입 필터링
-      if (filters.taskType) {
-        params.append('taskType', filters.taskType);
-      } else {
-        // taskType 필터가 없으면 blog_review와 receipt_review를 모두 조회
-        const [blogRes, receiptRes] = await Promise.all([
-          fetch(`/api/orders?${params.toString()}&taskType=blog_review`),
-          fetch(`/api/orders?${params.toString()}&taskType=receipt_review`)
-        ]);
-        const blogData = blogRes.ok ? await blogRes.json() : { orders: [] };
-        const receiptData = receiptRes.ok ? await receiptRes.json() : { orders: [] };
-        let allOrders = [...(blogData.orders || []), ...(receiptData.orders || [])];
-        
-        // 클라이언트 사이드 추가 필터링
-        if (filters.clientId) {
-          allOrders = allOrders.filter((o: Order) => o.client?.id === filters.clientId);
-        }
-        
-        setOrders(allOrders);
-        setLoading(false);
-        return;
-      }
-      
-      if (filters.clientId) params.append('clientId', filters.clientId);
-
-      const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
-      const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
-      let allOrders = ordersData.orders || [];
-      
-      // 클라이언트 사이드 추가 필터링
+      // 클라이언트 필터링 (전체 목록)
       if (filters.clientId) {
-        allOrders = allOrders.filter((o: Order) => o.client?.id === filters.clientId);
+        totalAllOrders = totalAllOrders.filter((o: Order) => o.client?.id === filters.clientId);
       }
       
-      setOrders(allOrders);
+      // 전체 주문 목록 저장 (상태 카운트용)
+      setAllOrders(totalAllOrders);
+      
+      // 필터링된 주문 목록 (표시용)
+      let filteredOrders = totalAllOrders;
+      
+      // 상태 필터링
+      if (filters.status) {
+        filteredOrders = filteredOrders.filter((o: Order) => o.status === filters.status);
+      }
+      
+      // 작업 타입 필터링
+      if (filters.taskType) {
+        filteredOrders = filteredOrders.filter((o: Order) => o.taskType === filters.taskType);
+      }
+      
+      setOrders(filteredOrders);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {
@@ -414,10 +407,10 @@ export default function ReviewOrdersManagement() {
     }
   };
 
-  // 상태별 개수 계산 (리뷰 발주 전용)
+  // 상태별 개수 계산 (리뷰 발주 전용) - 전체 주문 목록 기준
   const statusCounts = useMemo(() => {
     const counts = { pending: 0, working: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
-    orders.forEach((order) => {
+    allOrders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
       else if (order.status === 'working') counts.working++;
       else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
@@ -427,16 +420,11 @@ export default function ReviewOrdersManagement() {
       else if (order.status === 'published') counts.published++;
     });
     return counts;
-  }, [orders]);
+  }, [allOrders]);
 
   // 필터링 및 정렬된 주문 목록 (리뷰 발주 전용)
   const filteredOrders = useMemo(() => {
     let filtered = [...orders];
-
-    // 상태 필터링
-    if (filters.status) {
-      filtered = filtered.filter((order) => order.status === filters.status);
-    }
 
     // 정렬: 대기중일 때는 오래된 순(오름차순), 나머지는 최신순(내림차순)
     filtered.sort((a, b) => {
