@@ -222,7 +222,11 @@ export default function OrdersManagement() {
       }
 
       // orders와 체험단 합치기
-      const allOrders = [...(ordersData.orders || []), ...experienceData];
+      // blog_review와 receipt_review는 리뷰 발주 내역 관리에서만 표시되도록 제외
+      const regularOrders = (ordersData.orders || []).filter(
+        (o: Order) => o.taskType !== 'blog_review' && o.taskType !== 'receipt_review'
+      );
+      const allOrders = [...regularOrders, ...experienceData];
       
       // taskType 필터 적용
       let filteredOrders = allOrders;
@@ -715,8 +719,6 @@ export default function OrdersManagement() {
                 <option value="">전체</option>
                 <option value="blog">블로그 리뷰 (완료 링크)</option>
                 <option value="receipt">영수증 리뷰 (완료 링크)</option>
-                <option value="blog_review">블로그 리뷰 신청</option>
-                <option value="receipt_review">영수증 리뷰 신청</option>
                 <option value="follower">인스타그램 팔로워</option>
                 <option value="like">인스타그램 좋아요</option>
                 <option value="hotpost">인스타그램 인기게시물</option>
