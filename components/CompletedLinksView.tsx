@@ -101,9 +101,9 @@ export default function CompletedLinksView() {
   const fetchCompletedOrders = async () => {
     setLoading(true);
     try {
-      // 주문(orders) 조회
+      // 주문(orders) 조회 - completedLink가 있는 모든 주문 조회
       const params = new URLSearchParams();
-      params.append('status', 'done');
+      // status 조건 제거: completedLink가 있는 모든 주문을 조회
       if (selectedClientId) {
         params.append('clientId', selectedClientId);
       }
@@ -111,10 +111,13 @@ export default function CompletedLinksView() {
       const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       
-      // 완료된 주문 모두 표시 (링크가 없어도 표시)
+      // completedLink 또는 completedLink2가 있거나 status가 'done'인 주문 표시
       // completedLink2도 포함되도록 명시적으로 매핑
       const completedOrders = (ordersData.orders || []).filter(
-        (order: Order) => order.status === 'done'
+        (order: Order) => 
+          order.status === 'done' || 
+          order.completedLink || 
+          (order as any).completedLink2
       ).map((order: any) => ({
         ...order,
         completedLink2: order.completedLink2 || null, // 명시적으로 포함

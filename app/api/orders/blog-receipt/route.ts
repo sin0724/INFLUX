@@ -79,14 +79,13 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       }
 
       // 해당 광고주의 블로그 링크만 가져오기 (중복 체크용)
-      // UI에서 보이는 것(status='done')만 중복으로 판단
+      // status와 관계없이 completedLink가 있는 모든 주문을 체크
       const { data: existingBlogOrders, error: fetchError } = await supabaseAdmin
         .from('orders')
         .select('id, clientId, taskType, status, completedLink')
         .eq('clientId', clientId)
         .eq('taskType', 'blog')
-        .eq('status', 'done')  // UI와 동일한 조건: status='done'인 것만 체크
-        .not('completedLink', 'is', null);
+        .not('completedLink', 'is', null);  // status 조건 제거: 모든 상태의 링크 체크
 
       if (fetchError) {
         console.error('[ERROR] Failed to fetch existing blog links:', fetchError);
@@ -227,14 +226,13 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
       }
 
       // 해당 광고주의 영수증 링크만 가져오기 (중복 체크용)
-      // UI에서 보이는 것(status='done')만 중복으로 판단
+      // status와 관계없이 completedLink가 있는 모든 주문을 체크
       const { data: existingReceiptOrders, error: fetchReceiptError } = await supabaseAdmin
         .from('orders')
         .select('id, clientId, taskType, status, completedLink')
         .eq('clientId', clientId)
         .eq('taskType', 'receipt')
-        .eq('status', 'done')  // UI와 동일한 조건: status='done'인 것만 체크
-        .not('completedLink', 'is', null);
+        .not('completedLink', 'is', null);  // status 조건 제거: 모든 상태의 링크 체크
 
       if (fetchReceiptError) {
         console.error('[ERROR] Failed to fetch existing receipt links:', fetchReceiptError);
