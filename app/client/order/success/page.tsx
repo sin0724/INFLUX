@@ -109,6 +109,39 @@ function OrderSuccessContent() {
             </div>
           )}
 
+          {/* 인스타그램 팔로워/좋아요 작업 시 유의사항 */}
+          {order && (order.taskType === 'follower' || order.taskType === 'like') && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-left">
+              <div className="flex items-start gap-2">
+                <svg
+                  className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-amber-900 mb-1">유의사항</div>
+                  <div className="text-sm text-amber-800 space-y-1">
+                    <p>
+                      팔로워 및 좋아요 작업은 특성상 신청 완료 후 순차적으로 반영됩니다. 
+                      신청 완료 안내는 별도로 드리지 않습니다.
+                    </p>
+                    <p className="text-xs text-amber-700 mt-2">
+                      ※ A/S는 작업 완료 후 1개월 이내의 건에 한해 1회 가능합니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
               onClick={() => router.push('/client')}
