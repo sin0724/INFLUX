@@ -164,7 +164,9 @@ export default function CompletedLinksView() {
       
       // 기존 클라이언트 목록을 맵에 추가
       clients.forEach((client: any) => {
-        clientMap.set(client.id, client);
+        if (client && client.id) {
+          clientMap.set(client.id, client);
+        }
       });
       
       // 주문에서 가져온 클라이언트 정보 추가 (없는 경우만)
@@ -179,9 +181,20 @@ export default function CompletedLinksView() {
         }
       });
       
-      // 맵을 배열로 변환하여 클라이언트 목록 업데이트
-      const updatedClients = Array.from(clientMap.values());
-      if (updatedClients.length !== clients.length) {
+      // 맵을 배열로 변환하여 클라이언트 목록 업데이트 (정렬)
+      const updatedClients = Array.from(clientMap.values()).sort((a, b) => {
+        const nameA = (a.companyName || a.username || '').toLowerCase();
+        const nameB = (b.companyName || b.username || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      
+      // 클라이언트 목록이 변경되었는지 확인 (ID 기준)
+      const currentClientIds = new Set(clients.map((c: any) => c?.id).filter(Boolean));
+      const updatedClientIds = new Set(updatedClients.map((c: any) => c?.id).filter(Boolean));
+      const hasChanged = currentClientIds.size !== updatedClientIds.size || 
+        Array.from(currentClientIds).some(id => !updatedClientIds.has(id));
+      
+      if (hasChanged) {
         setClients(updatedClients);
       }
     } catch (error) {
@@ -677,36 +690,46 @@ export default function CompletedLinksView() {
     }
   };
 
-  // 검색어로 필터링
+  // 검색어 및 클라이언트 필터로 필터링
   const filteredOrders = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return orders;
+    let filtered = orders;
+
+    // 클라이언트 필터 적용
+    if (selectedClientId) {
+      filtered = filtered.filter((order) => order.client?.id === selectedClientId);
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    return orders.filter((order) => {
-      // 광고주 이름 검색
-      const clientName = order.client.username?.toLowerCase() || '';
-      const companyName = order.client.companyName?.toLowerCase() || '';
-      
-      // 작업 종류 검색
-      const taskTypeName = TASK_TYPE_NAMES[order.taskType]?.toLowerCase() || '';
-      
-      // 링크 URL 검색
-      const link = order.completedLink?.toLowerCase() || '';
-      
-      // 작업 정보 검색
-      const caption = order.caption?.toLowerCase() || '';
-      
-      return (
-        clientName.includes(query) ||
-        companyName.includes(query) ||
-        taskTypeName.includes(query) ||
-        link.includes(query) ||
-        caption.includes(query)
-      );
-    });
-  }, [orders, searchQuery]);
+    // 검색어 필터 적용
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((order) => {
+        // 광고주 이름 검색
+        const clientName = order.client?.username?.toLowerCase() || '';
+        const companyName = order.client?.companyName?.toLowerCase() || '';
+        
+        // 작업 종류 검색
+        const taskTypeName = TASK_TYPE_NAMES[order.taskType]?.toLowerCase() || '';
+        
+        // 링크 URL 검색
+        const link = order.completedLink?.toLowerCase() || '';
+        const link2 = (order as any).completedLink2?.toLowerCase() || '';
+        
+        // 작업 정보 검색
+        const caption = order.caption?.toLowerCase() || '';
+        
+        return (
+          clientName.includes(query) ||
+          companyName.includes(query) ||
+          taskTypeName.includes(query) ||
+          link.includes(query) ||
+          link2.includes(query) ||
+          caption.includes(query)
+        );
+      });
+    }
+
+    return filtered;
+  }, [orders, searchQuery, selectedClientId]);
 
   // 광고주별로 그룹화, 각 광고주 내에서 작업 타입별로 그룹화
   const groupedByClientAndTaskType = useMemo(() => {
