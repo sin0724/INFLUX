@@ -114,31 +114,32 @@ export default function CompletedLinksView() {
       const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       
-      // completedLink 또는 completedLink2가 있거나 status가 'done'인 주문 표시
-      // completedLink2도 포함되도록 명시적으로 매핑
+      // DB에 저장된 모든 completedLink 또는 completedLink2가 있는 주문 표시 (중복 포함, status 무관)
+      // DB에 있는 링크를 그대로 보여주기 위해 필터링 조건 최소화
       const completedOrders = (ordersData.orders || []).filter(
         (order: Order) => 
-          order.status === 'done' || 
           order.completedLink || 
           (order as any).completedLink2
       ).map((order: any) => ({
         ...order,
-        completedLink2: order.completedLink2 || null, // 명시적으로 포함
-        reviewerName: order.reviewerName || null, // 명시적으로 포함
+        // DB에 저장된 링크를 그대로 표시 (정규화 없이 원본 그대로)
+        completedLink: order.completedLink || null,
+        completedLink2: order.completedLink2 || null,
+        reviewerName: order.reviewerName || null,
       }));
 
       // 체험단(experience_applications) 조회
       const experienceResponse = await fetch('/api/experience-applications');
       const experienceData = experienceResponse.ok ? await experienceResponse.json() : { applications: [] };
       
-      // 완료된 체험단 모두 표시 (링크가 없어도 표시)
+      // DB에 저장된 모든 completedLink가 있는 체험단 표시 (중복 포함, status 무관)
       const completedExperiences = (experienceData.applications || [])
         .filter((exp: any) => {
           if (selectedClientId && exp.clientId !== selectedClientId) {
             return false;
           }
-          // 완료된 체험단만 표시 (status가 completed이거나 completedLink가 있으면 표시)
-          return exp.status === 'completed' || exp.completedLink;
+          // DB에 저장된 링크를 그대로 보여주기 위해 completedLink가 있으면 표시
+          return exp.completedLink;
         })
         .map((exp: any) => ({
           id: exp.id,
