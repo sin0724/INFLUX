@@ -288,8 +288,8 @@ export default function ClientOrdersList() {
                       </div>
                       {/* 버튼 영역 - 우측 배치 */}
                       <div className="flex-shrink-0 flex items-center">
-                        {/* 블로그 리뷰 발행 완료 시 링크 확인 버튼 */}
-                        {showReviewButton && (order.status === 'published' || order.status === 'done') && order.completedLink ? (
+                        {/* 발행 완료 또는 완료 상태일 때 링크 확인 버튼 (모든 작업 타입) */}
+                        {(order.status === 'published' || order.status === 'done') && order.completedLink ? (
                           <a
                             href={order.completedLink}
                             target="_blank"
@@ -300,6 +300,7 @@ export default function ClientOrdersList() {
                             링크 확인
                           </a>
                         ) : showReviewButton ? (
+                          /* 블로그 리뷰 원고 확인 버튼 (링크가 없을 때만) */
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -310,30 +311,6 @@ export default function ClientOrdersList() {
                             원고 확인
                           </button>
                         ) : null}
-                        {/* 영수증 리뷰 발행 완료 시 링크 확인 버튼 */}
-                        {showReceiptLinkButton && (
-                          <a
-                            href={order.completedLink!}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition whitespace-nowrap"
-                          >
-                            링크 확인
-                          </a>
-                        )}
-                        {/* 일반 완료 작업(내돈내산 등) 발행 완료 상태일 때 링크 확인 버튼 */}
-                        {!showReviewButton && !showReceiptLinkButton && (order.status === 'done' || order.status === 'published') && order.completedLink && (
-                          <a
-                            href={order.completedLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition whitespace-nowrap"
-                          >
-                            링크 확인
-                          </a>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -489,13 +466,14 @@ export default function ClientOrdersList() {
                     </div>
                   )}
                   
-                  {/* 완료된 링크 표시 (리뷰 신청이 아닌 경우) */}
-                  {(selectedOrder.status === 'done' || selectedOrder.status === 'published') && selectedOrder.completedLink && 
-                   selectedOrder.taskType !== 'blog_review' && selectedOrder.taskType !== 'receipt_review' && (
+                  {/* 완료된 링크 표시 (모든 작업 타입, published 또는 done 상태) */}
+                  {(selectedOrder.status === 'done' || selectedOrder.status === 'published') && selectedOrder.completedLink && (
                     <div className="space-y-2">
                       <div>
                         <div className="text-sm text-gray-600 mb-2">
-                          {selectedOrder.taskType === 'myexpense' ? '내돈내산 예약자 리뷰' : '완료 링크'}
+                          {selectedOrder.taskType === 'myexpense' ? '내돈내산 예약자 리뷰' 
+                           : selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review' ? '발행된 리뷰 링크'
+                           : '완료 링크'}
                         </div>
                         <a
                           href={selectedOrder.completedLink}
