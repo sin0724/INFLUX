@@ -59,6 +59,50 @@ async function createMyexpenseLink(req: NextRequest, user: any) {
       );
     }
 
+    // 중복 링크 체크 및 기존 링크 삭제
+    const trimmedCompletedLink = completedLink.trim();
+    const trimmedCompletedLink2 = completedLink2.trim();
+
+    // completedLink 중복 체크 및 삭제
+    const { data: existingOrders1, error: fetchError1 } = await supabaseAdmin
+      .from('orders')
+      .select('id, completedLink')
+      .eq('clientId', clientId)
+      .eq('taskType', 'myexpense')
+      .eq('completedLink', trimmedCompletedLink);
+
+    if (fetchError1) {
+      console.error('[ERROR] Failed to check existing completedLink:', fetchError1);
+    } else if (existingOrders1 && existingOrders1.length > 0) {
+      console.log(`[DEBUG] ⚠️ completedLink 중복 감지! 기존 링크 삭제: "${trimmedCompletedLink}"`);
+      await supabaseAdmin
+        .from('orders')
+        .update({ completedLink: null })
+        .eq('clientId', clientId)
+        .eq('taskType', 'myexpense')
+        .eq('completedLink', trimmedCompletedLink);
+    }
+
+    // completedLink2 중복 체크 및 삭제
+    const { data: existingOrders2, error: fetchError2 } = await supabaseAdmin
+      .from('orders')
+      .select('id, completedLink2')
+      .eq('clientId', clientId)
+      .eq('taskType', 'myexpense')
+      .eq('completedLink2', trimmedCompletedLink2);
+
+    if (fetchError2) {
+      console.error('[ERROR] Failed to check existing completedLink2:', fetchError2);
+    } else if (existingOrders2 && existingOrders2.length > 0) {
+      console.log(`[DEBUG] ⚠️ completedLink2 중복 감지! 기존 링크 삭제: "${trimmedCompletedLink2}"`);
+      await supabaseAdmin
+        .from('orders')
+        .update({ completedLink2: null })
+        .eq('clientId', clientId)
+        .eq('taskType', 'myexpense')
+        .eq('completedLink2', trimmedCompletedLink2);
+    }
+
     // 주문 생성
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')

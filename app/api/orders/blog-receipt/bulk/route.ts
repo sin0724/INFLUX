@@ -237,18 +237,33 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
             // 해당 광고주의 기존 링크와 중복 체크
             if (normalizedExistingLinks.has(normalizedLink)) {
               const matchedOriginalLink = existingLinksMap.get(normalizedLink);
-              console.log(`[DEBUG] ❌ 중복 감지! 정규화된 링크: "${normalizedLink}", 매칭된 원본: "${matchedOriginalLink}"`);
-              failedLinks.push({
-                link,
-                error: `이미 등록된 링크입니다. (등록된 링크: ${matchedOriginalLink})`,
-              });
-              continue;
+              console.log(`[DEBUG] ⚠️ 중복 감지! 기존 링크 삭제 후 새로 등록: "${normalizedLink}"`);
+              
+              // 기존 중복 링크가 있는 모든 주문의 링크를 NULL로 업데이트
+              const { error: deleteError } = await supabaseAdmin
+                .from('orders')
+                .update({ completedLink: null })
+                .eq('clientId', clientId)
+                .eq('taskType', linkType)
+                .eq('completedLink', matchedOriginalLink);
+              
+              if (deleteError) {
+                console.error('[ERROR] Failed to delete existing link:', deleteError);
+                failedLinks.push({
+                  link,
+                  error: `기존 링크 삭제에 실패했습니다: ${deleteError.message}`,
+                });
+                continue;
+              }
+              
+              console.log(`[DEBUG] ✅ 기존 링크 삭제 완료, 새 링크 등록 진행`);
+            } else {
+              console.log(`[DEBUG] ✅ 중복 없음, 등록 진행`);
             }
 
-            console.log(`[DEBUG] ✅ 중복 없음, 등록 진행`);
             console.log(`[DEBUG] ========== 체크 완료 ==========`);
 
-            // 중복이 아니면 Set에 추가하여 같은 배치 내 중복 방지
+            // Set에 추가하여 같은 배치 내 중복 방지
             normalizedExistingLinks.add(normalizedLink);
 
             const { data: order, error: orderError } = await supabaseAdmin

@@ -97,11 +97,53 @@ async function updateOrder(
     }
     
     if (completedLink !== undefined) {
-      updateData.completedLink = completedLink || null;
+      const newLink = completedLink || null;
+      updateData.completedLink = newLink;
+      
+      // 새 링크가 있고, 다른 주문에 같은 링크가 있으면 삭제
+      if (newLink && newLink.trim()) {
+        const trimmedLink = newLink.trim();
+        // 현재 주문을 제외하고 같은 링크가 있는 주문들의 링크를 NULL로 업데이트
+        const { data: existingOrders } = await supabase
+          .from('orders')
+          .select('id')
+          .neq('id', orderId)
+          .eq('completedLink', trimmedLink);
+        
+        if (existingOrders && existingOrders.length > 0) {
+          console.log(`[DEBUG] ⚠️ completedLink 중복 감지! 기존 링크 삭제: "${trimmedLink}"`);
+          await supabase
+            .from('orders')
+            .update({ completedLink: null })
+            .neq('id', orderId)
+            .eq('completedLink', trimmedLink);
+        }
+      }
     }
     
     if (completedLink2 !== undefined) {
-      updateData.completedLink2 = completedLink2 || null;
+      const newLink2 = completedLink2 || null;
+      updateData.completedLink2 = newLink2;
+      
+      // 새 링크가 있고, 다른 주문에 같은 링크가 있으면 삭제
+      if (newLink2 && newLink2.trim()) {
+        const trimmedLink2 = newLink2.trim();
+        // 현재 주문을 제외하고 같은 링크가 있는 주문들의 링크를 NULL로 업데이트
+        const { data: existingOrders2 } = await supabase
+          .from('orders')
+          .select('id')
+          .neq('id', orderId)
+          .eq('completedLink2', trimmedLink2);
+        
+        if (existingOrders2 && existingOrders2.length > 0) {
+          console.log(`[DEBUG] ⚠️ completedLink2 중복 감지! 기존 링크 삭제: "${trimmedLink2}"`);
+          await supabase
+            .from('orders')
+            .update({ completedLink2: null })
+            .neq('id', orderId)
+            .eq('completedLink2', trimmedLink2);
+        }
+      }
     }
     
     if (reviewerName !== undefined) {
