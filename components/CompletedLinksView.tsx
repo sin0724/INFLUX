@@ -82,6 +82,9 @@ export default function CompletedLinksView() {
 
   useEffect(() => {
     fetchClients();
+  }, []);
+
+  useEffect(() => {
     fetchCompletedOrders();
   }, [selectedClientId]);
 
@@ -152,7 +155,34 @@ export default function CompletedLinksView() {
         }));
 
       // 주문과 체험단 합치기
-      setOrders([...completedOrders, ...completedExperiences]);
+      const allOrders = [...completedOrders, ...completedExperiences];
+      setOrders(allOrders);
+
+      // 주문에서 가져온 클라이언트 정보를 기반으로 클라이언트 목록 보완
+      const clientMap = new Map<string, any>();
+      
+      // 기존 클라이언트 목록을 맵에 추가
+      clients.forEach((client: any) => {
+        clientMap.set(client.id, client);
+      });
+      
+      // 주문에서 가져온 클라이언트 정보 추가 (없는 경우만)
+      allOrders.forEach((order: any) => {
+        if (order.client && order.client.id && !clientMap.has(order.client.id)) {
+          clientMap.set(order.client.id, {
+            id: order.client.id,
+            username: order.client.username || '',
+            companyName: order.client.companyName || '',
+            role: 'client',
+          });
+        }
+      });
+      
+      // 맵을 배열로 변환하여 클라이언트 목록 업데이트
+      const updatedClients = Array.from(clientMap.values());
+      if (updatedClients.length !== clients.length) {
+        setClients(updatedClients);
+      }
     } catch (error) {
       console.error('Failed to fetch completed orders:', error);
     } finally {
