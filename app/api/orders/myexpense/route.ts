@@ -74,13 +74,14 @@ async function createMyexpenseLink(req: NextRequest, user: any) {
     if (fetchError1) {
       console.error('[ERROR] Failed to check existing completedLink:', fetchError1);
     } else if (existingOrders1 && existingOrders1.length > 0) {
-      console.log(`[DEBUG] ⚠️ completedLink 중복 감지! 기존 링크 삭제: "${trimmedCompletedLink}"`);
+      console.log(`[DEBUG] ⚠️ completedLink 중복 감지! 중복된 링크만 삭제: "${trimmedCompletedLink}"`);
+      // 중복된 링크만 정확히 삭제 (중복되지 않은 다른 링크는 유지)
       await supabaseAdmin
         .from('orders')
         .update({ completedLink: null })
         .eq('clientId', clientId)
         .eq('taskType', 'myexpense')
-        .eq('completedLink', trimmedCompletedLink);
+        .eq('completedLink', trimmedCompletedLink); // 정확히 중복된 링크만 삭제
     }
 
     // completedLink2 중복 체크 및 삭제
@@ -94,13 +95,14 @@ async function createMyexpenseLink(req: NextRequest, user: any) {
     if (fetchError2) {
       console.error('[ERROR] Failed to check existing completedLink2:', fetchError2);
     } else if (existingOrders2 && existingOrders2.length > 0) {
-      console.log(`[DEBUG] ⚠️ completedLink2 중복 감지! 기존 링크 삭제: "${trimmedCompletedLink2}"`);
+      console.log(`[DEBUG] ⚠️ completedLink2 중복 감지! 중복된 링크만 삭제: "${trimmedCompletedLink2}"`);
+      // 중복된 링크만 정확히 삭제 (중복되지 않은 다른 링크는 유지)
       await supabaseAdmin
         .from('orders')
         .update({ completedLink2: null })
         .eq('clientId', clientId)
         .eq('taskType', 'myexpense')
-        .eq('completedLink2', trimmedCompletedLink2);
+        .eq('completedLink2', trimmedCompletedLink2); // 정확히 중복된 링크만 삭제
     }
 
     // 주문 생성

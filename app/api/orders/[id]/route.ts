@@ -100,23 +100,23 @@ async function updateOrder(
       const newLink = completedLink || null;
       updateData.completedLink = newLink;
       
-      // 새 링크가 있고, 다른 주문에 같은 링크가 있으면 삭제
+      // 새 링크가 있고, 다른 주문에 중복된 링크가 있으면 삭제
       if (newLink && newLink.trim()) {
         const trimmedLink = newLink.trim();
-        // 현재 주문을 제외하고 같은 링크가 있는 주문들의 링크를 NULL로 업데이트
+        // 중복된 링크만 정확히 삭제 (중복되지 않은 다른 링크는 유지)
         const { data: existingOrders } = await supabase
           .from('orders')
           .select('id')
           .neq('id', orderId)
-          .eq('completedLink', trimmedLink);
+          .eq('completedLink', trimmedLink); // 정확히 중복된 링크만 찾기
         
         if (existingOrders && existingOrders.length > 0) {
-          console.log(`[DEBUG] ⚠️ completedLink 중복 감지! 기존 링크 삭제: "${trimmedLink}"`);
+          console.log(`[DEBUG] ⚠️ completedLink 중복 감지! 중복된 링크만 삭제: "${trimmedLink}"`);
           await supabase
             .from('orders')
             .update({ completedLink: null })
             .neq('id', orderId)
-            .eq('completedLink', trimmedLink);
+            .eq('completedLink', trimmedLink); // 정확히 중복된 링크만 삭제
         }
       }
     }
@@ -125,23 +125,23 @@ async function updateOrder(
       const newLink2 = completedLink2 || null;
       updateData.completedLink2 = newLink2;
       
-      // 새 링크가 있고, 다른 주문에 같은 링크가 있으면 삭제
+      // 새 링크가 있고, 다른 주문에 중복된 링크가 있으면 삭제
       if (newLink2 && newLink2.trim()) {
         const trimmedLink2 = newLink2.trim();
-        // 현재 주문을 제외하고 같은 링크가 있는 주문들의 링크를 NULL로 업데이트
+        // 중복된 링크만 정확히 삭제 (중복되지 않은 다른 링크는 유지)
         const { data: existingOrders2 } = await supabase
           .from('orders')
           .select('id')
           .neq('id', orderId)
-          .eq('completedLink2', trimmedLink2);
+          .eq('completedLink2', trimmedLink2); // 정확히 중복된 링크만 찾기
         
         if (existingOrders2 && existingOrders2.length > 0) {
-          console.log(`[DEBUG] ⚠️ completedLink2 중복 감지! 기존 링크 삭제: "${trimmedLink2}"`);
+          console.log(`[DEBUG] ⚠️ completedLink2 중복 감지! 중복된 링크만 삭제: "${trimmedLink2}"`);
           await supabase
             .from('orders')
             .update({ completedLink2: null })
             .neq('id', orderId)
-            .eq('completedLink2', trimmedLink2);
+            .eq('completedLink2', trimmedLink2); // 정확히 중복된 링크만 삭제
         }
       }
     }

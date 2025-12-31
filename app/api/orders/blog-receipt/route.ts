@@ -143,13 +143,13 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
             const matchedOriginalLink = existingLinksMap.get(normalizedLink) || matchedLink;
             console.log(`[DEBUG] ⚠️ 중복 감지! 기존 링크 삭제 후 새로 등록: "${normalizedLink}"`);
             
-            // 기존 중복 링크가 있는 모든 주문의 링크를 NULL로 업데이트
+            // 중복된 링크만 정확히 삭제 (중복되지 않은 다른 링크는 유지)
             const { error: deleteError } = await supabaseAdmin
               .from('orders')
               .update({ completedLink: null })
               .eq('clientId', clientId)
               .eq('taskType', 'blog')
-              .eq('completedLink', matchedOriginalLink);
+              .eq('completedLink', matchedOriginalLink); // 정확히 중복된 링크만 삭제
             
             if (deleteError) {
               console.error('[ERROR] Failed to delete existing link:', deleteError);
@@ -294,13 +294,13 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
             const matchedOriginalLink = existingReceiptLinksMap.get(normalizedLink);
             console.log(`[DEBUG] ⚠️ 중복 감지! 기존 링크 삭제 후 새로 등록: "${normalizedLink}"`);
             
-            // 기존 중복 링크가 있는 모든 주문의 링크를 NULL로 업데이트
+            // 중복된 링크만 정확히 삭제 (중복되지 않은 다른 링크는 유지)
             const { error: deleteError } = await supabaseAdmin
               .from('orders')
               .update({ completedLink: null })
               .eq('clientId', clientId)
               .eq('taskType', 'receipt')
-              .eq('completedLink', matchedOriginalLink);
+              .eq('completedLink', matchedOriginalLink); // 정확히 중복된 링크만 삭제
             
             if (deleteError) {
               console.error('[ERROR] Failed to delete existing link:', deleteError);
