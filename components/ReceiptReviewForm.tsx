@@ -333,7 +333,7 @@ export default function ReceiptReviewForm({ user }: ReceiptReviewFormProps) {
                 <ImageUpload 
                   images={item.images} 
                   onImagesChange={(urls) => updateItem(item.id, { images: urls })}
-                  maxImages={20}
+                  maxImages={2}
                 />
               </div>
             </div>
