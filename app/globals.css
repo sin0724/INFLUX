@@ -40,11 +40,31 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+/* 입력 필드와 텍스트 영역은 항상 어두운 텍스트 색상 유지 */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="date"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  color: rgb(17, 24, 39) !important; /* text-gray-900 */
 }
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="search"]::placeholder,
+input[type="date"]::placeholder,
+input[type="number"]::placeholder,
+input[type="tel"]::placeholder,
+input[type="url"]::placeholder,
+textarea::placeholder {
+  color: rgb(156, 163, 175) !important; /* text-gray-400 */
+}
+
+/* 다크 모드 미디어 쿼리 제거 - 입력 필드 가시성 문제 방지 */
 
