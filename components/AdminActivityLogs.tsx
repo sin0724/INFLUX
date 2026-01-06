@@ -73,7 +73,8 @@ const getActionColor = (action: string) => {
 
 export default function AdminActivityLogs() {
   const router = useRouter();
-  const [logs, setLogs] = useState<AdminLog[]>([]);
+  const [allLogs, setAllLogs] = useState<AdminLog[]>([]); // 원본 로그 데이터
+  const [logs, setLogs] = useState<AdminLog[]>([]); // 필터링된 로그 데이터
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -87,9 +88,15 @@ export default function AdminActivityLogs() {
   const [showImportantOnly, setShowImportantOnly] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // API 호출은 다른 필터 변경 시에만
   useEffect(() => {
     fetchLogs();
-  }, [page, filters, showImportantOnly, searchTerm]);
+  }, [page, filters, showImportantOnly]);
+
+  // 검색어 변경 시에는 클라이언트 사이드에서만 필터링
+  useEffect(() => {
+    applyFilters();
+  }, [searchTerm, allLogs, showImportantOnly, filters.action]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -106,26 +113,10 @@ export default function AdminActivityLogs() {
       const response = await fetch(`/api/admin/logs?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        let filteredLogs = data.logs || [];
+        const fetchedLogs = data.logs || [];
         
-        // 중요한 액션만 필터링
-        if (showImportantOnly && !filters.action) {
-          filteredLogs = filteredLogs.filter((log: AdminLog) => 
-            IMPORTANT_ACTIONS.includes(log.action)
-          );
-        }
-        
-        // 상호명 검색 필터링
-        if (searchTerm.trim()) {
-          const searchLower = searchTerm.toLowerCase().trim();
-          filteredLogs = filteredLogs.filter((log: AdminLog) => {
-            const companyName = log.details?.companyName?.toLowerCase() || '';
-            const username = log.details?.username?.toLowerCase() || '';
-            return companyName.includes(searchLower) || username.includes(searchLower);
-          });
-        }
-        
-        setLogs(filteredLogs);
+        // 원본 로그 데이터 저장
+        setAllLogs(fetchedLogs);
         setTotalPages(data.pagination?.totalPages || 1);
       }
     } catch (error) {
@@ -133,6 +124,30 @@ export default function AdminActivityLogs() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 필터 적용 함수 (클라이언트 사이드 필터링)
+  const applyFilters = () => {
+    let filteredLogs = [...allLogs];
+    
+    // 중요한 액션만 필터링
+    if (showImportantOnly && !filters.action) {
+      filteredLogs = filteredLogs.filter((log: AdminLog) => 
+        IMPORTANT_ACTIONS.includes(log.action)
+      );
+    }
+    
+    // 상호명 검색 필터링
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filteredLogs = filteredLogs.filter((log: AdminLog) => {
+        const companyName = log.details?.companyName?.toLowerCase() || '';
+        const username = log.details?.username?.toLowerCase() || '';
+        return companyName.includes(searchLower) || username.includes(searchLower);
+      });
+    }
+    
+    setLogs(filteredLogs);
   };
 
   return (
