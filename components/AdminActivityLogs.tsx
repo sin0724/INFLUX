@@ -85,10 +85,11 @@ export default function AdminActivityLogs() {
     endDate: '',
   });
   const [showImportantOnly, setShowImportantOnly] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchLogs();
-  }, [page, filters, showImportantOnly]);
+  }, [page, filters, showImportantOnly, searchTerm]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -112,6 +113,16 @@ export default function AdminActivityLogs() {
           filteredLogs = filteredLogs.filter((log: AdminLog) => 
             IMPORTANT_ACTIONS.includes(log.action)
           );
+        }
+        
+        // 상호명 검색 필터링
+        if (searchTerm.trim()) {
+          const searchLower = searchTerm.toLowerCase().trim();
+          filteredLogs = filteredLogs.filter((log: AdminLog) => {
+            const companyName = log.details?.companyName?.toLowerCase() || '';
+            const username = log.details?.username?.toLowerCase() || '';
+            return companyName.includes(searchLower) || username.includes(searchLower);
+          });
         }
         
         setLogs(filteredLogs);
@@ -164,6 +175,23 @@ export default function AdminActivityLogs() {
 
           {/* 필터 */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
+            {/* 상호명 검색 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                상호명/사용자명 검색
+              </label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="상호명 또는 사용자명을 입력하세요"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400"
+              />
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -220,6 +248,7 @@ export default function AdminActivityLogs() {
                     startDate: '',
                     endDate: '',
                   });
+                  setSearchTerm('');
                   setPage(1);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
@@ -233,7 +262,9 @@ export default function AdminActivityLogs() {
           {loading ? (
             <div className="text-center py-12 text-gray-600">로딩 중...</div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">로그가 없습니다.</div>
+            <div className="text-center py-12 text-gray-500">
+              {searchTerm.trim() ? '검색 결과가 없습니다.' : '로그가 없습니다.'}
+            </div>
           ) : (
             <>
               <div className="overflow-x-auto">
