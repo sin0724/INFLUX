@@ -108,6 +108,10 @@ export const AdminActions = {
   UPDATE_ORDER_STATUS: 'update_order_status',
   DELETE_ORDER: 'delete_order',
   EDIT_ORDER: 'edit_order',
+  ADD_COMPLETED_LINK: 'add_completed_link', // 작업 완료 링크 추가
+  ADD_BLOG_RECEIPT_LINK: 'add_blog_receipt_link', // 블로그/영수증 링크 추가
+  ADD_MYEXPENSE_LINK: 'add_myexpense_link', // 내돈내산 링크 추가
+  ADD_EXPERIENCE_LINK: 'add_experience_link', // 체험단 링크 추가
   
   // 관리자 관련
   CREATE_ADMIN: 'create_admin',

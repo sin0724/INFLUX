@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
+import { logAdminActivity, AdminActions } from '@/lib/admin-logs';
 
 // GET: Get single order
 async function getOrder(
@@ -197,6 +198,64 @@ async function updateOrder(
       );
     }
 
+    // 관리자만 로그 기록 (client는 기록하지 않음)
+    if ((user.role === 'admin' || user.role === 'superadmin') && data.client) {
+      const logDetails: any = {
+        orderId: orderId,
+        clientId: data.clientId,
+        username: data.client.username,
+      };
+
+      // 상태 변경 로그
+      if (status !== undefined) {
+        logDetails.status = status;
+        logDetails.oldStatus = body.oldStatus || 'unknown';
+        await logAdminActivity({
+          adminId: user.id,
+          adminUsername: user.username,
+          action: AdminActions.UPDATE_ORDER_STATUS,
+          target_type: 'order',
+          targetId: orderId,
+          details: logDetails,
+          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+          user_agent: req.headers.get('user-agent') || 'unknown',
+        });
+      }
+
+      // 완료 링크 추가 로그
+      if (completedLink !== undefined && completedLink) {
+        logDetails.completedLink = completedLink;
+        if (completedLink2) logDetails.completedLink2 = completedLink2;
+        if (reviewerName) logDetails.reviewerName = reviewerName;
+        await logAdminActivity({
+          adminId: user.id,
+          adminUsername: user.username,
+          action: AdminActions.ADD_COMPLETED_LINK,
+          target_type: 'order',
+          targetId: orderId,
+          details: logDetails,
+          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+          user_agent: req.headers.get('user-agent') || 'unknown',
+        });
+      }
+
+      // 발주 수정 로그 (caption, imageUrls 변경)
+      if ((caption !== undefined || imageUrls !== undefined) && !completedLink) {
+        if (caption !== undefined) logDetails.caption = caption;
+        if (imageUrls !== undefined) logDetails.imageUrls = imageUrls;
+        await logAdminActivity({
+          adminId: user.id,
+          adminUsername: user.username,
+          action: AdminActions.EDIT_ORDER,
+          target_type: 'order',
+          targetId: orderId,
+          details: logDetails,
+          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+          user_agent: req.headers.get('user-agent') || 'unknown',
+        });
+      }
+    }
+
     return NextResponse.json({ order: data });
   } catch (error: any) {
     console.error('Update order error:', error);
@@ -238,10 +297,16 @@ async function deleteOrder(
   }
 
   try {
-    // 주문 정보 먼저 가져오기 (quota 복구용)
+    // 주문 정보 먼저 가져오기 (quota 복구용 및 로그용)
     const { data: orderData, error: fetchError } = await supabase
       .from('orders')
-      .select('clientId, taskType, status, caption')
+      .select(`
+        clientId, 
+        taskType, 
+        status, 
+        caption,
+        client:users!orders_clientId_fkey(id, username, companyName)
+      `)
       .eq('id', orderId)
       .single();
 
@@ -326,6 +391,27 @@ async function deleteOrder(
             .eq('id', orderData.clientId);
         }
       }
+    }
+
+    // 관리자만 로그 기록
+    if ((user.role === 'admin' || user.role === 'superadmin') && orderData.client) {
+      await logAdminActivity({
+        adminId: user.id,
+        adminUsername: user.username,
+        action: AdminActions.DELETE_ORDER,
+        target_type: 'order',
+        targetId: orderId,
+        details: {
+          orderId: orderId,
+          clientId: orderData.clientId,
+          username: (orderData.client as any).username,
+          companyName: (orderData.client as any).companyName,
+          taskType: orderData.taskType,
+          status: orderData.status,
+        },
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        user_agent: req.headers.get('user-agent') || 'unknown',
+      });
     }
 
     return NextResponse.json({ success: true });

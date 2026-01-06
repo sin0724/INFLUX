@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, requireAdmin } from '@/lib/middleware';
 import { supabaseAdmin } from '@/lib/supabase';
+import { logAdminActivity, AdminActions } from '@/lib/admin-logs';
 
 // URL 정규화 함수 - 완전히 동일한 URL만 중복으로 판단
 // 정규화 없이 원본 그대로 비교 (공백 제거만)
@@ -50,7 +51,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
     // Get client's current quota
     const { data: clientData, error: clientError } = await supabaseAdmin
       .from('users')
-      .select('quota, remainingQuota')
+      .select('quota, remainingQuota, username, companyName')
       .eq('id', clientId)
       .single();
 
@@ -398,6 +399,29 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
         { error: 'Quota 업데이트에 실패했습니다.' },
         { status: 500 }
       );
+    }
+
+    // 로그 기록
+    const totalSuccessCount = blogResults.success.length + receiptResults.success.length;
+    if (totalSuccessCount > 0 && clientData) {
+      await logAdminActivity({
+        adminId: user.id,
+        adminUsername: user.username,
+        action: AdminActions.ADD_BLOG_RECEIPT_LINK,
+        target_type: 'client',
+        targetId: clientId,
+        details: {
+          clientId: clientId,
+          username: clientData.username,
+          companyName: clientData.companyName || '',
+          blogLinksCount: blogResults.success.length,
+          receiptLinksCount: receiptResults.success.length,
+          blogLinks: blogResults.success.slice(0, 5), // 처음 5개만 기록
+          receiptLinks: receiptResults.success.slice(0, 5), // 처음 5개만 기록
+        },
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        user_agent: req.headers.get('user-agent') || 'unknown',
+      });
     }
 
     return NextResponse.json({

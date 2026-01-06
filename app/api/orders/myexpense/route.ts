@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, requireAdmin } from '@/lib/middleware';
 import { supabaseAdmin } from '@/lib/supabase';
+import { logAdminActivity, AdminActions } from '@/lib/admin-logs';
 
 // POST: Create myexpense review completed links and deduct quota
 async function createMyexpenseLink(req: NextRequest, user: any) {
@@ -38,7 +39,7 @@ async function createMyexpenseLink(req: NextRequest, user: any) {
     // Get client's current quota
     const { data: clientData, error: clientError } = await supabaseAdmin
       .from('users')
-      .select('quota, remainingQuota')
+      .select('quota, remainingQuota, username, companyName')
       .eq('id', clientId)
       .single();
 
@@ -158,6 +159,28 @@ async function createMyexpenseLink(req: NextRequest, user: any) {
         { error: 'Quota 업데이트에 실패했습니다.' },
         { status: 500 }
       );
+    }
+
+    // 로그 기록
+    if (order && clientData) {
+      await logAdminActivity({
+        adminId: user.id,
+        adminUsername: user.username,
+        action: AdminActions.ADD_MYEXPENSE_LINK,
+        target_type: 'order',
+        targetId: order.id,
+        details: {
+          orderId: order.id,
+          clientId: clientId,
+          username: clientData.username,
+          companyName: clientData.companyName || '',
+          completedLink: completedLink.trim(),
+          completedLink2: completedLink2.trim(),
+          reviewerName: reviewerName.trim(),
+        },
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        user_agent: req.headers.get('user-agent') || 'unknown',
+      });
     }
 
     return NextResponse.json({

@@ -29,8 +29,46 @@ const ACTION_NAMES: Record<string, string> = {
   update_order_status: '발주 상태 변경',
   delete_order: '발주 삭제',
   edit_order: '발주 수정',
+  add_completed_link: '작업 완료 링크 추가',
+  add_blog_receipt_link: '블로그/영수증 링크 추가',
+  add_myexpense_link: '내돈내산 링크 추가',
+  add_experience_link: '체험단 링크 추가',
   login: '로그인',
   logout: '로그아웃',
+};
+
+// 중요한 액션만 필터링 (기본값)
+const IMPORTANT_ACTIONS = [
+  'create_user',
+  'update_user',
+  'delete_user',
+  'block_user',
+  'activate_user',
+  'extend_contract',
+  'update_order_status',
+  'delete_order',
+  'edit_order',
+  'add_completed_link',
+  'add_blog_receipt_link',
+  'add_myexpense_link',
+  'add_experience_link',
+];
+
+// 액션 타입별 색상
+const getActionColor = (action: string) => {
+  if (action.includes('create') || action.includes('add')) {
+    return 'bg-green-100 text-green-700';
+  }
+  if (action.includes('update') || action.includes('edit') || action.includes('extend')) {
+    return 'bg-blue-100 text-blue-700';
+  }
+  if (action.includes('delete') || action.includes('block')) {
+    return 'bg-red-100 text-red-700';
+  }
+  if (action.includes('activate')) {
+    return 'bg-purple-100 text-purple-700';
+  }
+  return 'bg-gray-100 text-gray-700';
 };
 
 export default function AdminActivityLogs() {
@@ -46,17 +84,18 @@ export default function AdminActivityLogs() {
     startDate: '',
     endDate: '',
   });
+  const [showImportantOnly, setShowImportantOnly] = useState(true);
 
   useEffect(() => {
     fetchLogs();
-  }, [page, filters]);
+  }, [page, filters, showImportantOnly]);
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.append('page', page.toString());
-      params.append('limit', '50');
+      params.append('limit', '100'); // 더 많은 로그를 가져와서 필터링
       if (filters.adminId) params.append('adminId', filters.adminId);
       if (filters.action) params.append('action', filters.action);
       if (filters.targetType) params.append('targetType', filters.targetType);
@@ -66,7 +105,16 @@ export default function AdminActivityLogs() {
       const response = await fetch(`/api/admin/logs?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        setLogs(data.logs || []);
+        let filteredLogs = data.logs || [];
+        
+        // 중요한 액션만 필터링
+        if (showImportantOnly && !filters.action) {
+          filteredLogs = filteredLogs.filter((log: AdminLog) => 
+            IMPORTANT_ACTIONS.includes(log.action)
+          );
+        }
+        
+        setLogs(filteredLogs);
         setTotalPages(data.pagination?.totalPages || 1);
       }
     } catch (error) {
@@ -91,6 +139,27 @@ export default function AdminActivityLogs() {
               <span>뒤로가기</span>
             </button>
             <h1 className="text-2xl font-bold text-gray-900">관리자 활동 로그</h1>
+          </div>
+
+          {/* 중요 필터 토글 */}
+          <div className="mb-4 flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showImportantOnly}
+                onChange={(e) => {
+                  setShowImportantOnly(e.target.checked);
+                  setPage(1);
+                }}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                중요한 항목만 보기
+              </span>
+            </label>
+            <span className="text-xs text-gray-500">
+              (사용자 관리, 발주 관리, 링크 추가 등)
+            </span>
           </div>
 
           {/* 필터 */}
@@ -197,26 +266,53 @@ export default function AdminActivityLogs() {
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {log.adminUsername}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${getActionColor(log.action)}`}>
                             {ACTION_NAMES[log.action] || log.action}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          {log.target_type}
-                          {log.targetId && (
-                            <span className="ml-1 text-xs text-gray-400">
-                              ({log.targetId.substring(0, 8)}...)
-                            </span>
-                          )}
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium">{log.target_type}</span>
+                            {log.targetId && (
+                              <span className="text-xs text-gray-500 font-mono">
+                                ID: {log.targetId.substring(0, 8)}...
+                              </span>
+                            )}
+                            {log.details?.username && (
+                              <span className="text-xs text-gray-600">
+                                사용자: {log.details.username}
+                              </span>
+                            )}
+                            {log.details?.companyName && (
+                              <span className="text-xs text-gray-600">
+                                상호명: {log.details.companyName}
+                              </span>
+                            )}
+                            {log.details?.status && (
+                              <span className="text-xs text-gray-600">
+                                상태: {log.details.status}
+                              </span>
+                            )}
+                            {log.details?.completedLink && (
+                              <a 
+                                href={log.details.completedLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary-600 hover:text-primary-700 underline truncate max-w-xs block"
+                              >
+                                링크: {log.details.completedLink.substring(0, 50)}...
+                              </a>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500">
                           {log.details && Object.keys(log.details).length > 0 && (
                             <details className="cursor-pointer">
-                              <summary className="text-primary-600 hover:text-primary-700">
-                                상세보기
+                              <summary className="text-primary-600 hover:text-primary-700 text-xs">
+                                전체 상세보기
                               </summary>
-                              <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-auto">
+                              <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-auto max-h-40">
                                 {JSON.stringify(log.details, null, 2)}
                               </pre>
                             </details>

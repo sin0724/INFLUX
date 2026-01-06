@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
+import { logAdminActivity, AdminActions } from '@/lib/admin-logs';
 
 // PATCH: 체험단 신청 수정 (관리자만)
 async function updateExperienceApplication(
@@ -53,6 +54,33 @@ async function updateExperienceApplication(
         { error: '체험단 신청 업데이트에 실패했습니다.' },
         { status: 500 }
       );
+    }
+
+    // 완료 링크 추가 시 로그 기록
+    if (completedLink && completedLink.trim() && data.clientId) {
+      // 클라이언트 정보 가져오기
+      const { data: clientData } = await supabase
+        .from('users')
+        .select('username, companyName')
+        .eq('id', data.clientId)
+        .single();
+
+      await logAdminActivity({
+        adminId: user.id,
+        adminUsername: user.username,
+        action: AdminActions.ADD_EXPERIENCE_LINK,
+        target_type: 'experience',
+        targetId: applicationId,
+        details: {
+          applicationId: applicationId,
+          clientId: data.clientId,
+          username: clientData?.username || 'unknown',
+          companyName: data.companyName || clientData?.companyName || '',
+          completedLink: completedLink.trim(),
+        },
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        user_agent: req.headers.get('user-agent') || 'unknown',
+      });
     }
 
     return NextResponse.json({ application: data });
