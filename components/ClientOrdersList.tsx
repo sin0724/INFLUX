@@ -34,8 +34,10 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   powerblog: '파워블로그',
   clip: '클립',
   myexpense: '내돈내산 리뷰',
-  blog_review: '블로그 리뷰 신청',
-  receipt_review: '영수증 리뷰 신청',
+  blog: '블로그 리뷰',
+  blog_review: '블로그 리뷰',
+  receipt: '영수증 리뷰',
+  receipt_review: '영수증 리뷰',
 };
 
 const STATUS_NAMES: Record<string, string> = {
@@ -136,26 +138,66 @@ export default function ClientOrdersList() {
     }
   };
 
-  // 작업별 필터링
+  // 작업별 필터링 (blog/blog_review, receipt/receipt_review 통합)
   const filteredOrders = useMemo(() => {
     if (selectedTaskType === 'all') {
       return orders;
     }
-    return orders.filter(order => order.taskType === selectedTaskType);
+    
+    // taskType을 정규화하는 함수
+    const normalizeTaskType = (taskType: string): string => {
+      if (taskType === 'blog' || taskType === 'blog_review') {
+        return 'blog';
+      }
+      if (taskType === 'receipt' || taskType === 'receipt_review') {
+        return 'receipt';
+      }
+      return taskType;
+    };
+    
+    return orders.filter(order => {
+      const normalizedOrderType = normalizeTaskType(order.taskType);
+      const normalizedSelectedType = normalizeTaskType(selectedTaskType);
+      return normalizedOrderType === normalizedSelectedType;
+    });
   }, [orders, selectedTaskType]);
 
-  // 작업별 개수 계산
+  // 작업별 개수 계산 (blog/blog_review, receipt/receipt_review 통합)
   const taskTypeCounts = useMemo(() => {
     const counts: Record<string, number> = { all: orders.length };
+    
+    // taskType을 정규화하는 함수 (blog/blog_review, receipt/receipt_review 통합)
+    const normalizeTaskType = (taskType: string): string => {
+      if (taskType === 'blog' || taskType === 'blog_review') {
+        return 'blog'; // 통합된 이름 사용
+      }
+      if (taskType === 'receipt' || taskType === 'receipt_review') {
+        return 'receipt'; // 통합된 이름 사용
+      }
+      return taskType;
+    };
+    
     orders.forEach(order => {
-      counts[order.taskType] = (counts[order.taskType] || 0) + 1;
+      const normalizedType = normalizeTaskType(order.taskType);
+      counts[normalizedType] = (counts[normalizedType] || 0) + 1;
     });
     return counts;
   }, [orders]);
 
-  // 작업 타입 목록 (실제 사용된 타입만)
+  // 작업 타입 목록 (실제 사용된 타입만, blog/blog_review, receipt/receipt_review 통합)
   const availableTaskTypes = useMemo(() => {
-    const types = new Set(orders.map(order => order.taskType));
+    // taskType을 정규화하는 함수
+    const normalizeTaskType = (taskType: string): string => {
+      if (taskType === 'blog' || taskType === 'blog_review') {
+        return 'blog';
+      }
+      if (taskType === 'receipt' || taskType === 'receipt_review') {
+        return 'receipt';
+      }
+      return taskType;
+    };
+    
+    const types = new Set(orders.map(order => normalizeTaskType(order.taskType)));
     return Array.from(types).sort();
   }, [orders]);
 
