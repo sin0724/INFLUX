@@ -738,7 +738,19 @@ export default function CompletedLinksView() {
   }, [orders, searchQuery, selectedClientId]);
 
   // 광고주별로 그룹화, 각 광고주 내에서 작업 타입별로 그룹화
+  // 'blog'와 'blog_review', 'receipt'와 'receipt_review'를 통합하여 처리
   const groupedByClientAndTaskType = useMemo(() => {
+    // taskType을 정규화하는 함수 (blog/blog_review, receipt/receipt_review 통합)
+    const normalizeTaskType = (taskType: string): string => {
+      if (taskType === 'blog' || taskType === 'blog_review') {
+        return 'blog_review'; // 통합된 이름 사용
+      }
+      if (taskType === 'receipt' || taskType === 'receipt_review') {
+        return 'receipt_review'; // 통합된 이름 사용
+      }
+      return taskType;
+    };
+
     return filteredOrders.reduce((acc, order) => {
       const clientId = order.client.id;
       if (!acc[clientId]) {
@@ -747,10 +759,12 @@ export default function CompletedLinksView() {
           taskTypes: {} as Record<string, Order[]>,
         };
       }
-      if (!acc[clientId].taskTypes[order.taskType]) {
-        acc[clientId].taskTypes[order.taskType] = [];
+      // 정규화된 taskType 사용
+      const normalizedTaskType = normalizeTaskType(order.taskType);
+      if (!acc[clientId].taskTypes[normalizedTaskType]) {
+        acc[clientId].taskTypes[normalizedTaskType] = [];
       }
-      acc[clientId].taskTypes[order.taskType].push(order);
+      acc[clientId].taskTypes[normalizedTaskType].push(order);
       return acc;
     }, {} as Record<string, { client: Order['client']; taskTypes: Record<string, Order[]> }>);
   }, [filteredOrders]);
