@@ -22,6 +22,8 @@ export default function ImageUpload({
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -108,6 +110,62 @@ export default function ImageUpload({
     }
   };
 
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    // 이미지 순서 재배열
+    const newImages = [...images];
+    const [draggedImage] = newImages.splice(draggedIndex, 1);
+    newImages.splice(dropIndex, 0, draggedImage);
+    onImagesChange(newImages);
+
+    // 대표사진 인덱스 조정
+    if (showFeaturedImageOption && onFeaturedImageChange) {
+      let newFeaturedIndex = featuredImageIndex;
+      
+      if (draggedIndex === featuredImageIndex) {
+        // 드래그된 이미지가 대표사진이었으면 새로운 위치로 이동
+        newFeaturedIndex = dropIndex;
+      } else if (draggedIndex < featuredImageIndex && dropIndex >= featuredImageIndex) {
+        // 드래그된 이미지가 대표사진보다 앞에 있고, 뒤로 이동한 경우
+        newFeaturedIndex = featuredImageIndex - 1;
+      } else if (draggedIndex > featuredImageIndex && dropIndex <= featuredImageIndex) {
+        // 드래그된 이미지가 대표사진보다 뒤에 있고, 앞으로 이동한 경우
+        newFeaturedIndex = featuredImageIndex + 1;
+      }
+      
+      onFeaturedImageChange(newFeaturedIndex);
+    }
+
+    setDraggedIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -143,35 +201,62 @@ export default function ImageUpload({
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {images.map((url, index) => {
             const isFeatured = showFeaturedImageOption && index === featuredImageIndex;
+            const isDragging = draggedIndex === index;
+            const isDragOver = dragOverIndex === index;
+            
             return (
-              <div key={index} className="relative group">
+              <div
+                key={index}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`relative group cursor-move ${
+                  isDragging ? 'opacity-50' : ''
+                }`}
+              >
                 <div 
                   className={`aspect-square relative rounded-lg overflow-hidden border-2 transition-all ${
                     isFeatured 
                       ? 'border-primary-500 ring-2 ring-primary-200' 
+                      : isDragOver
+                      ? 'border-blue-400 ring-2 ring-blue-200'
                       : 'border-gray-200'
-                  }`}
+                  } ${isDragging ? 'scale-95' : ''} ${isDragOver ? 'scale-105' : ''}`}
                 >
                   <Image
                     src={url}
                     alt={`Upload ${index + 1}`}
                     fill
-                    className="object-cover"
+                    className="object-cover pointer-events-none"
+                    draggable={false}
                   />
                   {isFeatured && (
-                    <div className="absolute top-2 left-2 bg-primary-500 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                    <div className="absolute top-2 left-2 bg-primary-500 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 z-10">
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                       대표사진
                     </div>
                   )}
+                  {/* 드래그 핸들 아이콘 */}
+                  <div className="absolute bottom-2 left-2 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                    </svg>
+                  </div>
                 </div>
                 <div className="absolute top-2 right-2 flex gap-1">
                   {showFeaturedImageOption && (
                     <button
                       type="button"
-                      onClick={() => setFeaturedImage(index)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFeaturedImage(index);
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
                       className={`rounded-full w-7 h-7 flex items-center justify-center transition-opacity ${
                         isFeatured 
                           ? 'bg-primary-500 text-white opacity-100' 
@@ -192,7 +277,11 @@ export default function ImageUpload({
                   )}
                   <button
                     type="button"
-                    onClick={() => removeImage(index)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeImage(index);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
                     className="bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold"
                     title="삭제"
                   >
@@ -203,6 +292,12 @@ export default function ImageUpload({
             );
           })}
         </div>
+      )}
+      
+      {images.length > 1 && (
+        <p className="text-xs text-gray-500 mt-2">
+          💡 이미지를 드래그하여 순서를 변경할 수 있습니다.
+        </p>
       )}
     </div>
   );
