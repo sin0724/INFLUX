@@ -32,6 +32,7 @@ const formatGuideText = (jsonGuide: string, companyName: string): string => {
 export default function BlogReviewForm({ user }: BlogReviewFormProps) {
   const router = useRouter();
   const [images, setImages] = useState<string[]>([]);
+  const [featuredImageIndex, setFeaturedImageIndex] = useState<number>(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState('');
   const [placeLink, setPlaceLink] = useState('');
@@ -109,6 +110,15 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
     };
     fetchUserGuide();
   }, [user]);
+
+  // 이미지가 추가될 때 첫 번째 이미지를 자동으로 대표사진으로 설정
+  useEffect(() => {
+    if (images.length > 0 && featuredImageIndex >= images.length) {
+      setFeaturedImageIndex(0);
+    } else if (images.length > 0 && featuredImageIndex < 0) {
+      setFeaturedImageIndex(0);
+    }
+  }, [images.length]);
 
   const handleSaveCurrentGuide = async () => {
     // 현재 입력한 내용을 읽기 쉬운 텍스트 형식으로 저장
@@ -214,6 +224,17 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
 5. 추가적인 요청사항 & 컨셉 & 필수삽입 내용 : ${additionalRequests || '(없음)'}`;
       }
 
+      // 대표사진을 첫 번째로 배치 (대표사진이 지정되지 않았으면 첫 번째 이미지가 대표사진)
+      const finalFeaturedIndex = featuredImageIndex >= 0 && featuredImageIndex < images.length 
+        ? featuredImageIndex 
+        : 0;
+      const reorderedImages = [...images];
+      if (finalFeaturedIndex > 0) {
+        // 대표사진을 첫 번째로 이동
+        const [featuredImage] = reorderedImages.splice(finalFeaturedIndex, 1);
+        reorderedImages.unshift(featuredImage);
+      }
+
       const response = await fetch('/api/orders/review-request', {
         method: 'POST',
         headers: {
@@ -221,7 +242,7 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
         },
         body: JSON.stringify({
           taskType: 'blog_review',
-          imageUrls: images,
+          imageUrls: reorderedImages,
           videoUrl: videoUrl,
           guideText: guideText,
           useSavedGuide: useSavedGuide && savedGuide ? true : false,
@@ -419,9 +440,23 @@ export default function BlogReviewForm({ user }: BlogReviewFormProps) {
             </label>
             <ImageUpload 
               images={images} 
-              onImagesChange={setImages}
+              onImagesChange={(newImages) => {
+                setImages(newImages);
+                // 이미지가 변경되면 대표사진 인덱스 조정
+                if (featuredImageIndex >= newImages.length) {
+                  setFeaturedImageIndex(0);
+                }
+              }}
               maxImages={20}
+              featuredImageIndex={featuredImageIndex}
+              onFeaturedImageChange={setFeaturedImageIndex}
+              showFeaturedImageOption={true}
             />
+            {images.length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                💡 별표 아이콘을 클릭하여 대표사진을 지정할 수 있습니다. 지정하지 않으면 첫 번째 사진이 대표사진이 됩니다.
+              </p>
+            )}
           </div>
 
           {/* 동영상 업로드 */}
