@@ -24,6 +24,8 @@ export default function ImageUpload({
   const [error, setError] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -166,6 +168,117 @@ export default function ImageUpload({
     setDragOverIndex(null);
   };
 
+  // 모바일 터치 이벤트 핸들러
+  const handleTouchStart = (e: React.TouchEvent, index: number) => {
+    // 버튼 클릭과 충돌 방지: 버튼이나 링크를 터치한 경우 드래그 시작하지 않음
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a')) {
+      return;
+    }
+    
+    const touch = e.touches[0];
+    setTouchStartY(touch.clientY);
+    setTouchStartIndex(index);
+    setDraggedIndex(index);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent, index: number) => {
+    if (touchStartIndex === null || touchStartY === null) return;
+    
+    const touch = e.touches[0];
+    const currentY = touch.clientY;
+    const deltaY = currentY - touchStartY;
+
+    // 스크롤 방지 (드래그 중일 때만)
+    if (Math.abs(deltaY) > 10) {
+      e.preventDefault();
+    }
+
+    // 현재 터치 위치가 다른 이미지 영역에 있는지 확인
+    const allImages = document.querySelectorAll('[data-image-index]');
+    let foundIndex: number | null = null;
+    
+    allImages.forEach((img) => {
+      const imgRect = img.getBoundingClientRect();
+      const imgIndex = parseInt((img as HTMLElement).dataset.imageIndex || '-1');
+      
+      if (
+        imgIndex !== touchStartIndex &&
+        touch.clientX >= imgRect.left &&
+        touch.clientX <= imgRect.right &&
+        touch.clientY >= imgRect.top &&
+        touch.clientY <= imgRect.bottom
+      ) {
+        foundIndex = imgIndex;
+      }
+    });
+
+    if (foundIndex !== null) {
+      setDragOverIndex(foundIndex);
+    } else {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, index: number) => {
+    if (touchStartIndex === null) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      setTouchStartY(null);
+      setTouchStartIndex(null);
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    
+    // 터치 종료 위치의 이미지 인덱스 찾기
+    let dropIndex = touchStartIndex;
+    
+    // dragOverIndex가 설정되어 있으면 그것을 사용, 아니면 터치 위치에서 찾기
+    if (dragOverIndex !== null) {
+      dropIndex = dragOverIndex;
+    } else {
+      const endElement = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (endElement) {
+        const imageElement = endElement.closest('[data-image-index]');
+        if (imageElement) {
+          const targetIndex = parseInt((imageElement as HTMLElement).dataset.imageIndex || '-1');
+          if (targetIndex >= 0 && targetIndex !== touchStartIndex) {
+            dropIndex = targetIndex;
+          }
+        }
+      }
+    }
+
+    // 드롭 처리 (드래그 앤 드롭과 동일한 로직)
+    if (touchStartIndex !== null && touchStartIndex !== dropIndex) {
+      const newImages = [...images];
+      const [draggedImage] = newImages.splice(touchStartIndex, 1);
+      newImages.splice(dropIndex, 0, draggedImage);
+      onImagesChange(newImages);
+
+      // 대표사진 인덱스 조정
+      if (showFeaturedImageOption && onFeaturedImageChange) {
+        let newFeaturedIndex = featuredImageIndex;
+        
+        if (touchStartIndex === featuredImageIndex) {
+          newFeaturedIndex = dropIndex;
+        } else if (touchStartIndex < featuredImageIndex && dropIndex >= featuredImageIndex) {
+          newFeaturedIndex = featuredImageIndex - 1;
+        } else if (touchStartIndex > featuredImageIndex && dropIndex <= featuredImageIndex) {
+          newFeaturedIndex = featuredImageIndex + 1;
+        }
+        
+        onFeaturedImageChange(newFeaturedIndex);
+      }
+    }
+
+    setTouchStartY(null);
+    setTouchStartIndex(null);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -207,15 +320,22 @@ export default function ImageUpload({
             return (
               <div
                 key={index}
+                data-image-index={index}
                 draggable
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`relative group cursor-move ${
+                onTouchStart={(e) => handleTouchStart(e, index)}
+                onTouchMove={(e) => handleTouchMove(e, index)}
+                onTouchEnd={(e) => handleTouchEnd(e, index)}
+                className={`relative group cursor-move touch-none ${
                   isDragging ? 'opacity-50' : ''
                 }`}
+                style={{
+                  touchAction: 'none',
+                }}
               >
                 <div 
                   className={`aspect-square relative rounded-lg overflow-hidden border-2 transition-all ${
