@@ -105,6 +105,7 @@ export default function ClientOrdersList() {
   const [selectedTaskType, setSelectedTaskType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'in_progress' | 'completed'>('all');
   const [userCompanyName, setUserCompanyName] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
     fetchOrders();
@@ -118,6 +119,9 @@ export default function ClientOrdersList() {
         const data = await response.json();
         if (data.user?.companyName) {
           setUserCompanyName(data.user.companyName);
+        }
+        if (data.user?.role) {
+          setUserRole(data.user.role);
         }
       }
     } catch (error) {
@@ -136,6 +140,42 @@ export default function ClientOrdersList() {
       console.error('Failed to fetch orders:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 관리자용 삭제 기능 (발행완료 상태이지만 링크가 없는 작업건만)
+  const handleDeleteOrder = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    // 발행완료 상태이지만 링크가 없는 경우만 삭제 가능
+    if (order.status !== 'published' || order.completedLink) {
+      alert('발행완료 상태이지만 링크가 없는 작업건만 삭제할 수 있습니다.');
+      return;
+    }
+
+    if (!confirm('정말 이 발주를 삭제하시겠습니까?\n발행완료 상태이지만 링크가 없는 작업건입니다.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchOrders();
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder(null);
+        }
+        alert('발주가 삭제되었습니다.');
+      } else {
+        const data = await response.json();
+        alert(data.error || '발주 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to delete order:', error);
+      alert('발주 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -680,6 +720,20 @@ export default function ClientOrdersList() {
                         </div>
                       </div>
                     )}
+                  
+                  {/* 관리자용 삭제 버튼 (발행완료 상태이지만 링크가 없는 경우만) */}
+                  {userRole === 'admin' || userRole === 'superadmin' ? (
+                    selectedOrder.status === 'published' && !selectedOrder.completedLink && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <button
+                          onClick={() => handleDeleteOrder(selectedOrder.id)}
+                          className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        >
+                          삭제 (관리자 전용)
+                        </button>
+                      </div>
+                    )
+                  ) : null}
                 </div>
               </div>
             </div>
