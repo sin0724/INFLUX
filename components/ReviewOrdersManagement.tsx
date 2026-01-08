@@ -554,7 +554,7 @@ export default function ReviewOrdersManagement() {
     });
 
     return filtered;
-  }, [orders, filters]);
+  }, [orders, filters.status]);
 
   return (
     <div className="min-h-screen bg-gray-50">
