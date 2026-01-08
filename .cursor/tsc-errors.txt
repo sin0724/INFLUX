@@ -1,0 +1,10 @@
+﻿components/ReviewOrdersManagement.tsx(484,6): error TS17008: JSX element 'div' has no corresponding closing tag.
+components/ReviewOrdersManagement.tsx(955,13): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+components/ReviewOrdersManagement.tsx(955,15): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+components/ReviewOrdersManagement.tsx(959,9): error TS1005: ',' expected.
+components/ReviewOrdersManagement.tsx(960,9): error TS1005: ',' expected.
+components/ReviewOrdersManagement.tsx(960,24): error TS1005: ',' expected.
+components/ReviewOrdersManagement.tsx(1324,10): error TS1005: ',' expected.
+components/ReviewOrdersManagement.tsx(1490,5): error TS1005: ')' expected.
+components/ReviewOrdersManagement.tsx(1492,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+components/ReviewOrdersManagement.tsx(1494,1): error TS1005: '</' expected.
