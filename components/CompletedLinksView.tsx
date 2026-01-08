@@ -141,11 +141,13 @@ export default function CompletedLinksView() {
       }));
 
       // 체험단(experience_applications) 조회
-      const experienceResponse = await fetch('/api/experience-applications', {
+      const experienceTimestamp = Date.now();
+      const experienceResponse = await fetch(`/api/experience-applications?_t=${experienceTimestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
+          'Expires': '0',
         },
       });
       const experienceData = experienceResponse.ok ? await experienceResponse.json() : { applications: [] };
@@ -298,7 +300,9 @@ export default function CompletedLinksView() {
       setReceiptLinks(['']);
       setClientSearchTerm('');
       setShowClientDropdown(false);
-      fetchCompletedOrders();
+      
+      // 링크 추가 후 즉시 새로고침 (캐싱 방지)
+      await fetchCompletedOrders();
     } catch (error) {
       console.error('Failed to add blog/receipt link:', error);
       alert('링크 추가 중 오류가 발생했습니다.');
@@ -399,7 +403,9 @@ export default function CompletedLinksView() {
       setMyexpenseReviewerName('');
       setMyexpenseClientSearchTerm('');
       setShowMyexpenseClientDropdown(false);
-      fetchCompletedOrders();
+      
+      // 링크 추가 후 즉시 새로고침 (캐싱 방지)
+      await fetchCompletedOrders();
     } catch (error) {
       console.error('Failed to add myexpense link:', error);
       alert('링크 추가 중 오류가 발생했습니다.');
@@ -633,7 +639,8 @@ export default function CompletedLinksView() {
       }
       alert(message);
       
-      fetchCompletedOrders();
+      // 링크 추가 후 즉시 새로고침 (캐싱 방지)
+      await fetchCompletedOrders();
     } catch (error: any) {
       console.error('Failed to upload excel:', error);
       alert('엑셀 파일 처리 중 오류가 발생했습니다: ' + error.message);
