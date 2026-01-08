@@ -125,6 +125,10 @@ export default function ReviewOrdersManagement() {
   
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
   
+  // 일괄 삭제를 위한 선택된 주문 ID 관리
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   // 원고 업로드 모달 상태 (리뷰 신청용)
   const [draftUploadOrder, setDraftUploadOrder] = useState<Order | null>(null);
   const [draftText, setDraftText] = useState('');
@@ -136,6 +140,11 @@ export default function ReviewOrdersManagement() {
   useEffect(() => {
     fetchClients();
     fetchOrders();
+  }, [filters]);
+  
+  // 필터 변경 시 선택 초기화
+  useEffect(() => {
+    setSelectedOrderIds(new Set());
   }, [filters]);
 
   const fetchClients = async () => {
@@ -428,6 +437,10 @@ export default function ReviewOrdersManagement() {
         if (selectedOrder?.id === orderId) {
           setSelectedOrder(null);
         }
+        // 선택된 목록에서도 제거
+        const newSelection = new Set(selectedOrderIds);
+        newSelection.delete(orderId);
+        setSelectedOrderIds(newSelection);
         alert('발주가 삭제되었습니다.');
       } else {
         const data = await response.json();
@@ -436,6 +449,102 @@ export default function ReviewOrdersManagement() {
     } catch (error) {
       console.error('Failed to delete order:', error);
       alert('발주 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 일괄 삭제 핸들러 (발행완료 상태이지만 링크가 없는 작업건만)
+  const handleBulkDelete = async () => {
+    const publishedNoLinkOrders = filteredOrders.filter(
+      (order) => order.status === 'published' && !order.completedLink
+    );
+    
+    const selectedPublishedNoLink = publishedNoLinkOrders.filter(
+      (order) => selectedOrderIds.has(order.id)
+    );
+
+    if (selectedPublishedNoLink.length === 0) {
+      alert('삭제할 작업건을 선택해주세요.\n발행완료 상태이지만 링크가 없는 작업건만 선택할 수 있습니다.');
+      return;
+    }
+
+    const orderDetails = selectedPublishedNoLink
+      .map((order) => `${order.client?.username || '알 수 없음'} - ${TASK_TYPE_NAMES[order.taskType] || order.taskType}`)
+      .join('\n');
+
+    if (!confirm(`정말로 선택한 ${selectedPublishedNoLink.length}개 작업건을 삭제하시겠습니까?\n\n선택된 작업건:\n${orderDetails}\n\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const deletePromises = selectedPublishedNoLink.map((order) =>
+        fetch(`/api/orders/${order.id}`, {
+          method: 'DELETE',
+        })
+      );
+
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter((res) => res.ok).length;
+      const failedCount = results.length - successCount;
+
+      if (successCount > 0) {
+        fetchOrders();
+        setSelectedOrderIds(new Set());
+        if (selectedOrder && selectedPublishedNoLink.some((o) => o.id === selectedOrder.id)) {
+          setSelectedOrder(null);
+        }
+      }
+
+      if (failedCount > 0) {
+        alert(`성공: ${successCount}개, 실패: ${failedCount}개 작업건이 삭제되었습니다.`);
+      } else {
+        alert(`성공적으로 ${successCount}개 작업건을 삭제했습니다.`);
+      }
+    } catch (error) {
+      console.error('Failed to bulk delete:', error);
+      alert('일괄 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // 주문 선택 토글
+  const toggleOrderSelection = (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    // 발행완료 상태이지만 링크가 없는 작업건만 선택 가능
+    if (order && order.status === 'published' && !order.completedLink) {
+      const newSelection = new Set(selectedOrderIds);
+      if (newSelection.has(orderId)) {
+        newSelection.delete(orderId);
+      } else {
+        newSelection.add(orderId);
+      }
+      setSelectedOrderIds(newSelection);
+    }
+  };
+
+  // 전체 선택/해제 (발행완료 상태이지만 링크가 없는 작업건만)
+  const toggleSelectAll = () => {
+    const publishedNoLinkOrders = filteredOrders.filter(
+      (order) => order.status === 'published' && !order.completedLink
+    );
+    
+    if (publishedNoLinkOrders.length === 0) {
+      return;
+    }
+
+    const allSelected = publishedNoLinkOrders.every((order) => selectedOrderIds.has(order.id));
+    
+    if (allSelected) {
+      // 모두 선택되어 있으면 모두 해제
+      const newSelection = new Set(selectedOrderIds);
+      publishedNoLinkOrders.forEach((order) => newSelection.delete(order.id));
+      setSelectedOrderIds(newSelection);
+    } else {
+      // 일부만 선택되어 있거나 아무것도 선택되지 않았으면 모두 선택
+      const newSelection = new Set(selectedOrderIds);
+      publishedNoLinkOrders.forEach((order) => newSelection.add(order.id));
+      setSelectedOrderIds(newSelection);
     }
   };
 
@@ -752,6 +861,39 @@ export default function ReviewOrdersManagement() {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* 일괄 삭제 컨트롤 (발행완료 상태이지만 링크가 없는 작업건만) */}
+            {filteredOrders.some((order) => order.status === 'published' && !order.completedLink) && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="px-3 py-1.5 text-sm border border-red-300 rounded text-red-700 hover:bg-red-100 transition"
+                  >
+                    {filteredOrders
+                      .filter((order) => order.status === 'published' && !order.completedLink)
+                      .every((order) => selectedOrderIds.has(order.id))
+                      ? '전체 해제'
+                      : '전체 선택'}
+                  </button>
+                  <span className="text-sm text-red-700">
+                    발행완료 상태이지만 링크가 없는 작업건: {filteredOrders.filter((order) => order.status === 'published' && !order.completedLink).length}개
+                    {selectedOrderIds.size > 0 && ` (${selectedOrderIds.size}개 선택됨)`}
+                  </span>
+                </div>
+                {selectedOrderIds.size > 0 && (
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={isDeleting}
+                    className="px-4 py-2 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    {isDeleting ? '삭제 중...' : `일괄 삭제 (${selectedOrderIds.size}개)`}
+                  </button>
+                )}
+              </div>
+            )}
             {filteredOrders.map((order) => {
               const waitingDays = order.status === 'pending' ? getWaitingDays(order.createdAt) : 0;
               const isPending = order.status === 'pending';
@@ -761,15 +903,26 @@ export default function ReviewOrdersManagement() {
                 <div
                   key={order.id}
                   className={`rounded-lg border p-4 hover:bg-gray-50 transition cursor-pointer ${
-                  isPending 
-                    ? 'bg-yellow-50 border-yellow-200' 
-                    : isPublishedNoLink
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-white border-gray-200'
-                }`}
-                onClick={() => setSelectedOrder(order)}
-              >
-                <div className="flex items-start justify-between gap-3">
+                    isPending 
+                      ? 'bg-yellow-50 border-yellow-200' 
+                      : isPublishedNoLink
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-white border-gray-200'
+                  }`}
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    {/* 체크박스 (발행완료 상태이지만 링크가 없는 작업건만) */}
+                    {isPublishedNoLink && (
+                      <div className="flex-shrink-0 pt-1" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedOrderIds.has(order.id)}
+                          onChange={() => toggleOrderSelection(order.id)}
+                          className="w-5 h-5 text-red-600 border-red-300 rounded focus:ring-red-500 cursor-pointer"
+                        />
+                      </div>
+                    )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-medium">
