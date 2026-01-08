@@ -46,6 +46,7 @@ const TASK_TYPE_NAMES: Record<string, string> = {
 
 const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
+  working: '진행중',
   draft_uploaded: '원고 업로드 완료',
   revision_requested: '원고 수정요청',
   draft_revised: '원고 수정완료',
@@ -90,6 +91,10 @@ export default function ReviewOrdersManagement() {
   // 원고 업로드 모달 상태 (리뷰 신청용)
   const [draftUploadOrder, setDraftUploadOrder] = useState<Order | null>(null);
   const [draftText, setDraftText] = useState('');
+  
+  // 원고 수정 모달 상태 (수정 요청 후 수정 완료용)
+  const [revisionRequestOrder, setRevisionRequestOrder] = useState<Order | null>(null);
+  const [revisionText, setRevisionText] = useState('');
   
   // 발행 완료 모달 상태
   const [publishingOrder, setPublishingOrder] = useState<Order | null>(null);
@@ -190,6 +195,13 @@ export default function ReviewOrdersManagement() {
       return;
     }
     
+    // 원고 수정 완료 상태로 변경할 때 수정된 원고 입력 모달 표시
+    if (newStatus === 'draft_revised' && order) {
+      setRevisionRequestOrder(order);
+      setRevisionText(order.revisionText || order.draftText || '');
+      return;
+    }
+    
     // 발행 완료 상태로 변경할 때 완료 링크 입력 모달 표시
     if (newStatus === 'published' && order) {
       setPublishingOrder(order);
@@ -201,7 +213,7 @@ export default function ReviewOrdersManagement() {
     await updateOrderStatus(orderId, newStatus, null);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null, draftText?: string | null) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string, link: string | null, draftText?: string | null, revisionText?: string | null) => {
     try {
       const requestBody: any = { 
         status: newStatus,
@@ -213,6 +225,10 @@ export default function ReviewOrdersManagement() {
       
       if (draftText !== undefined) {
         requestBody.draftText = draftText;
+      }
+      
+      if (revisionText !== undefined) {
+        requestBody.revisionText = revisionText;
       }
       
       const response = await fetch(`/api/orders/${orderId}`, {
@@ -250,6 +266,19 @@ export default function ReviewOrdersManagement() {
     await updateOrderStatus(draftUploadOrder.id, 'draft_uploaded', null, draftText.trim());
     setDraftUploadOrder(null);
     setDraftText('');
+  };
+
+  const handleSaveRevision = async () => {
+    if (!revisionRequestOrder) return;
+    
+    if (!revisionText.trim()) {
+      alert('수정된 원고 내용을 입력해주세요.');
+      return;
+    }
+    
+    await updateOrderStatus(revisionRequestOrder.id, 'draft_revised', null, undefined, revisionText.trim());
+    setRevisionRequestOrder(null);
+    setRevisionText('');
   };
 
   const handlePublish = async () => {
@@ -396,9 +425,10 @@ export default function ReviewOrdersManagement() {
 
   // 상태별 개수 계산 (리뷰 발주 전용)
   const statusCounts = useMemo(() => {
-    const counts = { pending: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
+    const counts = { pending: 0, working: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
     orders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
+      else if (order.status === 'working') counts.working++;
       else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
       else if (order.status === 'revision_requested') counts.revision_requested++;
       else if (order.status === 'draft_revised') counts.draft_revised++;
@@ -448,7 +478,7 @@ export default function ReviewOrdersManagement() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
           <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -766,6 +796,8 @@ export default function ReviewOrdersManagement() {
                             ? 'bg-yellow-100 text-yellow-700'
                             : order.status === 'draft_uploaded'
                             ? 'bg-blue-100 text-blue-700'
+                            : order.status === 'working'
+                            ? 'bg-cyan-100 text-cyan-700'
                             : order.status === 'revision_requested'
                             ? 'bg-orange-100 text-orange-700'
                             : order.status === 'draft_revised'
@@ -852,6 +884,7 @@ export default function ReviewOrdersManagement() {
                       {/* 블로그 리뷰와 영수증 리뷰만 원고 업로드 가능 */}
                       {(order.taskType === 'blog_review' || order.taskType === 'receipt_review') && (
                         <>
+                          <option value="working">진행중</option>
                           <option value="draft_uploaded">원고 업로드 완료</option>
                           {/* draft_uploaded 상태일 때 수정요청 또는 승인완료 가능 */}
                           {order.status === 'draft_uploaded' && (
@@ -971,6 +1004,7 @@ export default function ReviewOrdersManagement() {
                       {/* 블로그 리뷰와 영수증 리뷰만 원고 업로드 가능 */}
                       {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && (
                         <>
+                          <option value="working">진행중</option>
                           <option value="draft_uploaded">원고 업로드 완료</option>
                           {/* draft_uploaded 상태일 때 수정요청 또는 승인완료 가능 */}
                           {selectedOrder.status === 'draft_uploaded' && (
@@ -1263,6 +1297,91 @@ export default function ReviewOrdersManagement() {
                       className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                     >
                       원고 업로드
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Revision Modal - 원고 수정 완료 */}
+        {revisionRequestOrder && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setRevisionRequestOrder(null);
+              setRevisionText('');
+            }}
+          >
+            <div
+              className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    원고 수정 완료
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setRevisionRequestOrder(null);
+                      setRevisionText('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2">작업 종류</div>
+                    <div className="font-medium text-gray-900">
+                      {TASK_TYPE_NAMES[revisionRequestOrder.taskType] || revisionRequestOrder.taskType}
+                    </div>
+                  </div>
+                  
+                  {revisionRequestOrder.revisionRequest && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <div className="text-sm font-medium text-yellow-900 mb-2">수정 요청 내용</div>
+                      <div className="text-sm text-yellow-800 whitespace-pre-wrap">
+                        {revisionRequestOrder.revisionRequest}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      수정된 원고 내용 <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={revisionText}
+                      onChange={(e) => setRevisionText(e.target.value)}
+                      rows={20}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono text-sm"
+                      placeholder="수정된 원고 내용을 입력해주세요"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      광고주의 수정 요청에 따라 수정한 원고 내용을 입력해주세요.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setRevisionRequestOrder(null);
+                        setRevisionText('');
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleSaveRevision}
+                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                    >
+                      수정 완료 처리
                     </button>
                   </div>
                 </div>
