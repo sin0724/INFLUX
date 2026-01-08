@@ -427,6 +427,47 @@ export default function CompletedLinksView() {
     }
   };
 
+  // 검색어 및 클라이언트 필터로 필터링
+  const filteredOrders = useMemo(() => {
+    let filtered = orders;
+
+    // 클라이언트 필터 적용
+    if (selectedClientId) {
+      filtered = filtered.filter((order) => order.client?.id === selectedClientId);
+    }
+
+    // 검색어 필터 적용
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((order) => {
+        // 광고주 이름 검색
+        const clientName = order.client?.username?.toLowerCase() || '';
+        const companyName = order.client?.companyName?.toLowerCase() || '';
+        
+        // 작업 종류 검색
+        const taskTypeName = TASK_TYPE_NAMES[order.taskType]?.toLowerCase() || '';
+        
+        // 링크 URL 검색
+        const link = order.completedLink?.toLowerCase() || '';
+        const link2 = (order as any).completedLink2?.toLowerCase() || '';
+        
+        // 작업 정보 검색
+        const caption = order.caption?.toLowerCase() || '';
+        
+        return (
+          clientName.includes(query) ||
+          companyName.includes(query) ||
+          taskTypeName.includes(query) ||
+          link.includes(query) ||
+          link2.includes(query) ||
+          caption.includes(query)
+        );
+      });
+    }
+
+    return filtered;
+  }, [orders, searchQuery, selectedClientId]);
+
   // 완료된 링크를 TXT 파일로 다운로드 (전체 또는 특정 업체)
   const downloadCompletedLinksAsTxt = (clientId?: string) => {
     let ordersToDownload = filteredOrders;
@@ -731,47 +772,6 @@ export default function CompletedLinksView() {
       setDeletingOrderId(null);
     }
   };
-
-  // 검색어 및 클라이언트 필터로 필터링
-  const filteredOrders = useMemo(() => {
-    let filtered = orders;
-
-    // 클라이언트 필터 적용
-    if (selectedClientId) {
-      filtered = filtered.filter((order) => order.client?.id === selectedClientId);
-    }
-
-    // 검색어 필터 적용
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((order) => {
-        // 광고주 이름 검색
-        const clientName = order.client?.username?.toLowerCase() || '';
-        const companyName = order.client?.companyName?.toLowerCase() || '';
-        
-        // 작업 종류 검색
-        const taskTypeName = TASK_TYPE_NAMES[order.taskType]?.toLowerCase() || '';
-        
-        // 링크 URL 검색
-        const link = order.completedLink?.toLowerCase() || '';
-        const link2 = (order as any).completedLink2?.toLowerCase() || '';
-        
-        // 작업 정보 검색
-        const caption = order.caption?.toLowerCase() || '';
-        
-        return (
-          clientName.includes(query) ||
-          companyName.includes(query) ||
-          taskTypeName.includes(query) ||
-          link.includes(query) ||
-          link2.includes(query) ||
-          caption.includes(query)
-        );
-      });
-    }
-
-    return filtered;
-  }, [orders, searchQuery, selectedClientId]);
 
   // 정렬: 최신순으로 정렬
   const sortedOrders = useMemo(() => {
