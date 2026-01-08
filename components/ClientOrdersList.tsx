@@ -103,6 +103,7 @@ export default function ClientOrdersList() {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedTaskType, setSelectedTaskType] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'in_progress' | 'completed'>('all');
   const [userCompanyName, setUserCompanyName] = useState<string>('');
 
   useEffect(() => {
@@ -138,10 +139,34 @@ export default function ClientOrdersList() {
     }
   };
 
+  // 상태별 필터링
+  const statusFilteredOrders = useMemo(() => {
+    if (selectedStatus === 'all') {
+      return orders;
+    } else if (selectedStatus === 'completed') {
+      // 완료: status가 'done' 또는 'published'이고 completedLink가 있는 경우
+      return orders.filter(order => {
+        const isCompletedStatus = order.status === 'done' || order.status === 'published';
+        const hasLink = order.completedLink || (order as any).completedLink2;
+        return isCompletedStatus && hasLink;
+      });
+    } else if (selectedStatus === 'in_progress') {
+      // 진행중: 완료되지 않은 모든 주문
+      return orders.filter(order => {
+        const isCompletedStatus = order.status === 'done' || order.status === 'published';
+        const hasLink = order.completedLink || (order as any).completedLink2;
+        return !(isCompletedStatus && hasLink);
+      });
+    }
+    return orders;
+  }, [orders, selectedStatus]);
+
   // 작업별 필터링 (blog/blog_review, receipt/receipt_review 통합)
   const filteredOrders = useMemo(() => {
+    let filtered = statusFilteredOrders;
+    
     if (selectedTaskType === 'all') {
-      return orders;
+      return filtered;
     }
     
     // taskType을 정규화하는 함수
@@ -155,24 +180,34 @@ export default function ClientOrdersList() {
       return taskType;
     };
     
-    return orders.filter(order => {
+    return filtered.filter(order => {
       const normalizedOrderType = normalizeTaskType(order.taskType);
       const normalizedSelectedType = normalizeTaskType(selectedTaskType);
       return normalizedOrderType === normalizedSelectedType;
     });
-  }, [orders, selectedTaskType]);
+  }, [statusFilteredOrders, selectedTaskType]);
 
-  // 작업별 개수 계산 (blog/blog_review, receipt/receipt_review 통합)
-  // 완료된 링크가 있는 주문만 카운트 (status가 'done' 또는 'published'이고 completedLink가 있는 경우)
-  const taskTypeCounts = useMemo(() => {
-    // 완료된 링크가 있는 주문만 필터링
-    const completedOrders = orders.filter(order => {
+  // 상태별 개수 계산
+  const statusCounts = useMemo(() => {
+    const allCount = orders.length;
+    const completedCount = orders.filter(order => {
       const isCompletedStatus = order.status === 'done' || order.status === 'published';
       const hasLink = order.completedLink || (order as any).completedLink2;
       return isCompletedStatus && hasLink;
-    });
+    }).length;
+    const inProgressCount = allCount - completedCount;
     
-    const counts: Record<string, number> = { all: completedOrders.length };
+    return {
+      all: allCount,
+      completed: completedCount,
+      in_progress: inProgressCount,
+    };
+  }, [orders]);
+
+  // 작업별 개수 계산 (blog/blog_review, receipt/receipt_review 통합)
+  // 선택된 상태에 따라 카운트
+  const taskTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: statusFilteredOrders.length };
     
     // taskType을 정규화하는 함수 (blog/blog_review, receipt/receipt_review 통합)
     const normalizeTaskType = (taskType: string): string => {
@@ -185,12 +220,12 @@ export default function ClientOrdersList() {
       return taskType;
     };
     
-    completedOrders.forEach(order => {
+    statusFilteredOrders.forEach(order => {
       const normalizedType = normalizeTaskType(order.taskType);
       counts[normalizedType] = (counts[normalizedType] || 0) + 1;
     });
     return counts;
-  }, [orders]);
+  }, [statusFilteredOrders]);
 
   // 작업 타입 목록 (실제 사용된 타입만, blog/blog_review, receipt/receipt_review 통합)
   const availableTaskTypes = useMemo(() => {
@@ -236,6 +271,42 @@ export default function ClientOrdersList() {
           </div>
         ) : (
           <>
+            {/* 상태별 필터 탭 */}
+            <div className="mb-3 bg-white rounded-lg border border-gray-200 p-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedStatus('all')}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition ${
+                    selectedStatus === 'all'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  전체 ({statusCounts.all})
+                </button>
+                <button
+                  onClick={() => setSelectedStatus('in_progress')}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition ${
+                    selectedStatus === 'in_progress'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  진행중 ({statusCounts.in_progress})
+                </button>
+                <button
+                  onClick={() => setSelectedStatus('completed')}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition ${
+                    selectedStatus === 'completed'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  완료 ({statusCounts.completed})
+                </button>
+              </div>
+            </div>
+
             {/* 작업별 필터 탭 */}
             <div className="mb-4 bg-white rounded-lg border border-gray-200 p-2">
               <div className="flex flex-wrap gap-1.5">
