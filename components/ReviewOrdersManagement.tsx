@@ -66,6 +66,7 @@ const getWaitingDays = (createdAt: string): number => {
 export default function ReviewOrdersManagement() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]); // 상태 카운트용 전체 주문 목록
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -105,6 +106,11 @@ export default function ReviewOrdersManagement() {
     fetchOrders();
   }, [filters]);
 
+  // 초기 로드 시 전체 주문 목록 가져오기 (상태 카운트용)
+  useEffect(() => {
+    fetchAllOrders();
+  }, []);
+
   const fetchClients = async () => {
     try {
       const response = await fetch('/api/users');
@@ -118,9 +124,28 @@ export default function ReviewOrdersManagement() {
     }
   };
 
+  // 전체 주문 목록 가져오기 (상태 카운트용)
+  const fetchAllOrders = async () => {
+    try {
+      const [blogRes, receiptRes] = await Promise.all([
+        fetch('/api/orders?taskType=blog_review'),
+        fetch('/api/orders?taskType=receipt_review')
+      ]);
+      const blogData = blogRes.ok ? await blogRes.json() : { orders: [] };
+      const receiptData = receiptRes.ok ? await receiptRes.json() : { orders: [] };
+      const all = [...(blogData.orders || []), ...(receiptData.orders || [])];
+      setAllOrders(all);
+    } catch (error) {
+      console.error('Failed to fetch all orders:', error);
+    }
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
+      // 전체 주문 목록도 함께 가져오기 (상태 카운트용)
+      await fetchAllOrders();
+      
       // 리뷰 발주만 조회 (blog_review, receipt_review)
       const params = new URLSearchParams();
       
@@ -140,20 +165,20 @@ export default function ReviewOrdersManagement() {
         ]);
         const blogData = blogRes.ok ? await blogRes.json() : { orders: [] };
         const receiptData = receiptRes.ok ? await receiptRes.json() : { orders: [] };
-        let allOrders = [...(blogData.orders || []), ...(receiptData.orders || [])];
+        let filteredOrders = [...(blogData.orders || []), ...(receiptData.orders || [])];
         
         // 클라이언트 사이드 추가 필터링
         if (filters.clientId) {
-          allOrders = allOrders.filter((o: Order) => o.client?.id === filters.clientId);
+          filteredOrders = filteredOrders.filter((o: Order) => o.client?.id === filters.clientId);
         }
         if (filters.startDate) {
-          allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) >= new Date(filters.startDate));
+          filteredOrders = filteredOrders.filter((o: Order) => new Date(o.createdAt) >= new Date(filters.startDate));
         }
         if (filters.endDate) {
-          allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) <= new Date(filters.endDate + 'T23:59:59'));
+          filteredOrders = filteredOrders.filter((o: Order) => new Date(o.createdAt) <= new Date(filters.endDate + 'T23:59:59'));
         }
         
-        setOrders(allOrders);
+        setOrders(filteredOrders);
         setLoading(false);
         return;
       }
@@ -164,20 +189,20 @@ export default function ReviewOrdersManagement() {
 
       const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
-      let allOrders = ordersData.orders || [];
+      let filteredOrders = ordersData.orders || [];
       
       // 클라이언트 사이드 추가 필터링
       if (filters.clientId) {
-        allOrders = allOrders.filter((o: Order) => o.client?.id === filters.clientId);
+        filteredOrders = filteredOrders.filter((o: Order) => o.client?.id === filters.clientId);
       }
       if (filters.startDate) {
-        allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) >= new Date(filters.startDate));
+        filteredOrders = filteredOrders.filter((o: Order) => new Date(o.createdAt) >= new Date(filters.startDate));
       }
       if (filters.endDate) {
-        allOrders = allOrders.filter((o: Order) => new Date(o.createdAt) <= new Date(filters.endDate + 'T23:59:59'));
+        filteredOrders = filteredOrders.filter((o: Order) => new Date(o.createdAt) <= new Date(filters.endDate + 'T23:59:59'));
       }
       
-      setOrders(allOrders);
+      setOrders(filteredOrders);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {
@@ -423,10 +448,10 @@ export default function ReviewOrdersManagement() {
     }
   };
 
-  // 상태별 개수 계산 (리뷰 발주 전용)
+  // 상태별 개수 계산 (리뷰 발주 전용) - 전체 주문 목록 기준
   const statusCounts = useMemo(() => {
     const counts = { pending: 0, working: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
-    orders.forEach((order) => {
+    allOrders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
       else if (order.status === 'working') counts.working++;
       else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
@@ -436,7 +461,7 @@ export default function ReviewOrdersManagement() {
       else if (order.status === 'published') counts.published++;
     });
     return counts;
-  }, [orders]);
+  }, [allOrders]);
 
   // 필터링 및 정렬된 주문 목록 (리뷰 발주 전용)
   const filteredOrders = useMemo(() => {
@@ -498,6 +523,25 @@ export default function ReviewOrdersManagement() {
               대기중 작업 보기
             </button>
           </div>
+          <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl p-4 border-2 border-cyan-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-cyan-700 mb-1">진행중 작업</div>
+                <div className="text-3xl font-bold text-cyan-900">{statusCounts.working}</div>
+              </div>
+              <div className="w-12 h-12 bg-cyan-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-cyan-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'working' })}
+              className="mt-3 w-full px-3 py-1.5 bg-cyan-200 hover:bg-cyan-300 text-cyan-800 rounded-lg text-sm font-medium transition"
+            >
+              진행중 작업 보기
+            </button>
+          </div>
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border-2 border-blue-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -515,6 +559,25 @@ export default function ReviewOrdersManagement() {
               className="mt-3 w-full px-3 py-1.5 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg text-sm font-medium transition"
             >
               원고 업로드 완료 보기
+            </button>
+          </div>
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border-2 border-orange-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-orange-700 mb-1">원고 수정요청</div>
+                <div className="text-3xl font-bold text-orange-900">{statusCounts.revision_requested}</div>
+              </div>
+              <div className="w-12 h-12 bg-orange-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'revision_requested' })}
+              className="mt-3 w-full px-3 py-1.5 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-lg text-sm font-medium transition"
+            >
+              원고 수정요청 보기
             </button>
           </div>
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200 shadow-sm">
