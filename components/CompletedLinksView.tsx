@@ -116,6 +116,8 @@ export default function CompletedLinksView() {
       const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       
+      console.log(`[DEBUG] 관리자 완료된 링크 모아보기 - 전체 주문 개수: ${(ordersData.orders || []).length}`);
+      
       // 광고주 화면과 동일한 기준: status가 'done' 또는 'published'이고 completedLink가 있는 주문만 표시
       const completedOrders = (ordersData.orders || []).filter(
         (order: Order) => {
@@ -123,6 +125,12 @@ export default function CompletedLinksView() {
           const isCompletedStatus = order.status === 'done' || order.status === 'published';
           // 링크가 있는지 확인
           const hasLink = order.completedLink || (order as any).completedLink2;
+          
+          // 디버깅: 필터링되지 않는 주문 로그
+          if (!isCompletedStatus || !hasLink) {
+            console.log(`[DEBUG] 필터링 제외 - 주문ID: ${order.id}, 상태: ${order.status}, 링크: ${order.completedLink ? '있음' : '없음'}, taskType: ${order.taskType}`);
+          }
+          
           return isCompletedStatus && hasLink;
         }
       ).map((order: any) => ({
@@ -132,6 +140,8 @@ export default function CompletedLinksView() {
         completedLink2: order.completedLink2 || null,
         reviewerName: order.reviewerName || null,
       }));
+      
+      console.log(`[DEBUG] 관리자 완료된 링크 모아보기 - 필터링된 완료 주문 개수: ${completedOrders.length}`);
 
       // 체험단(experience_applications) 조회
       const experienceResponse = await fetch('/api/experience-applications');

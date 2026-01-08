@@ -163,8 +163,16 @@ export default function ClientOrdersList() {
   }, [orders, selectedTaskType]);
 
   // 작업별 개수 계산 (blog/blog_review, receipt/receipt_review 통합)
+  // 완료된 링크가 있는 주문만 카운트 (status가 'done' 또는 'published'이고 completedLink가 있는 경우)
   const taskTypeCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: orders.length };
+    // 완료된 링크가 있는 주문만 필터링
+    const completedOrders = orders.filter(order => {
+      const isCompletedStatus = order.status === 'done' || order.status === 'published';
+      const hasLink = order.completedLink || (order as any).completedLink2;
+      return isCompletedStatus && hasLink;
+    });
+    
+    const counts: Record<string, number> = { all: completedOrders.length };
     
     // taskType을 정규화하는 함수 (blog/blog_review, receipt/receipt_review 통합)
     const normalizeTaskType = (taskType: string): string => {
@@ -177,7 +185,7 @@ export default function ClientOrdersList() {
       return taskType;
     };
     
-    orders.forEach(order => {
+    completedOrders.forEach(order => {
       const normalizedType = normalizeTaskType(order.taskType);
       counts[normalizedType] = (counts[normalizedType] || 0) + 1;
     });
