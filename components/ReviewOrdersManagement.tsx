@@ -758,9 +758,9 @@ export default function ReviewOrdersManagement() {
               const isPublishedNoLink = order.status === 'published' && !order.completedLink;
               
               return (
-              <div
-                key={order.id}
-                className={`rounded-lg border p-4 hover:bg-gray-50 transition cursor-pointer ${
+                <div
+                  key={order.id}
+                  className={`rounded-lg border p-4 hover:bg-gray-50 transition cursor-pointer ${
                   isPending 
                     ? 'bg-yellow-50 border-yellow-200' 
                     : isPublishedNoLink
