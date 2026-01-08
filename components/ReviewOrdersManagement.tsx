@@ -450,20 +450,28 @@ export default function ReviewOrdersManagement() {
     }
   };
 
-  // 상태별 개수 계산 (리뷰 발주 전용) - 전체 주문 목록 기준
+  // 상태별 개수 계산 (리뷰 발주 전용)
+  // 발행완료는 전체 개수, 나머지는 현재 필터링된 주문 기준
   const statusCounts = useMemo(() => {
     const counts = { pending: 0, working: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
+    
+    // 발행완료는 전체 주문 목록 기준
     allOrders.forEach((order) => {
+      if (order.status === 'published') counts.published++;
+    });
+    
+    // 나머지 상태는 현재 필터링된 주문 목록 기준
+    orders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
       else if (order.status === 'working') counts.working++;
       else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
       else if (order.status === 'revision_requested') counts.revision_requested++;
       else if (order.status === 'draft_revised') counts.draft_revised++;
       else if (order.status === 'client_approved') counts.client_approved++;
-      else if (order.status === 'published') counts.published++;
     });
+    
     return counts;
-  }, [allOrders]);
+  }, [allOrders, orders]);
 
   // 필터링 및 정렬된 주문 목록 (리뷰 발주 전용)
   const filteredOrders = useMemo(() => {
