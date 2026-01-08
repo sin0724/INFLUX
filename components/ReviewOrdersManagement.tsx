@@ -11,7 +11,7 @@ interface Order {
   taskType: string;
   caption: string | null;
   imageUrls: string[];
-  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed' | 'draft_uploaded' | 'revision_requested' | 'client_approved' | 'published';
+  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed' | 'draft_uploaded' | 'revision_requested' | 'draft_revised' | 'client_approved' | 'published';
   completedLink?: string | null;
   draftText?: string | null;
   revisionText?: string | null;
@@ -47,6 +47,9 @@ const TASK_TYPE_NAMES: Record<string, string> = {
 const STATUS_NAMES: Record<string, string> = {
   pending: '대기중',
   draft_uploaded: '원고 업로드 완료',
+  revision_requested: '원고 수정요청',
+  draft_revised: '원고 수정완료',
+  client_approved: '승인완료',
   published: '발행 완료',
 };
 
@@ -393,10 +396,13 @@ export default function ReviewOrdersManagement() {
 
   // 상태별 개수 계산 (리뷰 발주 전용)
   const statusCounts = useMemo(() => {
-    const counts = { pending: 0, draft_uploaded: 0, published: 0 };
+    const counts = { pending: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
     orders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
       else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
+      else if (order.status === 'revision_requested') counts.revision_requested++;
+      else if (order.status === 'draft_revised') counts.draft_revised++;
+      else if (order.status === 'client_approved') counts.client_approved++;
       else if (order.status === 'published') counts.published++;
     });
     return counts;
@@ -442,7 +448,7 @@ export default function ReviewOrdersManagement() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -479,6 +485,25 @@ export default function ReviewOrdersManagement() {
               className="mt-3 w-full px-3 py-1.5 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg text-sm font-medium transition"
             >
               원고 업로드 완료 보기
+            </button>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-purple-700 mb-1">승인완료</div>
+                <div className="text-3xl font-bold text-purple-900">{statusCounts.client_approved}</div>
+              </div>
+              <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'client_approved' })}
+              className="mt-3 w-full px-3 py-1.5 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-lg text-sm font-medium transition"
+            >
+              승인완료 보기
             </button>
           </div>
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200 shadow-sm">
@@ -557,6 +582,9 @@ export default function ReviewOrdersManagement() {
                 <option value="">전체</option>
                 <option value="pending">대기중</option>
                 <option value="draft_uploaded">원고 업로드 완료</option>
+                <option value="revision_requested">원고 수정요청</option>
+                <option value="draft_revised">원고 수정완료</option>
+                <option value="client_approved">승인완료</option>
                 <option value="published">발행 완료</option>
               </select>
             </div>
@@ -740,8 +768,10 @@ export default function ReviewOrdersManagement() {
                             ? 'bg-blue-100 text-blue-700'
                             : order.status === 'revision_requested'
                             ? 'bg-orange-100 text-orange-700'
-                            : order.status === 'client_approved'
+                            : order.status === 'draft_revised'
                             ? 'bg-purple-100 text-purple-700'
+                            : order.status === 'client_approved'
+                            ? 'bg-indigo-100 text-indigo-700'
                             : order.status === 'published'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-gray-100 text-gray-700'
@@ -819,8 +849,39 @@ export default function ReviewOrdersManagement() {
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">대기중</option>
-                      <option value="draft_uploaded">원고 업로드 완료</option>
-                      <option value="published">발행 완료</option>
+                      {/* 블로그 리뷰와 영수증 리뷰만 원고 업로드 가능 */}
+                      {(order.taskType === 'blog_review' || order.taskType === 'receipt_review') && (
+                        <>
+                          <option value="draft_uploaded">원고 업로드 완료</option>
+                          {/* draft_uploaded 상태일 때 수정요청 또는 승인완료 가능 */}
+                          {order.status === 'draft_uploaded' && (
+                            <>
+                              <option value="revision_requested">원고 수정요청</option>
+                              <option value="client_approved">승인완료</option>
+                            </>
+                          )}
+                          {/* revision_requested 상태일 때 수정완료 가능 */}
+                          {order.status === 'revision_requested' && (
+                            <option value="draft_revised">원고 수정완료</option>
+                          )}
+                          {/* draft_revised 상태일 때 승인완료 가능 */}
+                          {order.status === 'draft_revised' && (
+                            <option value="client_approved">승인완료</option>
+                          )}
+                          {/* client_approved 상태일 때 발행완료 가능 */}
+                          {order.status === 'client_approved' && (
+                            <option value="published">발행 완료</option>
+                          )}
+                          {/* published 상태일 때 롤백 가능 */}
+                          {order.status === 'published' && (
+                            <option value="client_approved">승인완료로 되돌리기</option>
+                          )}
+                        </>
+                      )}
+                      {/* 다른 작업 타입은 바로 발행 완료 */}
+                      {order.taskType !== 'blog_review' && order.taskType !== 'receipt_review' && (
+                        <option value="published">발행 완료</option>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -907,8 +968,39 @@ export default function ReviewOrdersManagement() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">대기중</option>
-                      <option value="draft_uploaded">원고 업로드 완료</option>
-                      <option value="published">발행 완료</option>
+                      {/* 블로그 리뷰와 영수증 리뷰만 원고 업로드 가능 */}
+                      {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && (
+                        <>
+                          <option value="draft_uploaded">원고 업로드 완료</option>
+                          {/* draft_uploaded 상태일 때 수정요청 또는 승인완료 가능 */}
+                          {selectedOrder.status === 'draft_uploaded' && (
+                            <>
+                              <option value="revision_requested">원고 수정요청</option>
+                              <option value="client_approved">승인완료</option>
+                            </>
+                          )}
+                          {/* revision_requested 상태일 때 수정완료 가능 */}
+                          {selectedOrder.status === 'revision_requested' && (
+                            <option value="draft_revised">원고 수정완료</option>
+                          )}
+                          {/* draft_revised 상태일 때 승인완료 가능 */}
+                          {selectedOrder.status === 'draft_revised' && (
+                            <option value="client_approved">승인완료</option>
+                          )}
+                          {/* client_approved 상태일 때 발행완료 가능 */}
+                          {selectedOrder.status === 'client_approved' && (
+                            <option value="published">발행 완료</option>
+                          )}
+                          {/* published 상태일 때 롤백 가능 */}
+                          {selectedOrder.status === 'published' && (
+                            <option value="client_approved">승인완료로 되돌리기</option>
+                          )}
+                        </>
+                      )}
+                      {/* 다른 작업 타입은 바로 발행 완료 */}
+                      {selectedOrder.taskType !== 'blog_review' && selectedOrder.taskType !== 'receipt_review' && (
+                        <option value="published">발행 완료</option>
+                      )}
                     </select>
                   </div>
                   {(
