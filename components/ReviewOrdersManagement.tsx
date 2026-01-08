@@ -68,6 +68,8 @@ export default function ReviewOrdersManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]); // 상태 카운트용 전체 주문 목록
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20); // 페이지당 항목 수
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [filters, setFilters] = useState({
@@ -488,6 +490,17 @@ export default function ReviewOrdersManagement() {
     return filtered;
   }, [orders, filters.status]);
 
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // 필터 변경 시 첫 페이지로 리셋
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.status, filters.taskType, filters.clientId, filters.startDate, filters.endDate]);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -503,119 +516,119 @@ export default function ReviewOrdersManagement() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-yellow-700 mb-1">대기중 작업</div>
-                <div className="text-3xl font-bold text-yellow-900">{statusCounts.pending}</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-6">
+          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-3 border-2 border-yellow-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <div className="text-xs font-medium text-yellow-700 mb-1">대기중</div>
+                <div className="text-2xl font-bold text-yellow-900">{statusCounts.pending}</div>
               </div>
-              <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
             <button
               onClick={() => setFilters({ ...filters, status: 'pending' })}
-              className="mt-3 w-full px-3 py-1.5 bg-yellow-200 hover:bg-yellow-300 text-yellow-800 rounded-lg text-sm font-medium transition"
+              className="w-full px-2 py-1 bg-yellow-200 hover:bg-yellow-300 text-yellow-800 rounded text-xs font-medium transition"
             >
-              대기중 작업 보기
+              보기
             </button>
           </div>
-          <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl p-4 border-2 border-cyan-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-cyan-700 mb-1">진행중 작업</div>
-                <div className="text-3xl font-bold text-cyan-900">{statusCounts.working}</div>
+          <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-3 border-2 border-cyan-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <div className="text-xs font-medium text-cyan-700 mb-1">진행중</div>
+                <div className="text-2xl font-bold text-cyan-900">{statusCounts.working}</div>
               </div>
-              <div className="w-12 h-12 bg-cyan-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-cyan-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-cyan-200 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-cyan-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
             </div>
             <button
               onClick={() => setFilters({ ...filters, status: 'working' })}
-              className="mt-3 w-full px-3 py-1.5 bg-cyan-200 hover:bg-cyan-300 text-cyan-800 rounded-lg text-sm font-medium transition"
+              className="w-full px-2 py-1 bg-cyan-200 hover:bg-cyan-300 text-cyan-800 rounded text-xs font-medium transition"
             >
-              진행중 작업 보기
+              보기
             </button>
           </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border-2 border-blue-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-blue-700 mb-1">원고 업로드 완료</div>
-                <div className="text-3xl font-bold text-blue-900">{statusCounts.draft_uploaded}</div>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border-2 border-blue-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <div className="text-xs font-medium text-blue-700 mb-1">원고 업로드</div>
+                <div className="text-2xl font-bold text-blue-900">{statusCounts.draft_uploaded}</div>
               </div>
-              <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
             </div>
             <button
               onClick={() => setFilters({ ...filters, status: 'draft_uploaded' })}
-              className="mt-3 w-full px-3 py-1.5 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg text-sm font-medium transition"
+              className="w-full px-2 py-1 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded text-xs font-medium transition"
             >
-              원고 업로드 완료 보기
+              보기
             </button>
           </div>
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border-2 border-orange-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-orange-700 mb-1">원고 수정요청</div>
-                <div className="text-3xl font-bold text-orange-900">{statusCounts.revision_requested}</div>
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-3 border-2 border-orange-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <div className="text-xs font-medium text-orange-700 mb-1">수정요청</div>
+                <div className="text-2xl font-bold text-orange-900">{statusCounts.revision_requested}</div>
               </div>
-              <div className="w-12 h-12 bg-orange-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </div>
             </div>
             <button
               onClick={() => setFilters({ ...filters, status: 'revision_requested' })}
-              className="mt-3 w-full px-3 py-1.5 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-lg text-sm font-medium transition"
+              className="w-full px-2 py-1 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded text-xs font-medium transition"
             >
-              원고 수정요청 보기
+              보기
             </button>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-purple-700 mb-1">승인완료</div>
-                <div className="text-3xl font-bold text-purple-900">{statusCounts.client_approved}</div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border-2 border-purple-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <div className="text-xs font-medium text-purple-700 mb-1">승인완료</div>
+                <div className="text-2xl font-bold text-purple-900">{statusCounts.client_approved}</div>
               </div>
-              <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
             </div>
             <button
               onClick={() => setFilters({ ...filters, status: 'client_approved' })}
-              className="mt-3 w-full px-3 py-1.5 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-lg text-sm font-medium transition"
+              className="w-full px-2 py-1 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded text-xs font-medium transition"
             >
-              승인완료 보기
+              보기
             </button>
           </div>
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-green-700 mb-1">발행 완료</div>
-                <div className="text-3xl font-bold text-green-900">{statusCounts.published}</div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border-2 border-green-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <div className="text-xs font-medium text-green-700 mb-1">발행완료</div>
+                <div className="text-2xl font-bold text-green-900">{statusCounts.published}</div>
               </div>
-              <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-green-200 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
             <button
               onClick={() => setFilters({ ...filters, status: 'published' })}
-              className="mt-3 w-full px-3 py-1.5 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg text-sm font-medium transition"
+              className="w-full px-2 py-1 bg-green-200 hover:bg-green-300 text-green-800 rounded text-xs font-medium transition"
             >
-              발행 완료 보기
+              보기
             </button>
           </div>
         </div>
@@ -832,8 +845,9 @@ export default function ReviewOrdersManagement() {
             발주 내역이 없습니다.
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredOrders.map((order) => {
+          <>
+            <div className="space-y-4">
+              {paginatedOrders.map((order) => {
               const waitingDays = order.status === 'pending' ? getWaitingDays(order.createdAt) : 0;
               const isPending = order.status === 'pending';
               
@@ -993,6 +1007,8 @@ export default function ReviewOrdersManagement() {
                           alt={`Image ${idx + 1}`}
                           fill
                           className="object-cover"
+                          loading="lazy"
+                          sizes="80px"
                         />
                       </div>
                     ))}
@@ -1006,7 +1022,58 @@ export default function ReviewOrdersManagement() {
               </div>
             );
             })}
-          </div>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  이전
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-2 border rounded-lg text-sm font-medium transition ${
+                          currentPage === pageNum
+                            ? 'bg-primary-600 text-white border-primary-600'
+                            : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  다음
+                </button>
+                <span className="ml-4 text-sm text-gray-600">
+                  {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} / {filteredOrders.length}
+                </span>
+              </div>
+            )}
+          </>
         )}
 
         {/* Order Detail Modal */}
@@ -1251,6 +1318,8 @@ export default function ReviewOrdersManagement() {
                                 alt={`Image ${idx + 1}`}
                                 fill
                                 className="object-cover"
+                                loading="lazy"
+                                sizes="(max-width: 768px) 50vw, 25vw"
                               />
                               <div
                                 className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition ${
