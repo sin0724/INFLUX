@@ -113,11 +113,14 @@ export default function CompletedLinksView() {
         params.append('clientId', selectedClientId);
       }
 
-      const ordersResponse = await fetch(`/api/orders?${params.toString()}`, {
+      // 캐싱 완전히 방지: 타임스탬프 추가
+      const timestamp = Date.now();
+      const ordersResponse = await fetch(`/api/orders?${params.toString()}&_t=${timestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
+          'Expires': '0',
         },
       });
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
