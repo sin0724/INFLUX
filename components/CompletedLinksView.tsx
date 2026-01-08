@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { formatDateTime } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -11,7 +10,6 @@ interface Order {
   id: string;
   taskType: string;
   caption: string | null;
-  imageUrls?: string[];
   completedLink: string | null;
   completedLink2?: string | null; // 내돈내산 리뷰용 두 번째 링크
   reviewerName?: string | null; // 내돈내산 리뷰어 이름
@@ -38,14 +36,6 @@ const TASK_TYPE_NAMES: Record<string, string> = {
   daangn: '당근마켓 후기',
   experience: '체험단',
   myexpense: '내돈내산 리뷰',
-};
-
-const STATUS_NAMES: Record<string, string> = {
-  pending: '대기중',
-  working: '진행중',
-  done: '발행 완료',
-  published: '발행 완료',
-  completed: '완료',
 };
 
 export default function CompletedLinksView() {
@@ -78,10 +68,10 @@ export default function CompletedLinksView() {
   
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20; // 페이지당 표시할 주문 수
+  const itemsPerPage = 20; // 페이지당 표시할 광고주 그룹 수
   
-  // 선택된 주문 상세 모달
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  // 드롭다운 상태 (펼쳐진 광고주 목록)
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   
   // 엑셀 일괄등록 상태
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
@@ -132,32 +122,23 @@ export default function CompletedLinksView() {
       });
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       
-      console.log(`[DEBUG] 관리자 완료된 링크 모아보기 - 전체 주문 개수: ${(ordersData.orders || []).length}`);
-      
-      // 광고주 화면과 동일한 기준: status가 'done' 또는 'published'이고 completedLink가 있는 주문만 표시
+      // 광고주 발주목록과 동일한 기준: status가 'done' 또는 'published'이고 completedLink 또는 completedLink2가 있는 주문만 표시
       const completedOrders = (ordersData.orders || []).filter(
         (order: Order) => {
-          // 완료 상태 확인 (광고주 화면과 동일한 기준)
+          // 완료 상태 확인 (광고주 발주목록과 동일한 기준)
           const isCompletedStatus = order.status === 'done' || order.status === 'published';
-          // 링크가 있는지 확인
+          // 링크가 있는지 확인 (광고주 발주목록과 동일한 기준)
           const hasLink = order.completedLink || (order as any).completedLink2;
-          
-          // 디버깅: 필터링되지 않는 주문 로그
-          if (!isCompletedStatus || !hasLink) {
-            console.log(`[DEBUG] 필터링 제외 - 주문ID: ${order.id}, 상태: ${order.status}, 링크: ${order.completedLink ? '있음' : '없음'}, taskType: ${order.taskType}`);
-          }
           
           return isCompletedStatus && hasLink;
         }
       ).map((order: any) => ({
         ...order,
-        // DB에 저장된 링크를 그대로 표시 (정규화 없이 원본 그대로)
+        // DB에 저장된 링크를 그대로 표시
         completedLink: order.completedLink || null,
         completedLink2: order.completedLink2 || null,
         reviewerName: order.reviewerName || null,
       }));
-      
-      console.log(`[DEBUG] 관리자 완료된 링크 모아보기 - 필터링된 완료 주문 개수: ${completedOrders.length}`);
 
       // 체험단(experience_applications) 조회
       const experienceResponse = await fetch('/api/experience-applications', {
@@ -426,47 +407,6 @@ export default function CompletedLinksView() {
       setSubmittingMyexpense(false);
     }
   };
-
-  // 검색어 및 클라이언트 필터로 필터링
-  const filteredOrders = useMemo(() => {
-    let filtered = orders;
-
-    // 클라이언트 필터 적용
-    if (selectedClientId) {
-      filtered = filtered.filter((order) => order.client?.id === selectedClientId);
-    }
-
-    // 검색어 필터 적용
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((order) => {
-        // 광고주 이름 검색
-        const clientName = order.client?.username?.toLowerCase() || '';
-        const companyName = order.client?.companyName?.toLowerCase() || '';
-        
-        // 작업 종류 검색
-        const taskTypeName = TASK_TYPE_NAMES[order.taskType]?.toLowerCase() || '';
-        
-        // 링크 URL 검색
-        const link = order.completedLink?.toLowerCase() || '';
-        const link2 = (order as any).completedLink2?.toLowerCase() || '';
-        
-        // 작업 정보 검색
-        const caption = order.caption?.toLowerCase() || '';
-        
-        return (
-          clientName.includes(query) ||
-          companyName.includes(query) ||
-          taskTypeName.includes(query) ||
-          link.includes(query) ||
-          link2.includes(query) ||
-          caption.includes(query)
-        );
-      });
-    }
-
-    return filtered;
-  }, [orders, searchQuery, selectedClientId]);
 
   // 완료된 링크를 TXT 파일로 다운로드 (전체 또는 특정 업체)
   const downloadCompletedLinksAsTxt = (clientId?: string) => {
@@ -773,25 +713,94 @@ export default function CompletedLinksView() {
     }
   };
 
-  // 정렬: 최신순으로 정렬
-  const sortedOrders = useMemo(() => {
-    return [...filteredOrders].sort((a, b) => {
-      const aTime = new Date(a.createdAt).getTime();
-      const bTime = new Date(b.createdAt).getTime();
-      return bTime - aTime; // 내림차순 (최신 것 먼저)
-    });
+  // 검색어 및 클라이언트 필터로 필터링
+  const filteredOrders = useMemo(() => {
+    let filtered = orders;
+
+    // 클라이언트 필터 적용
+    if (selectedClientId) {
+      filtered = filtered.filter((order) => order.client?.id === selectedClientId);
+    }
+
+    // 검색어 필터 적용
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((order) => {
+        // 광고주 이름 검색
+        const clientName = order.client?.username?.toLowerCase() || '';
+        const companyName = order.client?.companyName?.toLowerCase() || '';
+        
+        // 작업 종류 검색
+        const taskTypeName = TASK_TYPE_NAMES[order.taskType]?.toLowerCase() || '';
+        
+        // 링크 URL 검색
+        const link = order.completedLink?.toLowerCase() || '';
+        const link2 = (order as any).completedLink2?.toLowerCase() || '';
+        
+        // 작업 정보 검색
+        const caption = order.caption?.toLowerCase() || '';
+        
+        return (
+          clientName.includes(query) ||
+          companyName.includes(query) ||
+          taskTypeName.includes(query) ||
+          link.includes(query) ||
+          link2.includes(query) ||
+          caption.includes(query)
+        );
+      });
+    }
+
+    return filtered;
+  }, [orders, searchQuery, selectedClientId]);
+
+  // 광고주별로 그룹화, 각 광고주 내에서 작업 타입별로 그룹화
+  // 'blog'와 'blog_review', 'receipt'와 'receipt_review'를 통합하여 처리
+  const groupedByClientAndTaskType = useMemo(() => {
+    // taskType을 정규화하는 함수 (blog/blog_review, receipt/receipt_review 통합)
+    const normalizeTaskType = (taskType: string): string => {
+      if (taskType === 'blog' || taskType === 'blog_review') {
+        return 'blog_review'; // 통합된 이름 사용
+      }
+      if (taskType === 'receipt' || taskType === 'receipt_review') {
+        return 'receipt_review'; // 통합된 이름 사용
+      }
+      return taskType;
+    };
+
+    return filteredOrders.reduce((acc, order) => {
+      const clientId = order.client.id;
+      if (!acc[clientId]) {
+        acc[clientId] = {
+          client: order.client,
+          taskTypes: {} as Record<string, Order[]>,
+        };
+      }
+      // 정규화된 taskType 사용
+      const normalizedTaskType = normalizeTaskType(order.taskType);
+      if (!acc[clientId].taskTypes[normalizedTaskType]) {
+        acc[clientId].taskTypes[normalizedTaskType] = [];
+      }
+      acc[clientId].taskTypes[normalizedTaskType].push(order);
+      return acc;
+    }, {} as Record<string, { client: Order['client']; taskTypes: Record<string, Order[]> }>);
   }, [filteredOrders]);
 
-  // 페이지네이션 계산
-  const totalPages = Math.ceil(sortedOrders.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedOrders = sortedOrders.slice(startIndex, endIndex);
-
-  // 필터 변경 시 첫 페이지로 리셋
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedClientId, searchQuery]);
+  const allGroupedOrders = Object.values(groupedByClientAndTaskType);
+  
+  // 페이지네이션: 전체 광고주 필터일 때만 적용
+  const shouldPaginate = !selectedClientId && !searchQuery.trim();
+  const totalPages = shouldPaginate ? Math.ceil(allGroupedOrders.length / itemsPerPage) : 1;
+  
+  // 현재 페이지에 표시할 데이터
+  const groupedOrders = useMemo(() => {
+    if (!shouldPaginate) {
+      return allGroupedOrders;
+    }
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return allGroupedOrders.slice(startIndex, endIndex);
+  }, [allGroupedOrders, currentPage, shouldPaginate, itemsPerPage]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -905,12 +914,12 @@ export default function CompletedLinksView() {
           <div className="flex items-center justify-between mb-4">
             {searchQuery && (
               <div className="text-sm text-gray-600">
-                검색 결과: {sortedOrders.length}개
+                검색 결과: {filteredOrders.length}개
               </div>
             )}
-            {sortedOrders.length > 0 && (
+            {shouldPaginate && allGroupedOrders.length > 0 && (
               <div className="text-sm text-gray-600">
-                전체 {sortedOrders.length}개 중 {startIndex + 1}-{Math.min(endIndex, sortedOrders.length)}번째 표시 (페이지 {currentPage} / {totalPages})
+                전체 {allGroupedOrders.length}개 중 {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, allGroupedOrders.length)}번째 표시 (페이지 {currentPage} / {totalPages})
               </div>
             )}
           </div>
@@ -918,7 +927,7 @@ export default function CompletedLinksView() {
 
         {loading ? (
           <div className="text-center py-12 text-gray-600">로딩 중...</div>
-        ) : sortedOrders.length === 0 ? (
+        ) : groupedOrders.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-600">
               {searchQuery ? '검색 결과가 없습니다.' : '완료된 링크가 없습니다.'}
@@ -933,118 +942,172 @@ export default function CompletedLinksView() {
             )}
           </div>
         ) : (
-          <>
-            {/* 간단한 리스트 형식 (광고주 발주목록과 동일) */}
-            <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
-              {paginatedOrders.map((order) => {
-                return (
+          <div className="space-y-4">
+            {groupedOrders.map((group) => {
+              const isExpanded = expandedClients.has(group.client.id);
+              const totalOrders = Object.values(group.taskTypes).reduce((sum, orders) => sum + orders.length, 0);
+              
+              return (
+                <div
+                  key={group.client.id}
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                >
+                  {/* 드롭다운 헤더 */}
                   <div
-                    key={order.id}
-                    className="p-3 hover:bg-gray-50 transition cursor-pointer"
-                    onClick={() => setSelectedOrder(order)}
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      const newExpanded = new Set(expandedClients);
+                      if (newExpanded.has(group.client.id)) {
+                        newExpanded.delete(group.client.id);
+                      } else {
+                        newExpanded.add(group.client.id);
+                      }
+                      setExpandedClients(newExpanded);
+                    }}
                   >
-                    <div className="flex items-start gap-3">
-                      {order.imageUrls && order.imageUrls.length > 0 && (
-                        <div className="flex-shrink-0">
-                          <div className="w-16 h-16 relative rounded overflow-hidden border border-gray-200 bg-gray-100">
-                            <Image
-                              src={order.imageUrls[0]}
-                              alt="첫 번째 이미지"
-                              fill
-                              className="object-cover"
-                              loading="lazy"
-                              sizes="64px"
-                            />
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-medium">
-                            {TASK_TYPE_NAMES[order.taskType] || order.taskType}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-medium ${
-                              order.status === 'done' || order.status === 'published' || order.status === 'completed'
-                                ? 'bg-green-50 text-green-700'
-                                : 'bg-gray-50 text-gray-700'
-                            }`}
-                          >
-                            {STATUS_NAMES[order.status] || order.status}
-                          </span>
-                          <span className="text-xs text-gray-600">
-                            {order.client?.username || '알 수 없음'}
-                            {order.client?.companyName && (
-                              <span className="text-gray-500 ml-1">
-                                ({order.client.companyName})
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        {/* 펼침/접기 아이콘 */}
+                        <svg
+                          className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'transform rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        
+                        <div className="flex-1">
+                          <h2 className="text-lg font-bold text-gray-900">
+                            {group.client.username}
+                            {group.client.companyName && (
+                              <span className="text-gray-600 ml-2">
+                                ({group.client.companyName})
                               </span>
                             )}
-                          </span>
-                        </div>
-                        {order.caption && (
-                          <div className="text-sm text-gray-700 mb-1 line-clamp-2">
-                            {order.caption.split('\n')[0]}
-                          </div>
-                        )}
-                        {order.completedLink && (
-                          <div className="text-xs text-primary-600 truncate mb-1">
-                            {order.completedLink}
-                          </div>
-                        )}
-                        {order.taskType === 'myexpense' && order.completedLink2 && (
-                          <div className="text-xs text-primary-600 truncate mb-1">
-                            {order.completedLink2}
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-500">
-                          {formatDateTime(order.createdAt)}
+                          </h2>
+                          <p className="text-sm text-gray-500 mt-1">
+                            완료된 작업: {totalOrders}개
+                          </p>
                         </div>
                       </div>
-                      {/* 버튼 영역 - 우측 배치 */}
-                      <div className="flex-shrink-0 flex items-center gap-2">
-                        {order.completedLink && (
-                          <a
-                            href={order.completedLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition whitespace-nowrap"
-                          >
-                            링크 확인
-                          </a>
-                        )}
-                        {order.taskType === 'myexpense' && order.completedLink2 && (
-                          <a
-                            href={order.completedLink2}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition whitespace-nowrap"
-                          >
-                            링크2 확인
-                          </a>
-                        )}
-                        {order.taskType !== 'experience' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteOrder(order.id, order.taskType);
-                            }}
-                            disabled={deletingOrderId === order.id}
-                            className="px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {deletingOrderId === order.id ? '삭제 중...' : '삭제'}
-                          </button>
-                        )}
+                      
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // 헤더 클릭 이벤트와 분리
+                            setSelectedClientForLink(group.client);
+                            setBlogLinks(['']);
+                            setReceiptLinks(['']);
+                            setClientSearchTerm('');
+                            setShowClientDropdown(false);
+                            setShowBlogReceiptModal(true);
+                          }}
+                          className="text-sm px-3 py-1.5 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition"
+                        >
+                          블로그/영수증 링크 추가
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadCompletedLinksAsTxt(group.client.id);
+                          }}
+                          className="text-sm px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          TXT 다운로드
+                        </button>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* 페이지네이션 */}
-            {totalPages > 1 && (
+                  {/* 드롭다운 내용 - 간단한 리스트 형식 */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-200">
+                      <div className="divide-y divide-gray-200">
+                        {Object.entries(group.taskTypes).map(([taskType, orders]) => (
+                          <div key={taskType} className="p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+                                {TASK_TYPE_NAMES[taskType] || taskType}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {orders.length}개
+                              </span>
+                            </div>
+                            <div className="space-y-2 pl-4">
+                              {orders.map((order) => (
+                                <div
+                                  key={order.id}
+                                  className="flex items-center justify-between py-2 hover:bg-gray-50 rounded px-2 -mx-2 group"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    {order.completedLink && (
+                                      <a
+                                        href={order.completedLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-primary-600 hover:text-primary-700 hover:underline break-all"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {order.completedLink}
+                                      </a>
+                                    )}
+                                    {order.taskType === 'myexpense' && order.completedLink2 && (
+                                      <>
+                                        <br />
+                                        <a
+                                          href={order.completedLink2}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-sm text-primary-600 hover:text-primary-700 hover:underline break-all"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {order.completedLink2}
+                                        </a>
+                                      </>
+                                    )}
+                                    {!order.completedLink && !order.completedLink2 && (
+                                      <span className="text-sm text-gray-400">
+                                        링크 없음
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <span className="text-xs text-gray-400 hidden group-hover:inline">
+                                      {formatDateTime(order.createdAt)}
+                                    </span>
+                                    {order.taskType !== 'experience' && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteOrder(order.id, order.taskType);
+                                        }}
+                                        disabled={deletingOrderId === order.id}
+                                        className="text-xs text-red-600 hover:text-red-700 px-2 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {deletingOrderId === order.id ? '삭제 중...' : '삭제'}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 페이지네이션 */}
+        {shouldPaginate && totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-8 mb-4">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -1093,178 +1156,6 @@ export default function CompletedLinksView() {
           </div>
         )}
       </div>
-
-      {/* Order Detail Modal */}
-      {selectedOrder && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedOrder(null)}
-        >
-          <div
-            className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900">
-                  발주 상세
-                </h2>
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="text-gray-400 hover:text-gray-600 text-xl w-8 h-8 flex items-center justify-center"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <div className="text-sm text-gray-600">작업 종류</div>
-                  <div className="font-medium text-gray-900">
-                    {TASK_TYPE_NAMES[selectedOrder.taskType] ||
-                      selectedOrder.taskType}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-600">광고주</div>
-                  <div className="font-medium text-gray-900">
-                    {selectedOrder.client?.username || '알 수 없음'}
-                    {selectedOrder.client?.companyName && (
-                      <span className="text-gray-600 ml-2">
-                        ({selectedOrder.client.companyName})
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-600">상태</div>
-                  <div
-                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                      selectedOrder.status === 'done' || selectedOrder.status === 'published' || selectedOrder.status === 'completed'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    {STATUS_NAMES[selectedOrder.status] || selectedOrder.status}
-                  </div>
-                </div>
-
-                {/* 완료된 링크 표시 */}
-                {selectedOrder.completedLink && (
-                  <div>
-                    <div className="text-sm text-gray-600 mb-2">
-                      {selectedOrder.taskType === 'myexpense' ? '내돈내산 예약자 리뷰' 
-                       : selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review' ? '발행된 리뷰 링크'
-                       : '완료 링크'}
-                    </div>
-                    <a
-                      href={selectedOrder.completedLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center"
-                    >
-                      링크 확인
-                    </a>
-                  </div>
-                )}
-                {selectedOrder.taskType === 'myexpense' && selectedOrder.completedLink2 && (
-                  <div>
-                    <div className="text-sm text-gray-600 mb-2">내돈내산 블로그 리뷰</div>
-                    <a
-                      href={selectedOrder.completedLink2}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center"
-                    >
-                      링크 확인
-                    </a>
-                  </div>
-                )}
-                {selectedOrder.taskType === 'myexpense' && selectedOrder.reviewerName && (
-                  <div>
-                    <div className="text-sm text-gray-600 mb-2">리뷰어 이름</div>
-                    <div className="px-4 py-2 bg-gray-50 text-gray-900 rounded-lg">
-                      {selectedOrder.reviewerName}
-                    </div>
-                  </div>
-                )}
-                {selectedOrder.caption && (
-                  <div>
-                    <div className="text-sm text-gray-600 mb-2">작업 정보</div>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                      {selectedOrder.caption.split('\n').map((line, idx) => (
-                        <div key={idx} className="text-gray-900">
-                          {line.includes(':') ? (
-                            <>
-                              <span className="font-medium">
-                                {line.split(':')[0]}:
-                              </span>
-                              <span className="ml-2">
-                                {line.split(':').slice(1).join(':')}
-                              </span>
-                            </>
-                          ) : (
-                            line
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <div className="text-sm text-gray-600">신청일</div>
-                  <div className="font-medium text-gray-900">
-                    {formatDateTime(selectedOrder.createdAt)}
-                  </div>
-                </div>
-                {selectedOrder.imageUrls &&
-                  selectedOrder.imageUrls.length > 0 && (
-                    <div>
-                      <div className="text-sm text-gray-600 mb-2">
-                        이미지 ({selectedOrder.imageUrls.length}개)
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        {selectedOrder.imageUrls.map((url, idx) => (
-                          <div
-                            key={idx}
-                            className="aspect-square relative rounded-lg overflow-hidden border border-gray-200"
-                          >
-                            <Image
-                              src={url}
-                              alt={`Image ${idx + 1}`}
-                              fill
-                              className="object-cover"
-                              loading="lazy"
-                              sizes="(max-width: 768px) 50vw, 25vw"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                
-                {/* 삭제 버튼 - 체험단 제외 */}
-                {selectedOrder.taskType !== 'experience' && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => {
-                        if (confirm('정말 이 완료된 링크를 삭제하시겠습니까?\n삭제 시 광고주의 할당량이 복구됩니다.')) {
-                          handleDeleteOrder(selectedOrder.id, selectedOrder.taskType);
-                          setSelectedOrder(null);
-                        }
-                      }}
-                      disabled={deletingOrderId === selectedOrder.id}
-                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {deletingOrderId === selectedOrder.id ? '삭제 중...' : '삭제'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 블로그/영수증 리뷰 링크 추가 모달 */}
       {showBlogReceiptModal && (
