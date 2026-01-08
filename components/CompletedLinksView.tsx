@@ -113,7 +113,13 @@ export default function CompletedLinksView() {
         params.append('clientId', selectedClientId);
       }
 
-      const ordersResponse = await fetch(`/api/orders?${params.toString()}`);
+      const ordersResponse = await fetch(`/api/orders?${params.toString()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       const ordersData = ordersResponse.ok ? await ordersResponse.json() : { orders: [] };
       
       console.log(`[DEBUG] 관리자 완료된 링크 모아보기 - 전체 주문 개수: ${(ordersData.orders || []).length}`);
@@ -144,7 +150,13 @@ export default function CompletedLinksView() {
       console.log(`[DEBUG] 관리자 완료된 링크 모아보기 - 필터링된 완료 주문 개수: ${completedOrders.length}`);
 
       // 체험단(experience_applications) 조회
-      const experienceResponse = await fetch('/api/experience-applications');
+      const experienceResponse = await fetch('/api/experience-applications', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       const experienceData = experienceResponse.ok ? await experienceResponse.json() : { applications: [] };
       
       // 체험단: status가 'completed'이고 completedLink가 있는 경우만 표시
@@ -689,6 +701,10 @@ export default function CompletedLinksView() {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'DELETE',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
       });
 
       if (response.ok) {

@@ -131,7 +131,14 @@ export default function ClientOrdersList() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('/api/orders');
+      // 캐싱 방지: 항상 최신 데이터를 가져오도록 설정
+      const response = await fetch('/api/orders', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setOrders(data.orders || []);
@@ -164,10 +171,15 @@ export default function ClientOrdersList() {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'DELETE',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
       });
 
       if (response.ok) {
-        fetchOrders();
+        // 삭제 후 즉시 목록 새로고침
+        await fetchOrders();
         if (selectedOrder?.id === orderId) {
           setSelectedOrder(null);
         }
