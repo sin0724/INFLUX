@@ -361,8 +361,6 @@ export default function ReviewOrdersManagement() {
     setCompletedLink('');
   };
 
-
-
   const downloadImage = async (url: string, filename: string) => {
     try {
       const response = await fetch(url);
