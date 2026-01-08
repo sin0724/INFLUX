@@ -133,18 +133,9 @@ export default function ReviewOrdersManagement() {
   const [publishingOrder, setPublishingOrder] = useState<Order | null>(null);
   const [completedLink, setCompletedLink] = useState('');
   
-  // 일괄 선택 및 삭제 상태
-  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
-  const [isDeleting, setIsDeleting] = useState(false);
-
   useEffect(() => {
     fetchClients();
     fetchOrders();
-  }, [filters]);
-  
-  // 필터 변경 시 선택 초기화
-  useEffect(() => {
-    setSelectedOrderIds(new Set());
   }, [filters]);
 
   const fetchClients = async () => {
@@ -437,10 +428,6 @@ export default function ReviewOrdersManagement() {
         if (selectedOrder?.id === orderId) {
           setSelectedOrder(null);
         }
-        // 선택 목록에서도 제거
-        const newSelected = new Set(selectedOrderIds);
-        newSelected.delete(orderId);
-        setSelectedOrderIds(newSelected);
         alert('발주가 삭제되었습니다.');
       } else {
         const data = await response.json();
@@ -492,67 +479,6 @@ export default function ReviewOrdersManagement() {
 
     return filtered;
   }, [orders, filters.status]);
-
-  // 일괄 삭제
-  const handleBulkDelete = async () => {
-    if (selectedOrderIds.size === 0) {
-      alert('삭제할 발주를 선택해주세요.');
-      return;
-    }
-
-    const count = selectedOrderIds.size;
-    if (!confirm(`선택한 ${count}개의 발주를 삭제하시겠습니까?\n대기중 상태인 경우 작업 개수가 복구됩니다.`)) {
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      const deletePromises = Array.from(selectedOrderIds).map(orderId =>
-        fetch(`/api/orders/${orderId}`, { method: 'DELETE' })
-      );
-
-      const results = await Promise.allSettled(deletePromises);
-      const successCount = results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
-      const failCount = count - successCount;
-
-      if (failCount > 0) {
-        alert(`${successCount}개 삭제 성공, ${failCount}개 삭제 실패`);
-      } else {
-        alert(`${successCount}개의 발주가 삭제되었습니다.`);
-      }
-
-      setSelectedOrderIds(new Set());
-      if (selectedOrder && selectedOrderIds.has(selectedOrder.id)) {
-        setSelectedOrder(null);
-      }
-      fetchOrders();
-    } catch (error) {
-      console.error('Failed to bulk delete orders:', error);
-      alert('일괄 삭제 중 오류가 발생했습니다.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // 전체 선택/해제
-  const handleSelectAll = () => {
-    if (selectedOrderIds.size === filteredOrders.length) {
-      setSelectedOrderIds(new Set());
-    } else {
-      setSelectedOrderIds(new Set(filteredOrders.map(o => o.id)));
-    }
-  };
-
-  // 개별 선택/해제
-  const handleToggleSelect = (orderId: string) => {
-    const newSelected = new Set(selectedOrderIds);
-    if (newSelected.has(orderId)) {
-      newSelected.delete(orderId);
-    } else {
-      newSelected.add(orderId);
-    }
-    setSelectedOrderIds(newSelected);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -817,46 +743,6 @@ export default function ReviewOrdersManagement() {
           </div>
         </div>
 
-        {/* 일괄 삭제 버튼 (발행완료(링크없음) 필터일 때만 표시) */}
-        {filters.status === 'published_no_link' && filteredOrders.length > 0 && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={selectedOrderIds.size === filteredOrders.length && filteredOrders.length > 0}
-                onChange={handleSelectAll}
-                onClick={(e) => e.stopPropagation()}
-                className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
-              />
-              <span className="text-sm text-gray-700">
-                전체 선택 ({selectedOrderIds.size}/{filteredOrders.length})
-              </span>
-            </div>
-            <button
-              onClick={handleBulkDelete}
-              disabled={selectedOrderIds.size === 0 || isDeleting}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isDeleting ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  삭제 중...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  선택한 항목 삭제 ({selectedOrderIds.size}개)
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
         {/* Orders List */}
         {loading ? (
           <div className="text-center py-12 text-gray-600">로딩 중...</div>
@@ -870,7 +756,6 @@ export default function ReviewOrdersManagement() {
               const waitingDays = order.status === 'pending' ? getWaitingDays(order.createdAt) : 0;
               const isPending = order.status === 'pending';
               const isPublishedNoLink = order.status === 'published' && !order.completedLink;
-              const isSelected = selectedOrderIds.has(order.id);
               
               return (
               <div
@@ -881,20 +766,10 @@ export default function ReviewOrdersManagement() {
                     : isPublishedNoLink
                     ? 'bg-red-50 border-red-200'
                     : 'bg-white border-gray-200'
-                } ${isSelected ? 'ring-2 ring-red-500' : ''}`}
+                }`}
                 onClick={() => setSelectedOrder(order)}
               >
                 <div className="flex items-start justify-between gap-3">
-                  {/* 체크박스 (발행완료(링크없음) 필터일 때만 표시) */}
-                  {filters.status === 'published_no_link' && (
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleToggleSelect(order.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="mt-1 w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                    />
-                  )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-medium">
