@@ -183,12 +183,14 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
         }
 
         // 해당 광고주의 기존 링크만 가져오기 (중복 체크용)
+        // blog와 blog_review, receipt와 receipt_review 모두 체크 (같은 링크가 두 가지 taskType으로 들어가는 것 방지)
         // status와 관계없이 completedLink가 있는 모든 주문을 체크
+        const taskTypeGroup = linkType === 'blog' ? ['blog', 'blog_review'] : ['receipt', 'receipt_review'];
         const { data: existingOrders, error: fetchError } = await supabaseAdmin
           .from('orders')
           .select('id, clientId, taskType, status, completedLink')
           .eq('clientId', clientId)
-          .eq('taskType', linkType)
+          .in('taskType', taskTypeGroup)  // blog/blog_review 또는 receipt/receipt_review 모두 체크
           .not('completedLink', 'is', null);  // status 조건 제거: 모든 상태의 링크 체크
 
         if (fetchError) {
@@ -196,8 +198,9 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
         }
 
         // 해당 광고주의 기존 링크들을 정규화된 버전으로 변환하여 Set에 저장
+        // 정규화된 링크 -> 주문 ID 배열 매핑 (같은 정규화된 링크를 가진 여러 주문이 있을 수 있음)
         const normalizedExistingLinks = new Set<string>();
-        const existingLinksMap = new Map<string, string>(); // 정규화된 링크 -> 원본 링크 매핑
+        const normalizedLinksToOrderIds = new Map<string, string[]>(); // 정규화된 링크 -> 주문 ID 배열 매핑
         
         if (existingOrders && existingOrders.length > 0) {
           console.log(`[DEBUG] 광고주 ${clientId} (${client.companyName || client.username})의 기존 ${linkType} 주문 개수: ${existingOrders.length}`);
@@ -206,8 +209,13 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
               const originalLink = String(order.completedLink).trim();
               const normalized = normalizeUrl(originalLink);
               normalizedExistingLinks.add(normalized);
-              existingLinksMap.set(normalized, originalLink);
-              console.log(`[DEBUG] 기존 링크 추가 - 원본: "${originalLink}", 정규화: "${normalized}"`);
+              
+              // 정규화된 링크에 해당하는 주문 ID들을 배열로 저장
+              if (!normalizedLinksToOrderIds.has(normalized)) {
+                normalizedLinksToOrderIds.set(normalized, []);
+              }
+              normalizedLinksToOrderIds.get(normalized)!.push(order.id);
+              console.log(`[DEBUG] 기존 링크 추가 - 주문ID: ${order.id}, 원본: "${originalLink}", 정규화: "${normalized}"`);
             }
           });
         } else {
@@ -236,27 +244,29 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
             
             // 해당 광고주의 기존 링크와 중복 체크
             if (normalizedExistingLinks.has(normalizedLink)) {
-              const matchedOriginalLink = existingLinksMap.get(normalizedLink);
-              console.log(`[DEBUG] ⚠️ 중복 감지! 기존 링크 삭제 후 새로 등록: "${normalizedLink}"`);
+              const duplicateOrderIds = normalizedLinksToOrderIds.get(normalizedLink) || [];
+              console.log(`[DEBUG] ⚠️ 중복 감지! 정규화된 링크: "${normalizedLink}", 중복 주문 ID: [${duplicateOrderIds.join(', ')}]`);
               
-              // 중복된 링크만 정확히 삭제 (중복되지 않은 다른 링크는 유지)
-              const { error: deleteError } = await supabaseAdmin
-                .from('orders')
-                .update({ completedLink: null })
-                .eq('clientId', clientId)
-                .eq('taskType', linkType)
-                .eq('completedLink', matchedOriginalLink); // 정확히 중복된 링크만 삭제
-              
-              if (deleteError) {
-                console.error('[ERROR] Failed to delete existing link:', deleteError);
-                failedLinks.push({
-                  link,
-                  error: `기존 링크 삭제에 실패했습니다: ${deleteError.message}`,
-                });
-                continue;
+              if (duplicateOrderIds.length > 0) {
+                // 정규화된 링크가 일치하는 주문들만 정확히 삭제 (주문 ID로 정확히 매칭)
+                const { error: deleteError } = await supabaseAdmin
+                  .from('orders')
+                  .update({ completedLink: null })
+                  .in('id', duplicateOrderIds); // 정규화된 링크가 일치하는 주문 ID들만 삭제
+                
+                if (deleteError) {
+                  console.error('[ERROR] Failed to delete existing link:', deleteError);
+                  failedLinks.push({
+                    link,
+                    error: `기존 링크 삭제에 실패했습니다: ${deleteError.message}`,
+                  });
+                  continue;
+                }
+                
+                console.log(`[DEBUG] ✅ 기존 링크 삭제 완료 (${duplicateOrderIds.length}개 주문), 새 링크 등록 진행`);
+              } else {
+                console.log(`[DEBUG] ⚠️ 중복 감지되었지만 삭제할 주문 ID를 찾을 수 없음`);
               }
-              
-              console.log(`[DEBUG] ✅ 기존 링크 삭제 완료, 새 링크 등록 진행`);
             } else {
               console.log(`[DEBUG] ✅ 중복 없음, 등록 진행`);
             }

@@ -69,6 +69,20 @@ async function updateOrder(
   }
 
   try {
+    // 현재 주문 정보 가져오기 (taskType과 clientId 확인용)
+    const { data: currentOrder, error: currentOrderError } = await supabase
+      .from('orders')
+      .select('taskType, clientId')
+      .eq('id', orderId)
+      .single();
+
+    if (currentOrderError || !currentOrder) {
+      return NextResponse.json(
+        { error: '주문을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
     const body = await req.json();
     const { 
       status, 
@@ -101,14 +115,28 @@ async function updateOrder(
       const newLink = completedLink || null;
       updateData.completedLink = newLink;
       
-      // 새 링크가 있고, 다른 주문에 중복된 링크가 있으면 삭제
+      // 새 링크가 있고, 같은 클라이언트의 같은 taskType 그룹에서 중복된 링크가 있으면 삭제
       if (newLink && newLink.trim()) {
         const trimmedLink = newLink.trim();
-        // 중복된 링크만 정확히 삭제 (중복되지 않은 다른 링크는 유지)
+        
+        // taskType 그룹 결정 (blog/blog_review, receipt/receipt_review)
+        let taskTypeGroup: string[] = [];
+        if (currentOrder.taskType === 'blog' || currentOrder.taskType === 'blog_review') {
+          taskTypeGroup = ['blog', 'blog_review'];
+        } else if (currentOrder.taskType === 'receipt' || currentOrder.taskType === 'receipt_review') {
+          taskTypeGroup = ['receipt', 'receipt_review'];
+        } else {
+          // 다른 taskType은 그대로 사용
+          taskTypeGroup = [currentOrder.taskType];
+        }
+        
+        // 중복된 링크만 정확히 삭제 (같은 클라이언트, 같은 taskType 그룹에서)
         const { data: existingOrders } = await supabase
           .from('orders')
           .select('id')
           .neq('id', orderId)
+          .eq('clientId', currentOrder.clientId)
+          .in('taskType', taskTypeGroup)
           .eq('completedLink', trimmedLink); // 정확히 중복된 링크만 찾기
         
         if (existingOrders && existingOrders.length > 0) {
@@ -117,6 +145,8 @@ async function updateOrder(
             .from('orders')
             .update({ completedLink: null })
             .neq('id', orderId)
+            .eq('clientId', currentOrder.clientId)
+            .in('taskType', taskTypeGroup)
             .eq('completedLink', trimmedLink); // 정확히 중복된 링크만 삭제
         }
       }
