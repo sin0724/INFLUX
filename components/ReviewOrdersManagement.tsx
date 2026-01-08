@@ -132,7 +132,7 @@ export default function ReviewOrdersManagement() {
   // 발행 완료 모달 상태
   const [publishingOrder, setPublishingOrder] = useState<Order | null>(null);
   const [completedLink, setCompletedLink] = useState('');
-  
+
   useEffect(() => {
     fetchClients();
     fetchOrders();
@@ -186,7 +186,7 @@ export default function ReviewOrdersManagement() {
             o.status === 'published' && !o.completedLink
           );
         } else {
-          filteredOrders = filteredOrders.filter((o: Order) => o.status === filters.status);
+        filteredOrders = filteredOrders.filter((o: Order) => o.status === filters.status);
         }
       }
       
@@ -463,6 +463,7 @@ export default function ReviewOrdersManagement() {
   // 필터링 및 정렬된 주문 목록 (리뷰 발주 전용)
   const filteredOrders = useMemo(() => {
     let filtered = [...orders];
+    const currentStatus = filters.status;
 
     // 정렬: 대기중일 때는 오래된 순(오름차순), 나머지는 최신순(내림차순)
     filtered.sort((a, b) => {
@@ -470,7 +471,7 @@ export default function ReviewOrdersManagement() {
       const bTime = new Date(b.createdAt).getTime();
       
       // 필터링된 상태가 대기중이면 오래된 순
-      if (filters.status === 'pending') {
+      if (currentStatus === 'pending') {
         return aTime - bTime; // 오름차순 (오래된 것 먼저)
       }
       // 그 외에는 최신순
@@ -478,7 +479,7 @@ export default function ReviewOrdersManagement() {
     });
 
     return filtered;
-  }, [orders, filters]);
+  }, [orders, filters.status]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -880,14 +881,14 @@ export default function ReviewOrdersManagement() {
                         삭제
                       </button>
                     )}
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        handleStatusChange(order.id, e.target.value)
-                      }
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    >
+                  <select
+                    value={order.status}
+                    onChange={(e) =>
+                      handleStatusChange(order.id, e.target.value)
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
                     <option value="pending">대기중</option>
                     {/* 블로그 리뷰와 영수증 리뷰 모두 pending -> working */}
                     {(order.taskType === 'blog_review' || order.taskType === 'receipt_review') && order.status === 'pending' && (
@@ -1257,8 +1258,8 @@ export default function ReviewOrdersManagement() {
                           {selectedOrder.imageUrls.map((url, idx) => {
                             const isFeatured = idx === 0 && selectedOrder.taskType === 'blog_review';
                             return (
-                              <div
-                                key={idx}
+                            <div
+                              key={idx}
                                 className={`aspect-square relative rounded-lg overflow-hidden border-2 group cursor-pointer ${
                                   selectedImages.has(idx)
                                     ? 'border-blue-600'
@@ -1266,14 +1267,14 @@ export default function ReviewOrdersManagement() {
                                     ? 'border-primary-500'
                                     : 'border-gray-200'
                                 }`}
-                                onClick={() => toggleImageSelection(idx)}
-                              >
-                                <Image
-                                  src={url}
-                                  alt={`Image ${idx + 1}`}
-                                  fill
-                                  className="object-cover"
-                                />
+                              onClick={() => toggleImageSelection(idx)}
+                            >
+                              <Image
+                                src={url}
+                                alt={`Image ${idx + 1}`}
+                                fill
+                                className="object-cover"
+                              />
                                 {isFeatured && (
                                   <div className="absolute top-2 left-2 bg-primary-500 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 z-10">
                                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -1282,31 +1283,31 @@ export default function ReviewOrdersManagement() {
                                     대표사진
                                   </div>
                                 )}
+                              <div
+                                className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition ${
+                                  selectedImages.has(idx) ? 'bg-opacity-20' : ''
+                                }`}
+                              >
+                                {selectedImages.has(idx) && (
+                                  <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                                    ✓
+                                  </div>
+                                )}
+                              </div>
+                              <div className="absolute top-2 right-2">
                                 <div
-                                  className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition ${
-                                    selectedImages.has(idx) ? 'bg-opacity-20' : ''
+                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                    selectedImages.has(idx)
+                                      ? 'bg-blue-600 border-blue-600'
+                                      : 'bg-white border-gray-400'
                                   }`}
                                 >
                                   {selectedImages.has(idx) && (
-                                    <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                                      ✓
-                                    </div>
+                                    <span className="text-white text-xs">✓</span>
                                   )}
                                 </div>
-                                <div className="absolute top-2 right-2">
-                                  <div
-                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                      selectedImages.has(idx)
-                                        ? 'bg-blue-600 border-blue-600'
-                                        : 'bg-white border-gray-400'
-                                    }`}
-                                  >
-                                    {selectedImages.has(idx) && (
-                                      <span className="text-white text-xs">✓</span>
-                                    )}
-                                  </div>
-                                </div>
                               </div>
+                            </div>
                             );
                           })}
                         </div>

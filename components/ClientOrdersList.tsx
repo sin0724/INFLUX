@@ -143,18 +143,21 @@ export default function ClientOrdersList() {
     }
   };
 
-  // 관리자용 삭제 기능 (발행완료 상태이지만 링크가 없는 작업건만)
+  // 광고주용 삭제 기능
   const handleDeleteOrder = async (orderId: string) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
-    // 발행완료 상태이지만 링크가 없는 경우만 삭제 가능
-    if (order.status !== 'published' || order.completedLink) {
-      alert('발행완료 상태이지만 링크가 없는 작업건만 삭제할 수 있습니다.');
+    // 완료된 작업(링크가 있는 경우)은 삭제 불가
+    const isCompleted = (order.status === 'done' || order.status === 'published') && 
+                        (order.completedLink || (order as any).completedLink2);
+    
+    if (isCompleted) {
+      alert('완료된 작업(링크가 등록된 작업)은 삭제할 수 없습니다.\n완료 링크를 먼저 삭제한 후 다시 시도해주세요.');
       return;
     }
 
-    if (!confirm('정말 이 발주를 삭제하시겠습니까?\n발행완료 상태이지만 링크가 없는 작업건입니다.')) {
+    if (!confirm('정말 이 발주를 삭제하시겠습니까?\n삭제된 발주는 복구할 수 없습니다.')) {
       return;
     }
 
@@ -213,7 +216,7 @@ export default function ClientOrdersList() {
     const normalizeTaskType = (taskType: string): string => {
       if (taskType === 'blog' || taskType === 'blog_review') {
         return 'blog';
-      }
+    }
       if (taskType === 'receipt' || taskType === 'receipt_review') {
         return 'receipt';
       }
@@ -448,7 +451,7 @@ export default function ClientOrdersList() {
                         </div>
                       </div>
                       {/* 버튼 영역 - 우측 배치 */}
-                      <div className="flex-shrink-0 flex items-center">
+                      <div className="flex-shrink-0 flex items-center gap-2">
                         {/* 발행 완료 또는 완료 상태일 때 링크 확인 버튼 (모든 작업 타입) */}
                         {(order.status === 'published' || order.status === 'done') && order.completedLink ? (
                           <a
@@ -472,6 +475,19 @@ export default function ClientOrdersList() {
                             원고 확인
                           </button>
                         ) : null}
+                        {/* 삭제 버튼 - 완료되지 않은 작업만 삭제 가능 */}
+                        {!((order.status === 'done' || order.status === 'published') && 
+                            (order.completedLink || (order as any).completedLink2)) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteOrder(order.id);
+                            }}
+                            className="px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition whitespace-nowrap"
+                          >
+                            삭제
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -721,19 +737,21 @@ export default function ClientOrdersList() {
                       </div>
                     )}
                   
-                  {/* 관리자용 삭제 버튼 (발행완료 상태이지만 링크가 없는 경우만) */}
-                  {userRole === 'admin' || userRole === 'superadmin' ? (
-                    selectedOrder.status === 'published' && !selectedOrder.completedLink && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <button
-                          onClick={() => handleDeleteOrder(selectedOrder.id)}
-                          className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                        >
-                          삭제 (관리자 전용)
-                        </button>
-                      </div>
-                    )
-                  ) : null}
+                  {/* 삭제 버튼 - 완료되지 않은 작업만 삭제 가능 */}
+                  {!((selectedOrder.status === 'done' || selectedOrder.status === 'published') && 
+                      (selectedOrder.completedLink || (selectedOrder as any).completedLink2)) && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => handleDeleteOrder(selectedOrder.id)}
+                        className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                      >
+                        발주 삭제
+                      </button>
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        완료된 작업(링크가 등록된 작업)은 삭제할 수 없습니다.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
