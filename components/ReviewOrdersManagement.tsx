@@ -215,22 +215,29 @@ export default function ReviewOrdersManagement() {
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const order = orders.find(o => o.id === orderId);
     
-    // 원고 업로드 상태로 변경할 때 원고 입력 모달 표시
-    if (newStatus === 'draft_uploaded' && order) {
+    // 영수증 리뷰 신청건: 완료 상태로 변경할 때 링크 입력 모달 표시
+    if (newStatus === 'done' && order && order.taskType === 'receipt_review') {
+      setPublishingOrder(order);
+      setCompletedLink(order.completedLink || '');
+      return;
+    }
+    
+    // 원고 업로드 상태로 변경할 때 원고 입력 모달 표시 (블로그 리뷰 신청건만)
+    if (newStatus === 'draft_uploaded' && order && order.taskType === 'blog_review') {
       setDraftUploadOrder(order);
       setDraftText(order.draftText || '');
       return;
     }
     
-    // 원고 수정 완료 상태로 변경할 때 수정된 원고 입력 모달 표시
-    if (newStatus === 'draft_revised' && order) {
+    // 원고 수정 완료 상태로 변경할 때 수정된 원고 입력 모달 표시 (블로그 리뷰 신청건만)
+    if (newStatus === 'draft_revised' && order && order.taskType === 'blog_review') {
       setRevisionRequestOrder(order);
       setRevisionText(order.revisionText || order.draftText || '');
       return;
     }
     
-    // 발행 완료 상태로 변경할 때 완료 링크 입력 모달 표시
-    if (newStatus === 'published' && order) {
+    // 발행 완료 상태로 변경할 때 완료 링크 입력 모달 표시 (블로그 리뷰 신청건만)
+    if (newStatus === 'published' && order && order.taskType === 'blog_review') {
       setPublishingOrder(order);
       setCompletedLink(order.completedLink || '');
       return;
@@ -316,7 +323,9 @@ export default function ReviewOrdersManagement() {
       return;
     }
     
-    await updateOrderStatus(publishingOrder.id, 'published', completedLink.trim());
+    // 영수증 리뷰 신청건은 'done' 상태로, 블로그 리뷰 신청건은 'published' 상태로 변경
+    const targetStatus = publishingOrder.taskType === 'receipt_review' ? 'done' : 'published';
+    await updateOrderStatus(publishingOrder.id, targetStatus, completedLink.trim());
     setPublishingOrder(null);
     setCompletedLink('');
   };
@@ -453,12 +462,13 @@ export default function ReviewOrdersManagement() {
   // 상태별 개수 계산 (리뷰 발주 전용)
   // 발행완료는 전체 개수, 나머지는 현재 시점에 들어와 있는 작업건 개수 (필터링 무관하게 전체 기준)
   const statusCounts = useMemo(() => {
-    const counts = { pending: 0, working: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
+    const counts = { pending: 0, working: 0, done: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
     
     // 모든 상태는 전체 주문 목록 기준으로 계산 (필터링과 무관)
     allOrders.forEach((order) => {
       if (order.status === 'pending') counts.pending++;
       else if (order.status === 'working') counts.working++;
+      else if (order.status === 'done') counts.done++;
       else if (order.status === 'draft_uploaded') counts.draft_uploaded++;
       else if (order.status === 'revision_requested') counts.revision_requested++;
       else if (order.status === 'draft_revised') counts.draft_revised++;
@@ -962,8 +972,17 @@ export default function ReviewOrdersManagement() {
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">대기중</option>
-                      {/* 블로그 리뷰와 영수증 리뷰만 원고 업로드 가능 */}
-                      {(order.taskType === 'blog_review' || order.taskType === 'receipt_review') && (
+                      {/* 영수증 리뷰 신청건: 대기중 → 진행중 → 완료 (링크 입력) */}
+                      {order.taskType === 'receipt_review' && (
+                        <>
+                          <option value="working">진행중</option>
+                          {order.status === 'working' && (
+                            <option value="done">완료</option>
+                          )}
+                        </>
+                      )}
+                      {/* 블로그 리뷰 신청건: 기존 워크플로우 유지 */}
+                      {order.taskType === 'blog_review' && (
                         <>
                           <option value="working">진행중</option>
                           <option value="draft_uploaded">원고 업로드 완료</option>
@@ -1135,8 +1154,17 @@ export default function ReviewOrdersManagement() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">대기중</option>
-                      {/* 블로그 리뷰와 영수증 리뷰만 원고 업로드 가능 */}
-                      {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') && (
+                      {/* 영수증 리뷰 신청건: 대기중 → 진행중 → 완료 (링크 입력) */}
+                      {selectedOrder.taskType === 'receipt_review' && (
+                        <>
+                          <option value="working">진행중</option>
+                          {selectedOrder.status === 'working' && (
+                            <option value="done">완료</option>
+                          )}
+                        </>
+                      )}
+                      {/* 블로그 리뷰 신청건: 기존 워크플로우 유지 */}
+                      {selectedOrder.taskType === 'blog_review' && (
                         <>
                           <option value="working">진행중</option>
                           <option value="draft_uploaded">원고 업로드 완료</option>
@@ -1542,7 +1570,7 @@ export default function ReviewOrdersManagement() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-900">
-                    발행 완료
+                    {publishingOrder.taskType === 'receipt_review' ? '완료' : '발행 완료'}
                   </h2>
                   <button
                     onClick={() => {
