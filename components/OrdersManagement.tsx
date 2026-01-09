@@ -1156,7 +1156,8 @@ export default function OrdersManagement() {
                           if (line.includes(':')) {
                             const [key, ...valueParts] = line.split(':');
                             const value = valueParts.join(':').trim();
-                            const isPlaceLink = key.trim() === '플레이스 링크' && value && value !== '(미기재)' && (value.startsWith('http://') || value.startsWith('https://'));
+                            // 플레이스 링크, 카페이름, 주소 모두 링크가 있으면 클릭 가능하게 처리
+                            const isLink = value && value !== '(미기재)' && (value.startsWith('http://') || value.startsWith('https://'));
                             
                             return (
                               <div key={idx} className="text-gray-900">
@@ -1164,7 +1165,7 @@ export default function OrdersManagement() {
                                   {key.trim()}:
                                 </span>
                                 <span className="ml-2">
-                                  {isPlaceLink ? (
+                                  {isLink ? (
                                     <a
                                       href={value}
                                       target="_blank"
