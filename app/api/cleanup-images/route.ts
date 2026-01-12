@@ -3,14 +3,14 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 /**
  * 이미지 정리 API
- * 2주(14일) 이상 된 이미지를 Supabase Storage에서 삭제합니다.
+ * 주문 신청일(createdAt) 기준으로 21일 이상 된 주문의 이미지를 Supabase Storage에서 삭제합니다.
  * 
  * 이 API는 외부 Cron 서비스(예: cron-job.org, EasyCron 등)에서
  * 주기적으로 호출하거나, Railway/Vercel의 Cron 기능을 사용할 수 있습니다.
  */
 export async function POST(request: NextRequest) {
   try {
-    // 인증 확인 (선택사항 - 보안을 위해 API 키 추가 권장)
+    // 인증 확인 (보안을 위해 API 키 추가 권장)
     const authHeader = request.headers.get('authorization');
     const expectedToken = process.env.CLEANUP_API_TOKEN;
     
@@ -21,85 +21,86 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 21일 전 날짜 계산
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 14); // 2주(14일) 전
+    cutoffDate.setDate(cutoffDate.getDate() - 21);
 
-    // Storage에서 모든 파일 목록 가져오기
-    const { data: files, error: listError } = await supabaseAdmin.storage
-      .from('order-images')
-      .list('', {
-        limit: 1000,
-        sortBy: { column: 'created_at', order: 'asc' }
-      });
+    // 21일 이상 된 주문 조회 (imageUrls가 있는 주문만)
+    const { data: oldOrders, error: ordersError } = await supabaseAdmin
+      .from('orders')
+      .select('id, imageUrls, "createdAt"')
+      .lt('createdAt', cutoffDate.toISOString())
+      .not('imageUrls', 'is', null);
 
-    if (listError) {
-      console.error('Error listing files:', listError);
+    if (ordersError) {
+      console.error('Error fetching old orders:', ordersError);
       return NextResponse.json(
-        { error: 'Failed to list files', details: listError.message },
+        { error: 'Failed to fetch orders', details: ordersError.message },
         { status: 500 }
       );
     }
 
-    if (!files || files.length === 0) {
+    if (!oldOrders || oldOrders.length === 0) {
       return NextResponse.json({
-        message: 'No files to clean up',
-        deletedCount: 0
+        message: 'No orders to clean up',
+        deletedCount: 0,
+        cutoffDate: cutoffDate.toISOString()
       });
     }
 
-    // 각 사용자 폴더별로 처리
-    const userFolders = new Set<string>();
-    files.forEach(file => {
-      const parts = file.name.split('/');
-      if (parts.length > 1) {
-        userFolders.add(parts[0]);
+    // 모든 이미지 URL 수집
+    const imageUrls = new Set<string>();
+    oldOrders.forEach(order => {
+      if (order.imageUrls && Array.isArray(order.imageUrls)) {
+        order.imageUrls.forEach(url => {
+          if (url && typeof url === 'string') {
+            imageUrls.add(url);
+          }
+        });
       }
     });
 
+    // URL에서 파일 경로 추출 및 삭제
     let deletedCount = 0;
     const errors: string[] = [];
+    const deletedPaths: string[] = [];
 
-    // 각 사용자 폴더의 파일 확인 및 삭제
-    for (const folder of userFolders) {
-      const { data: folderFiles, error: folderError } = await supabaseAdmin.storage
-        .from('order-images')
-        .list(folder, {
-          limit: 1000,
-          sortBy: { column: 'created_at', order: 'asc' }
-        });
-
-      if (folderError) {
-        console.error(`Error listing files in folder ${folder}:`, folderError);
-        continue;
-      }
-
-      if (!folderFiles) continue;
-
-      for (const file of folderFiles) {
-        if (file.created_at) {
-          const fileDate = new Date(file.created_at);
-          
-          // 14일 이상 된 파일 삭제
-          if (fileDate < cutoffDate) {
-            const filePath = `${folder}/${file.name}`;
-            const { error: deleteError } = await supabaseAdmin.storage
-              .from('order-images')
-              .remove([filePath]);
-
-            if (deleteError) {
-              console.error(`Error deleting file ${filePath}:`, deleteError);
-              errors.push(`${filePath}: ${deleteError.message}`);
-            } else {
-              deletedCount++;
-            }
-          }
+    for (const imageUrl of imageUrls) {
+      try {
+        // Supabase Storage URL에서 파일 경로 추출
+        // 예: https://xxx.supabase.co/storage/v1/object/public/order-images/userId/filename.jpg
+        // → userId/filename.jpg
+        const urlMatch = imageUrl.match(/order-images\/(.+)$/);
+        if (!urlMatch) {
+          console.warn(`Could not extract path from URL: ${imageUrl}`);
+          continue;
         }
+
+        const filePath = urlMatch[1];
+        
+        // Storage에서 파일 삭제
+        const { error: deleteError } = await supabaseAdmin.storage
+          .from('order-images')
+          .remove([filePath]);
+
+        if (deleteError) {
+          console.error(`Error deleting file ${filePath}:`, deleteError);
+          errors.push(`${filePath}: ${deleteError.message}`);
+        } else {
+          deletedCount++;
+          deletedPaths.push(filePath);
+        }
+      } catch (error: any) {
+        console.error(`Error processing image ${imageUrl}:`, error);
+        errors.push(`${imageUrl}: ${error.message}`);
       }
     }
 
     return NextResponse.json({
       message: 'Cleanup completed',
       deletedCount,
+      processedOrders: oldOrders.length,
+      totalImages: imageUrls.size,
       errors: errors.length > 0 ? errors : undefined,
       cutoffDate: cutoffDate.toISOString()
     });
