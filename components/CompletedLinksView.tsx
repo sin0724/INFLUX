@@ -1001,35 +1001,6 @@ export default function CompletedLinksView() {
                           </p>
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // 헤더 클릭 이벤트와 분리
-                            setSelectedClientForLink(group.client);
-                            setBlogLinks(['']);
-                            setReceiptLinks(['']);
-                            setClientSearchTerm('');
-                            setShowClientDropdown(false);
-                            setShowBlogReceiptModal(true);
-                          }}
-                          className="text-sm px-3 py-1.5 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition"
-                        >
-                          블로그/영수증 링크 추가
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadCompletedLinksAsTxt(group.client.id);
-                          }}
-                          className="text-sm px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition flex items-center gap-1"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                          TXT 다운로드
-                        </button>
-                      </div>
                     </div>
                   </div>
 
