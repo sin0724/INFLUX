@@ -986,12 +986,12 @@ export default function ReviewOrdersManagement() {
                       className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">대기중</option>
-                      {/* 영수증 리뷰 신청건: 대기중 → 진행중 → 완료 (링크 입력) */}
+                      {/* 영수증 리뷰 신청건: 대기중 → 진행중 → 발행 완료 (링크 입력) */}
                       {order.taskType === 'receipt_review' && (
                         <>
                           <option value="working">진행중</option>
                           {order.status === 'working' && (
-                            <option value="done">완료</option>
+                            <option value="done">발행 완료</option>
                           )}
                         </>
                       )}
@@ -1168,12 +1168,12 @@ export default function ReviewOrdersManagement() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">대기중</option>
-                      {/* 영수증 리뷰 신청건: 대기중 → 진행중 → 완료 (링크 입력) */}
+                      {/* 영수증 리뷰 신청건: 대기중 → 진행중 → 발행 완료 (링크 입력) */}
                       {selectedOrder.taskType === 'receipt_review' && (
                         <>
                           <option value="working">진행중</option>
                           {selectedOrder.status === 'working' && (
-                            <option value="done">완료</option>
+                            <option value="done">발행 완료</option>
                           )}
                         </>
                       )}
