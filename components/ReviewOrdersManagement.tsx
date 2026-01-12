@@ -1281,6 +1281,20 @@ export default function ReviewOrdersManagement() {
                     </div>
                   )}
                   
+                  {/* 원고 표시 (블로그 리뷰 신청만, client_approved 이상 상태) */}
+                  {selectedOrder.taskType === 'blog_review' && 
+                   (selectedOrder.status === 'client_approved' || selectedOrder.status === 'published') &&
+                   (selectedOrder.revisionText || selectedOrder.draftText) && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">원고</div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="text-gray-900 whitespace-pre-wrap">
+                          {selectedOrder.revisionText || selectedOrder.draftText}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {selectedOrder.caption && (
                     <div>
                       <div className="text-sm text-gray-600 mb-2">작업 정보</div>
