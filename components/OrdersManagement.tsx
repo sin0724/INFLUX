@@ -740,7 +740,15 @@ export default function OrdersManagement() {
                   placeholder="광고주 검색 또는 선택..."
                   value={
                     filters.clientId
-                      ? clients.find((c) => c.id === filters.clientId)?.username || clientSearchTerm
+                      ? (() => {
+                          const selectedClient = clients.find((c) => c.id === filters.clientId);
+                          if (selectedClient) {
+                            return selectedClient.companyName 
+                              ? `${selectedClient.username} (${selectedClient.companyName})`
+                              : selectedClient.username;
+                          }
+                          return clientSearchTerm;
+                        })()
                       : clientSearchTerm
                   }
                   onChange={(e) => {
@@ -792,11 +800,12 @@ export default function OrdersManagement() {
                       전체
                     </button>
                     {clients
-                      .filter((client) =>
-                        client.username
-                          .toLowerCase()
-                          .includes(clientSearchTerm.toLowerCase())
-                      )
+                      .filter((client) => {
+                        const searchTerm = clientSearchTerm.toLowerCase();
+                        const username = (client.username || '').toLowerCase();
+                        const companyName = (client.companyName || '').toLowerCase();
+                        return username.includes(searchTerm) || companyName.includes(searchTerm);
+                      })
                       .map((client) => (
                         <button
                           key={client.id}
@@ -813,13 +822,17 @@ export default function OrdersManagement() {
                           }`}
                         >
                           {client.username}
+                          {client.companyName && (
+                            <span className="text-gray-500 ml-2">({client.companyName})</span>
+                          )}
                         </button>
                       ))}
-                    {clients.filter((client) =>
-                      client.username
-                        .toLowerCase()
-                        .includes(clientSearchTerm.toLowerCase())
-                    ).length === 0 && clientSearchTerm && (
+                    {clients.filter((client) => {
+                      const searchTerm = clientSearchTerm.toLowerCase();
+                      const username = (client.username || '').toLowerCase();
+                      const companyName = (client.companyName || '').toLowerCase();
+                      return username.includes(searchTerm) || companyName.includes(searchTerm);
+                    }).length === 0 && clientSearchTerm && (
                       <div className="px-3 py-2 text-gray-500 text-sm text-center">
                         검색 결과가 없습니다
                       </div>
