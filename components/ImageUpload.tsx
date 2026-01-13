@@ -39,6 +39,16 @@ export default function ImageUpload({
       return;
     }
 
+    // 파일 크기 검증 (10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    for (const file of filesToProcess) {
+      if (file.size > maxSize) {
+        setError(`파일 크기는 10MB를 초과할 수 없습니다. (${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        e.target.value = ''; // Reset input
+        return;
+      }
+    }
+
     setUploading(true);
     setError('');
 
