@@ -1836,6 +1836,15 @@ export default function ClientsManagement() {
                               </span>
                             </div>
                           </div>
+                          
+                          {/* 비고 (특이사항) */}
+                          {client.notes && client.notes.trim() && (
+                            <div className="flex items-center min-w-[150px] max-w-[200px]">
+                              <div className="px-2 py-1 bg-red-100 border border-red-300 rounded text-xs text-red-700 font-medium truncate" title={client.notes}>
+                                📌 {client.notes.length > 20 ? `${client.notes.substring(0, 20)}...` : client.notes}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         
                         {/* 펼치기/접기 아이콘 */}
