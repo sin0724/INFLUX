@@ -1264,17 +1264,40 @@ export default function ReviewOrdersManagement() {
                     </div>
                   )}
                   
-                  {/* 원고 표시 (블로그 리뷰 신청만, client_approved 이상 상태) */}
+                  {/* 원고 표시 (블로그 리뷰 신청만, 원고 업로드 완료 이후 모든 상태) */}
                   {selectedOrder.taskType === 'blog_review' && 
-                   (selectedOrder.status === 'client_approved' || selectedOrder.status === 'published') &&
+                   (selectedOrder.status === 'draft_uploaded' || 
+                    selectedOrder.status === 'revision_requested' || 
+                    selectedOrder.status === 'draft_revised' || 
+                    selectedOrder.status === 'client_approved' || 
+                    selectedOrder.status === 'published') &&
                    (selectedOrder.revisionText || selectedOrder.draftText) && (
                     <div>
-                      <div className="text-sm text-gray-600 mb-2">원고</div>
+                      <div className="text-sm text-gray-600 mb-2">
+                        {selectedOrder.status === 'draft_uploaded' && '업로드된 원고'}
+                        {selectedOrder.status === 'revision_requested' && '원고 (수정 요청됨)'}
+                        {selectedOrder.status === 'draft_revised' && '수정된 원고'}
+                        {(selectedOrder.status === 'client_approved' || selectedOrder.status === 'published') && '원고'}
+                      </div>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <div className="text-gray-900 whitespace-pre-wrap">
-                          {selectedOrder.revisionText || selectedOrder.draftText}
+                          {/* draft_revised 이상 상태에서는 revisionText 우선, 없으면 draftText */}
+                          {(selectedOrder.status === 'draft_revised' || 
+                            selectedOrder.status === 'client_approved' || 
+                            selectedOrder.status === 'published') && selectedOrder.revisionText
+                            ? selectedOrder.revisionText
+                            : selectedOrder.draftText}
                         </div>
                       </div>
+                      {/* 수정 요청 내용 표시 (revision_requested 상태일 때) */}
+                      {selectedOrder.status === 'revision_requested' && selectedOrder.revisionRequest && (
+                        <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                          <div className="text-sm font-medium text-yellow-900 mb-2">수정 요청 내용</div>
+                          <div className="text-sm text-yellow-800 whitespace-pre-wrap">
+                            {selectedOrder.revisionRequest}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   
