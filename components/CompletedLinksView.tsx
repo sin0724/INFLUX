@@ -92,11 +92,26 @@ export default function CompletedLinksView() {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('/api/users');
+      // 캐싱 방지를 위해 타임스탬프 추가
+      const timestamp = Date.now();
+      const response = await fetch(`/api/users?_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         const clientList = data.users.filter((u: any) => u.role === 'client');
-        setClients(clientList);
+        // 회사명과 아이디로 정렬
+        const sortedClients = clientList.sort((a: any, b: any) => {
+          const nameA = (a.companyName || a.username || '').toLowerCase();
+          const nameB = (b.companyName || b.username || '').toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+        setClients(sortedClients);
       }
     } catch (error) {
       console.error('Failed to fetch clients:', error);
@@ -830,7 +845,9 @@ export default function CompletedLinksView() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => {
+              onClick={async () => {
+                // 모달 열 때 최신 클라이언트 목록 가져오기
+                await fetchClients();
                 setShowBlogReceiptModal(true);
                 setSelectedClientForLink(null);
                 setBlogLinks(['']);
@@ -853,7 +870,9 @@ export default function CompletedLinksView() {
               엑셀 일괄등록
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
+                // 모달 열 때 최신 클라이언트 목록 가져오기
+                await fetchClients();
                 setShowMyexpenseModal(true);
                 setSelectedClientForMyexpense(null);
                 setMyexpenseCompletedLink('');
@@ -1207,11 +1226,14 @@ export default function CompletedLinksView() {
                   >
                     {clients
                       .filter((client) => {
-                        const searchLower = clientSearchTerm.toLowerCase();
-                        return (
-                          client.username.toLowerCase().includes(searchLower) ||
-                          (client.companyName && client.companyName.toLowerCase().includes(searchLower))
-                        );
+                        if (!clientSearchTerm.trim()) {
+                          return true; // 검색어가 없으면 모든 클라이언트 표시
+                        }
+                        const searchLower = clientSearchTerm.toLowerCase().trim();
+                        const username = (client.username || '').toLowerCase();
+                        const companyName = (client.companyName || '').toLowerCase();
+                        // 아이디, 회사명 모두에서 검색 (부분 일치)
+                        return username.includes(searchLower) || companyName.includes(searchLower);
                       })
                       .map((client) => (
                         <button
@@ -1231,12 +1253,14 @@ export default function CompletedLinksView() {
                         </button>
                       ))}
                     {clients.filter((client) => {
-                      const searchLower = clientSearchTerm.toLowerCase();
-                      return (
-                        client.username.toLowerCase().includes(searchLower) ||
-                        (client.companyName && client.companyName.toLowerCase().includes(searchLower))
-                      );
-                    }).length === 0 && clientSearchTerm && (
+                      if (!clientSearchTerm.trim()) {
+                        return true;
+                      }
+                      const searchLower = clientSearchTerm.toLowerCase().trim();
+                      const username = (client.username || '').toLowerCase();
+                      const companyName = (client.companyName || '').toLowerCase();
+                      return username.includes(searchLower) || companyName.includes(searchLower);
+                    }).length === 0 && clientSearchTerm.trim() && (
                       <div className="px-3 py-2 text-gray-500 text-sm text-center">
                         검색 결과가 없습니다
                       </div>
@@ -1424,11 +1448,14 @@ export default function CompletedLinksView() {
                   >
                     {clients
                       .filter((client) => {
-                        const searchLower = myexpenseClientSearchTerm.toLowerCase();
-                        return (
-                          client.username.toLowerCase().includes(searchLower) ||
-                          (client.companyName && client.companyName.toLowerCase().includes(searchLower))
-                        );
+                        if (!myexpenseClientSearchTerm.trim()) {
+                          return true; // 검색어가 없으면 모든 클라이언트 표시
+                        }
+                        const searchLower = myexpenseClientSearchTerm.toLowerCase().trim();
+                        const username = (client.username || '').toLowerCase();
+                        const companyName = (client.companyName || '').toLowerCase();
+                        // 아이디, 회사명 모두에서 검색 (부분 일치)
+                        return username.includes(searchLower) || companyName.includes(searchLower);
                       })
                       .map((client) => (
                         <button
@@ -1448,12 +1475,14 @@ export default function CompletedLinksView() {
                         </button>
                       ))}
                     {clients.filter((client) => {
-                      const searchLower = myexpenseClientSearchTerm.toLowerCase();
-                      return (
-                        client.username.toLowerCase().includes(searchLower) ||
-                        (client.companyName && client.companyName.toLowerCase().includes(searchLower))
-                      );
-                    }).length === 0 && myexpenseClientSearchTerm && (
+                      if (!myexpenseClientSearchTerm.trim()) {
+                        return true;
+                      }
+                      const searchLower = myexpenseClientSearchTerm.toLowerCase().trim();
+                      const username = (client.username || '').toLowerCase();
+                      const companyName = (client.companyName || '').toLowerCase();
+                      return username.includes(searchLower) || companyName.includes(searchLower);
+                    }).length === 0 && myexpenseClientSearchTerm.trim() && (
                       <div className="px-3 py-2 text-gray-500 text-sm text-center">
                         검색 결과가 없습니다
                       </div>
