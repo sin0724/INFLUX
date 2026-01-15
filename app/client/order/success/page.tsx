@@ -75,11 +75,18 @@ function OrderSuccessContent() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              신청이 완료되었습니다
+              신청이 완료되었습니다!
             </h1>
-            <p className="text-gray-600">
-              작업이 정상적으로 접수되었습니다.
-            </p>
+            {order && order.taskType === 'blog_review' ? (
+              <p className="text-gray-600">
+                원고가 작성이 완료되어 업로드가 완료되면<br />
+                꼭 원고 확인 버튼을 통해 원고 확인 후 승인 부탁드립니다.
+              </p>
+            ) : (
+              <p className="text-gray-600">
+                작업이 정상적으로 접수되었습니다.
+              </p>
+            )}
           </div>
 
           {order && (
@@ -105,6 +112,19 @@ function OrderSuccessContent() {
                     <div className="font-medium text-gray-900">{order.caption}</div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* 블로그 리뷰 신청 시 안내사항 */}
+          {order && order.taskType === 'blog_review' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+              <div className="space-y-2 text-sm text-blue-900">
+                <p className="font-medium">📝 원고 확인 안내</p>
+                <div className="space-y-1 text-blue-800">
+                  <p>• 수정사항이 있으신 경우: 직접수정 또는 수정 요청 주시면 됩니다.</p>
+                  <p>• 수정사항이 없으신 경우: 승인을 꼭 눌러주셔야 원고 발행이 됩니다.</p>
+                </div>
               </div>
             </div>
           )}
@@ -153,7 +173,7 @@ function OrderSuccessContent() {
               onClick={() => router.push('/client/orders')}
               className="flex-1 bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition"
             >
-              발주 목록
+              {order && order.taskType === 'blog_review' ? '원고 확인' : '발주 목록'}
             </button>
           </div>
         </div>
