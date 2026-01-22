@@ -41,8 +41,13 @@ async function getOrders(req: NextRequest, user: any) {
 
   query = query.order('createdAt', { ascending: false });
 
-  // Supabase 기본 제한(1000개)을 초과하여 모든 주문을 가져오도록 범위 확장
-  query = query.range(0, 999999);
+  // 페이지네이션: 기본값 1000개, 필요시 limit 파라미터로 조정 가능
+  const limit = parseInt(searchParams.get('limit') || '1000');
+  const offset = parseInt(searchParams.get('offset') || '0');
+  
+  // 최대 5000개로 제한하여 성능 보호
+  const safeLimit = Math.min(limit, 5000);
+  query = query.range(offset, offset + safeLimit - 1);
 
   const { data, error } = await query;
 

@@ -146,10 +146,8 @@ export default function ReviewOrdersManagement() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // 전체 주문 목록도 함께 가져오기 (상태 카운트용)
-      await fetchAllOrders();
-      
       // 리뷰 발주만 조회 (blog_review, receipt_review)
+      // fetchAllOrders는 초기 로드 시에만 호출되므로 여기서는 제거
       const params = new URLSearchParams();
       
       // 리뷰 상태 필터링 (pending, draft_uploaded, published)
