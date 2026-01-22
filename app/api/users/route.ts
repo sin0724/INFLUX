@@ -24,8 +24,14 @@ async function getUsers(req: NextRequest, user: any) {
     query = query.neq('role', 'superadmin');
   }
 
-  // Supabase 기본 제한(1000개)을 초과하여 모든 사용자를 가져오도록 범위 확장
-  query = query.range(0, 999999);
+  // 페이지네이션: 기본값 1000개, 필요시 limit 파라미터로 조정 가능
+  const { searchParams } = new URL(req.url);
+  const limit = parseInt(searchParams.get('limit') || '1000');
+  const offset = parseInt(searchParams.get('offset') || '0');
+  
+  // 최대 5000개로 제한하여 성능 보호
+  const safeLimit = Math.min(limit, 5000);
+  query = query.range(offset, offset + safeLimit - 1);
 
   const { data, error } = await query;
 
@@ -69,12 +75,14 @@ async function getUsers(req: NextRequest, user: any) {
     let lastOrderDates: Record<string, string | null> = {};
     
     if (clientIds.length > 0) {
+      // 각 클라이언트별 최근 주문만 조회 (성능 최적화)
+      // 각 클라이언트당 최신 1개만 필요하므로 효율적으로 조회
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('clientId, createdAt')
         .in('clientId', clientIds)
         .order('createdAt', { ascending: false })
-        .range(0, 999999);
+        .limit(clientIds.length * 10); // 각 클라이언트당 최대 10개만 조회 (충분함)
 
       if (!ordersError && ordersData) {
         // 각 클라이언트별 최근 주문 날짜 저장
