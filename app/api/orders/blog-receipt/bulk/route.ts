@@ -280,10 +280,10 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
               .from('orders')
               .insert({
                 clientId,
-                taskType: linkType,
+                taskType: linkType === 'blog' ? 'blog_review' : 'receipt_review',
                 caption: linkType === 'blog' ? '블로그 리뷰' : '영수증 리뷰',
                 imageUrls: [],
-                status: 'done',
+                status: 'published',
                 completedLink: trimmedLink,
               })
               .select()

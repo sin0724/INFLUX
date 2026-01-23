@@ -184,10 +184,10 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
             .from('orders')
             .insert({
               clientId,
-              taskType: 'blog',
+              taskType: 'blog_review',
               caption: '블로그 리뷰',
               imageUrls: [],
-              status: 'done',
+              status: 'published',
               completedLink: trimmedLink,
             })
             .select()
@@ -341,10 +341,10 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
             .from('orders')
             .insert({
               clientId,
-              taskType: 'receipt',
+              taskType: 'receipt_review',
               caption: '영수증 리뷰',
               imageUrls: [],
-              status: 'done',
+              status: 'published',
               completedLink: trimmedLink,
             })
             .select()
