@@ -1284,6 +1284,23 @@ export default function OrdersManagement() {
                       </div>
                     </div>
                   )}
+                  {/* 완료 링크 표시 (맘카페, 인기게시물, 파워블로그, 클립, 체험단, 내돈내산 리뷰) */}
+                  {selectedOrder.completedLink && (
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">완료 링크</div>
+                      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <a
+                          href={selectedOrder.completedLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-700 underline break-all"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {selectedOrder.completedLink}
+                        </a>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <div className="text-sm text-gray-600">신청일</div>
                     <div className="font-medium text-gray-900">
