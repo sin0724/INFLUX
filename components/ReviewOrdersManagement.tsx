@@ -11,7 +11,7 @@ interface Order {
   taskType: string;
   caption: string | null;
   imageUrls: string[];
-  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed' | 'draft_uploaded' | 'revision_requested' | 'draft_revised' | 'client_approved' | 'published';
+  status: 'pending' | 'working' | 'done' | 'reviewing' | 'approved' | 'rejected' | 'completed' | 'draft_uploaded' | 'revision_requested' | 'draft_revised' | 'client_approved' | 'deploying' | 'published';
   completedLink?: string | null;
   draftText?: string | null;
   revisionText?: string | null;
@@ -52,6 +52,7 @@ const STATUS_NAMES: Record<string, string> = {
   revision_requested: '원고 수정요청',
   draft_revised: '원고 수정완료',
   client_approved: '승인완료',
+  deploying: '배포중',
   published: '발행 완료',
 };
 
@@ -461,7 +462,7 @@ export default function ReviewOrdersManagement() {
   // 상태별 개수 계산 (리뷰 발주 전용)
   // 발행완료는 전체 개수, 나머지는 현재 시점에 들어와 있는 작업건 개수 (필터링 무관하게 전체 기준)
   const statusCounts = useMemo(() => {
-    const counts = { pending: 0, working: 0, done: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, published: 0 };
+    const counts = { pending: 0, working: 0, done: 0, draft_uploaded: 0, revision_requested: 0, draft_revised: 0, client_approved: 0, deploying: 0, published: 0 };
     
     // 모든 상태는 전체 주문 목록 기준으로 계산 (필터링과 무관)
     allOrders.forEach((order) => {
@@ -472,6 +473,7 @@ export default function ReviewOrdersManagement() {
       else if (order.status === 'revision_requested') counts.revision_requested++;
       else if (order.status === 'draft_revised') counts.draft_revised++;
       else if (order.status === 'client_approved') counts.client_approved++;
+      else if (order.status === 'deploying') counts.deploying++;
       else if (order.status === 'published') counts.published++;
     });
     
@@ -529,7 +531,7 @@ export default function ReviewOrdersManagement() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
           <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-3 border-2 border-yellow-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex-1">
@@ -625,6 +627,25 @@ export default function ReviewOrdersManagement() {
               보기
             </button>
           </div>
+          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-3 border-2 border-indigo-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <div className="text-xs font-medium text-indigo-700 mb-1">배포중</div>
+                <div className="text-2xl font-bold text-indigo-900">{statusCounts.deploying}</div>
+              </div>
+              <div className="w-8 h-8 bg-indigo-200 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters({ ...filters, status: 'deploying' })}
+              className="w-full px-2 py-1 bg-indigo-200 hover:bg-indigo-300 text-indigo-800 rounded text-xs font-medium transition"
+            >
+              보기
+            </button>
+          </div>
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border-2 border-green-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex-1">
@@ -704,6 +725,7 @@ export default function ReviewOrdersManagement() {
                 <option value="revision_requested">원고 수정요청</option>
                 <option value="draft_revised">원고 수정완료</option>
                 <option value="client_approved">승인완료</option>
+                <option value="deploying">배포중</option>
                 <option value="published">발행 완료</option>
               </select>
             </div>
@@ -907,6 +929,8 @@ export default function ReviewOrdersManagement() {
                             ? 'bg-purple-100 text-purple-700'
                             : order.status === 'client_approved'
                             ? 'bg-indigo-100 text-indigo-700'
+                            : order.status === 'deploying'
+                            ? 'bg-indigo-100 text-indigo-700'
                             : order.status === 'published'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-gray-100 text-gray-700'
@@ -1013,9 +1037,16 @@ export default function ReviewOrdersManagement() {
                           {order.status === 'draft_revised' && (
                             <option value="client_approved">승인완료</option>
                           )}
-                          {/* client_approved 상태일 때 발행완료 가능 */}
+                          {/* client_approved 상태일 때 배포중으로 변경 (확인용) */}
                           {order.status === 'client_approved' && (
-                            <option value="published">발행 완료</option>
+                            <option value="deploying">배포중</option>
+                          )}
+                          {/* deploying 상태일 때 발행완료 또는 승인완료로 되돌리기 */}
+                          {order.status === 'deploying' && (
+                            <>
+                              <option value="published">발행 완료</option>
+                              <option value="client_approved">승인완료로 되돌리기</option>
+                            </>
                           )}
                           {/* published 상태일 때 롤백 가능 */}
                           {order.status === 'published' && (
@@ -1178,9 +1209,16 @@ export default function ReviewOrdersManagement() {
                           {selectedOrder.status === 'draft_revised' && (
                             <option value="client_approved">승인완료</option>
                           )}
-                          {/* client_approved 상태일 때 발행완료 가능 */}
+                          {/* client_approved 상태일 때 배포중으로 변경 (확인용) */}
                           {selectedOrder.status === 'client_approved' && (
-                            <option value="published">발행 완료</option>
+                            <option value="deploying">배포중</option>
+                          )}
+                          {/* deploying 상태일 때 발행완료 또는 승인완료로 되돌리기 */}
+                          {selectedOrder.status === 'deploying' && (
+                            <>
+                              <option value="published">발행 완료</option>
+                              <option value="client_approved">승인완료로 되돌리기</option>
+                            </>
                           )}
                           {/* published 상태일 때 롤백 가능 */}
                           {selectedOrder.status === 'published' && (
@@ -1268,6 +1306,7 @@ export default function ReviewOrdersManagement() {
                     selectedOrder.status === 'revision_requested' || 
                     selectedOrder.status === 'draft_revised' || 
                     selectedOrder.status === 'client_approved' || 
+                    selectedOrder.status === 'deploying' || 
                     selectedOrder.status === 'published') &&
                    (selectedOrder.revisionText || selectedOrder.draftText) && (
                     <div>
@@ -1275,13 +1314,14 @@ export default function ReviewOrdersManagement() {
                         {selectedOrder.status === 'draft_uploaded' && '업로드된 원고'}
                         {selectedOrder.status === 'revision_requested' && '원고 (수정 요청됨)'}
                         {selectedOrder.status === 'draft_revised' && '수정된 원고'}
-                        {(selectedOrder.status === 'client_approved' || selectedOrder.status === 'published') && '원고'}
+                        {(selectedOrder.status === 'client_approved' || selectedOrder.status === 'deploying' || selectedOrder.status === 'published') && '원고'}
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <div className="text-gray-900 whitespace-pre-wrap">
                           {/* draft_revised 이상 상태에서는 revisionText 우선, 없으면 draftText */}
                           {(selectedOrder.status === 'draft_revised' || 
                             selectedOrder.status === 'client_approved' || 
+                            selectedOrder.status === 'deploying' || 
                             selectedOrder.status === 'published') && selectedOrder.revisionText
                             ? selectedOrder.revisionText
                             : selectedOrder.draftText}
