@@ -20,6 +20,7 @@ interface Order {
   guideFileUrl?: string | null;
   guideText?: string | null;
   createdAt: string;
+  is_link_only?: boolean; // true = 관리자 링크만 등록(전산 미신청), false/null = 전산 신청 후 완료
   client: {
     id: string;
     username: string;
@@ -938,6 +939,20 @@ export default function ReviewOrdersManagement() {
                       >
                         {STATUS_NAMES[order.status] || order.status}
                       </span>
+                      {/* 블로그/영수증 발행 완료 시 전산 신청 vs 링크만 등록 구분 */}
+                      {(order.taskType === 'blog_review' || order.taskType === 'receipt_review') &&
+                       (order.status === 'published' || order.status === 'done') &&
+                       order.completedLink && (
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            order.is_link_only
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {order.is_link_only ? '링크만 등록' : '전산 신청'}
+                        </span>
+                      )}
                       {isPending && waitingDays > 0 && (
                         <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
                           {waitingDays}일 대기중
@@ -1231,6 +1246,22 @@ export default function ReviewOrdersManagement() {
                         <option value="published">발행 완료</option>
                       )}
                     </select>
+                    {/* 블로그/영수증 발행 완료 시 전산 신청 vs 링크만 등록 구분 */}
+                    {(selectedOrder.taskType === 'blog_review' || selectedOrder.taskType === 'receipt_review') &&
+                     (selectedOrder.status === 'published' || selectedOrder.status === 'done') &&
+                     selectedOrder.completedLink && (
+                      <div className="mt-2">
+                        <span
+                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                            selectedOrder.is_link_only
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {selectedOrder.is_link_only ? '링크만 등록 (전산 미신청)' : '전산 신청'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {(
                     <div className="flex gap-2 pt-4 border-t border-gray-200">

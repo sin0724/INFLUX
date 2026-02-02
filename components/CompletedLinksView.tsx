@@ -15,6 +15,7 @@ interface Order {
   reviewerName?: string | null; // 내돈내산 리뷰어 이름
   status: string;
   createdAt: string;
+  updated_at?: string | null; // 링크 넣은 시각(UPDATE 시 갱신)
   client: {
     id: string;
     username: string;
@@ -505,7 +506,7 @@ export default function CompletedLinksView() {
         content += '  ' + '-'.repeat(76) + '\n';
 
         orders.forEach((order, orderIndex) => {
-          content += `\n    [${orderIndex + 1}] ${formatDateTime(order.createdAt)}\n`;
+          content += `\n    [${orderIndex + 1}] ${formatDateTime((order as any).updated_at || order.createdAt)}\n`;
           
           if (order.caption) {
             const captionLines = order.caption.split('\n').slice(0, 2);
@@ -1075,10 +1076,15 @@ export default function CompletedLinksView() {
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-2 ml-4">
+                                  <div className="flex items-center gap-2 ml-4 flex-wrap">
                                     <span className="text-xs text-gray-400 hidden group-hover:inline">
-                                      {formatDateTime(order.createdAt)}
+                                      {formatDateTime((order as any).updated_at || order.createdAt)}
                                     </span>
+                                    {(order as any).is_link_only && (
+                                      <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                                        링크만 등록
+                                      </span>
+                                    )}
                                     {order.taskType !== 'experience' && (
                                       <button
                                         onClick={(e) => {

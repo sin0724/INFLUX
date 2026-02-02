@@ -153,6 +153,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
               imageUrls: [],
               status: 'published',
               completedLink: trimmedLink,
+              is_link_only: true, // 전산 미신청, 관리자 링크만 등록
             })
             .select()
             .single();
@@ -249,6 +250,7 @@ async function createBlogReceiptLink(req: NextRequest, user: any) {
               imageUrls: [],
               status: 'done',
               completedLink: trimmedLink,
+              is_link_only: true, // 전산 미신청, 관리자 링크만 등록
             })
             .select()
             .single();

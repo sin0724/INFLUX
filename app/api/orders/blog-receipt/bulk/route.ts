@@ -249,6 +249,7 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
               imageUrls: [],
               status: completedStatus,
               completedLink: trimmedLink,
+              is_link_only: true, // 전산 미신청, 관리자 링크만 등록
             });
           if (insertError) {
             failedLinks.push({ link, error: insertError.message || '주문 생성 실패' });
