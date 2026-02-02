@@ -57,8 +57,17 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   useEffect(() => {
-    // Fetch latest user data to get updated quota
+    // Fetch latest user data to get updated quota (링크 추가 등 반영)
     fetchUserData();
+  }, []);
+
+  // 탭 전환 후 돌아왔을 때 쿼터 등 최신 반영 (관리자 링크 추가 후)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchUserData();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
   const fetchAnnouncements = useCallback(async () => {

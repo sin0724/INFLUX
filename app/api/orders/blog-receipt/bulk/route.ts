@@ -282,9 +282,11 @@ async function bulkCreateBlogReceiptLink(req: NextRequest, user: any) {
             (quota.hotpost?.remaining || 0) + (quota.momcafe?.remaining || 0) + (quota.powerblog?.remaining || 0) +
             (quota.clip?.remaining || 0) + (quota.blog?.remaining || 0) + (quota.receipt?.remaining || 0) +
             (quota.daangn?.remaining || 0) + (quota.experience?.remaining || 0) + (quota.myexpense?.remaining || 0);
+          // DB에 반영: 링크 추가로 차감된 쿼터 저장 (광고주 화면 갯수 카운팅 반영)
+          const quotaForDb = JSON.parse(JSON.stringify(quota));
           await supabaseAdmin
             .from('users')
-            .update({ quota, remainingQuota: totalRemaining })
+            .update({ quota: quotaForDb, remainingQuota: totalRemaining })
             .eq('id', clientId);
         }
       } catch (error: any) {

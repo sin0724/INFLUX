@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 
+// 광고주 쿼터 등이 DB에서 갱신된 뒤 항상 최신 값 반환
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const session = await getSession();
 

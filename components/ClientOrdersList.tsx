@@ -112,6 +112,15 @@ export default function ClientOrdersList() {
     fetchUserInfo();
   }, []);
 
+  // 탭 전환 후 돌아왔을 때 목록 새로고침 (관리자가 링크 추가한 건 반영)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchOrders();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
   const fetchUserInfo = async () => {
     try {
       const response = await fetch('/api/auth/me');
