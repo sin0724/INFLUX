@@ -1167,9 +1167,12 @@ export default function CompletedLinksView() {
       {showBlogReceiptModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
               블로그/영수증 리뷰 링크 추가
             </h2>
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+              전산으로 신청하지 않은 광고주 전용입니다. 링크당 새 건으로 등록되며 쿼터가 차감됩니다. 배포중인 건은 <strong>리뷰 발주 내역 관리</strong>에서 별도 완료 처리해주세요.
+            </p>
 
             {/* 광고주 선택 - 검색 가능 */}
             <div className="mb-4">
